@@ -1,6 +1,12 @@
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
+/build/
+/work/
+/data/
+/datasets/
+/artifacts/
+/third_party/
 *.o
 *.a
 *.so
@@ -13,8 +19,3 @@ __pycache__/
 *.lef
 *.lib
 *.db
-/private/
-/original_attachments/
-/raw_data/
-/artifacts/
-/third_party/

@@ -1,0 +1,184 @@
+{
+  "doi": "10.5281/zenodo.8314389",
+  "metadata_url": "https://zenodo.org/records/8314389",
+  "methods_dois": [
+    "10.1109/REDW51883.2020.9325822",
+    "10.1109/TNS.2014.2313742",
+    "10.1109/TNS.2015.2496874"
+  ],
+  "default_subset": [
+    "clust_p29MeV.txt",
+    "clust_p0.9MeV.txt",
+    "clust_Ar1050MeV.txt"
+  ],
+  "files": [
+    {
+      "name": "clust_Ar1050MeV.txt",
+      "md5": "b15aa953e4a10656a674e6bd33a0ca98",
+      "url": "https://zenodo.org/records/8314389/files/clust_Ar1050MeV.txt?download=1",
+      "condition": "Ar1050MeV"
+    },
+    {
+      "name": "clust_Ar548MeV.txt",
+      "md5": "1359b0dee20a4fa1ced21bf6e3a7b700",
+      "url": "https://zenodo.org/records/8314389/files/clust_Ar548MeV.txt?download=1",
+      "condition": "Ar548MeV"
+    },
+    {
+      "name": "clust_C1080MeV.txt",
+      "md5": "299ad56c80bee8cd786bd7aaca850f5a",
+      "url": "https://zenodo.org/records/8314389/files/clust_C1080MeV.txt?download=1",
+      "condition": "C1080MeV"
+    },
+    {
+      "name": "clust_C360MeV.txt",
+      "md5": "9bfb8270cc37323299e16862d3c19e30",
+      "url": "https://zenodo.org/records/8314389/files/clust_C360MeV.txt?download=1",
+      "condition": "C360MeV"
+    },
+    {
+      "name": "clust_C720MeV.txt",
+      "md5": "b390b69b8b4ddbf9a4cd84cea219df71",
+      "url": "https://zenodo.org/records/8314389/files/clust_C720MeV.txt?download=1",
+      "condition": "C720MeV"
+    },
+    {
+      "name": "clust_p0.9MeV.txt",
+      "md5": "10ab9973e182b8aa2d6647d3fb2d451a",
+      "url": "https://zenodo.org/records/8314389/files/clust_p0.9MeV.txt?download=1",
+      "condition": "p0.9MeV"
+    },
+    {
+      "name": "clust_p1.1MeV.txt",
+      "md5": "68b78596d0903c014747c62c606eb851",
+      "url": "https://zenodo.org/records/8314389/files/clust_p1.1MeV.txt?download=1",
+      "condition": "p1.1MeV"
+    },
+    {
+      "name": "clust_p1.5MeV.txt",
+      "md5": "fa049e8ef13a9c5e1e5d2c41353a6e4f",
+      "url": "https://zenodo.org/records/8314389/files/clust_p1.5MeV.txt?download=1",
+      "condition": "p1.5MeV"
+    },
+    {
+      "name": "clust_p124MeV.txt",
+      "md5": "dbf5911333c50a5b6eb366c026208e7c",
+      "url": "https://zenodo.org/records/8314389/files/clust_p124MeV.txt?download=1",
+      "condition": "p124MeV"
+    },
+    {
+      "name": "clust_p164MeV.txt",
+      "md5": "ec1a27f27a6b904557125d3219116a13",
+      "url": "https://zenodo.org/records/8314389/files/clust_p164MeV.txt?download=1",
+      "condition": "p164MeV"
+    },
+    {
+      "name": "clust_p186MeV.txt",
+      "md5": "28614930fc22db2365e07b6a55850a17",
+      "url": "https://zenodo.org/records/8314389/files/clust_p186MeV.txt?download=1",
+      "condition": "p186MeV"
+    },
+    {
+      "name": "clust_p1MeV.txt",
+      "md5": "a0dfb8e032b4102bd00815d800b9a770",
+      "url": "https://zenodo.org/records/8314389/files/clust_p1MeV.txt?download=1",
+      "condition": "p1MeV"
+    },
+    {
+      "name": "clust_p2.5MeV.txt",
+      "md5": "7cee7f8bc1497e3c79d11b2f304d2540",
+      "url": "https://zenodo.org/records/8314389/files/clust_p2.5MeV.txt?download=1",
+      "condition": "p2.5MeV"
+    },
+    {
+      "name": "clust_p29MeV.txt",
+      "md5": "be0a36e3ef587b3fa9fdcf0663aa404e",
+      "url": "https://zenodo.org/records/8314389/files/clust_p29MeV.txt?download=1",
+      "condition": "p29MeV"
+    },
+    {
+      "name": "clust_p3MeV.txt",
+      "md5": "88f4ce176d5a6826f71f37ff32641c0e",
+      "url": "https://zenodo.org/records/8314389/files/clust_p3MeV.txt?download=1",
+      "condition": "p3MeV"
+    },
+    {
+      "name": "clust_p40MeV.txt",
+      "md5": "ff7fe1c5365f6ade8c81680423d68aa3",
+      "url": "https://zenodo.org/records/8314389/files/clust_p40MeV.txt?download=1",
+      "condition": "p40MeV"
+    },
+    {
+      "name": "clust_p4MeV.txt",
+      "md5": "713f0f33a961e143598021c88c5f2de0",
+      "url": "https://zenodo.org/records/8314389/files/clust_p4MeV.txt?download=1",
+      "condition": "p4MeV"
+    },
+    {
+      "name": "clust_p5MeV.txt",
+      "md5": "2bcef85b1a963b2c4da61bf5c5544cce",
+      "url": "https://zenodo.org/records/8314389/files/clust_p5MeV.txt?download=1",
+      "condition": "p5MeV"
+    },
+    {
+      "name": "clust_p80MeV.txt",
+      "md5": "0ce14a24799e0523b8242d0d66d04c96",
+      "url": "https://zenodo.org/records/8314389/files/clust_p80MeV.txt?download=1",
+      "condition": "p80MeV"
+    },
+    {
+      "name": "clust_U142.8GeV.txt",
+      "md5": "e5d15c02b35929ea637a8d46ed183c32",
+      "url": "https://zenodo.org/records/8314389/files/clust_U142.8GeV.txt?download=1",
+      "condition": "U142.8GeV"
+    },
+    {
+      "name": "clust_U190.4GeV.txt",
+      "md5": "8b58a54da164390ef3b863173a75803f",
+      "url": "https://zenodo.org/records/8314389/files/clust_U190.4GeV.txt?download=1",
+      "condition": "U190.4GeV"
+    },
+    {
+      "name": "clust_U35.7GeV.txt",
+      "md5": "cdc56859f2cde4208507902e3e1b8587",
+      "url": "https://zenodo.org/records/8314389/files/clust_U35.7GeV.txt?download=1",
+      "condition": "U35.7GeV"
+    },
+    {
+      "name": "clust_U45.2GeV.txt",
+      "md5": "b608b4e04f597a080c5f1a38ba06fd4c",
+      "url": "https://zenodo.org/records/8314389/files/clust_U45.2GeV.txt?download=1",
+      "condition": "U45.2GeV"
+    },
+    {
+      "name": "clust_U78.5GeV.txt",
+      "md5": "7c883708f041e6dbc41bbe81cbbe560c",
+      "url": "https://zenodo.org/records/8314389/files/clust_U78.5GeV.txt?download=1",
+      "condition": "U78.5GeV"
+    },
+    {
+      "name": "clust_Xe2700MeV.txt",
+      "md5": "6e48b3ff61ce611d56e12feb692340ff",
+      "url": "https://zenodo.org/records/8314389/files/clust_Xe2700MeV.txt?download=1",
+      "condition": "Xe2700MeV"
+    },
+    {
+      "name": "clust_XeLET27.txt",
+      "md5": "5c77e44c49c11780a4f3e4fa7ac1b17e",
+      "url": "https://zenodo.org/records/8314389/files/clust_XeLET27.txt?download=1",
+      "condition": "XeLET27"
+    },
+    {
+      "name": "clust_XeLET42.txt",
+      "md5": "0b880fec1ed829e5b5a57d7099f4ca93",
+      "url": "https://zenodo.org/records/8314389/files/clust_XeLET42.txt?download=1",
+      "condition": "XeLET42"
+    },
+    {
+      "name": "clust_XeLET57.txt",
+      "md5": "18539e6c23fc206ff71fba2ebca2ea3a",
+      "url": "https://zenodo.org/records/8314389/files/clust_XeLET57.txt?download=1",
+      "condition": "XeLET57"
+    }
+  ]
+}

@@ -1,4 +1,0 @@
-#include "role_adapter.hpp"
-#include <iostream>
-using namespace bp;
-int main(int argc,char**argv){auto p=std::string(argv[1])=="N1"?RolePolicy::N1:std::string(argv[1])=="H1"?RolePolicy::H1:std::string(argv[1])=="REV"?RolePolicy::REV:RolePolicy::LEGACY;ContinuationState c;RoleHistoryController h(c,scheme_from(argv[2]),true,p,p==RolePolicy::N1||p==RolePolicy::H1?32:0);std::cout<<"{\"policy\":\""<<argv[1]<<"\",\"scheme\":\""<<argv[2]<<"\",\"base_bits\":65370,\"CPU_total_bits\":"<<h.exposed_bits()<<",\"same_Sstar346\":true,\"additional_sites\":[";bool first=true;for(auto&s:h.additional_sites()){if(!first)std::cout<<',';first=false;std::cout<<"{\"id\":"<<s.id<<",\"structure\":\""<<s.structure<<"\",\"word\":"<<s.word<<",\"bit\":"<<s.bit<<",\"width\":"<<s.width<<",\"replica\":"<<s.replica<<'}';}std::cout<<"]}\n";}

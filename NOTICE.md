@@ -1,7 +1,7 @@
-# Source and recovery notice
+# Third-party notices and external inputs
 
-This repository contains recovered research-code candidates and authored reports. Preserve notices already present in recovered source files. No new blanket license is inferred for recovered or third-party code.
+`tage/backend/` and the gem5 core files under `simulation/gem5/overlay/` derive from gem5. Their original copyright and license notices remain in the source files. The upstream version and commit are recorded in `simulation/gem5/VERSION`.
 
-The upstream gem5 source reference is pinned in `recovery/GEM5_UPSTREAM_BASE.json`. Any recovered derivative retains its applicable upstream notices. Official upstream source used as a reconstruction base is distinct from the deleted modified research source.
+NumPy and SCons are installed separately under their respective licenses. The project does not redistribute SPEC, private course/HW1 distributions, papers, foundry data, or proprietary EDA software. Supply licensed benchmark executables and inputs locally.
 
-Supplied papers, course materials, homework reference files, datasets requiring separate redistribution review, PDK/library data, private session logs, credentials and license files are not part of the public backup. Local private recovery bundles preserve original supplied material with its original notices.
+Public radiation data is obtained separately from its providers. `radiation/datasets.json` contains download locations and provider integrity checks for the CERN cluster collection. Dataset interpretation and source citations are documented in `docs/radiation_models.md`.

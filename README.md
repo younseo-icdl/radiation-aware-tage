@@ -1,24 +1,74 @@
 # Radiation-aware TAGE
 
-ELE548 research on the performance impact of SEUs in TAGE state and the cost of recovery. The required comparisons retain the same selected state under P0, parity/exclude/relearn, SECDED and TMR. Periodic parity and exact direct folding are additional comparisons.
+Research software for studying which TAGE predictor state to protect against single-event upsets, and how protection and repair costs affect CPU performance.
 
-## Recovery status — 2026-11-05
+The project separates **radiation modeling**, **predictor implementations**, and **simulation**. A fault schedule is an external experimental input. A protection controller sees only its implemented parity, syndrome, replicas, and protocol state.
 
-The original experiment workspace was deleted. This repository preserves **partial source recovery from surviving attachments and historical text-edit records**. Recovered files are candidates, not a rebuilt or revalidated copy of the original producer. No prior experiments have been rerun during recovery.
+```text
+radiation/                 Event models, RNG namespaces, public dataset parsers
+tage/
+  include/tage/
+    predictor/             Gshare, plain TAGE, functional protection adapters
+    history/               Logical history access and snapshots
+    protection/            Parity, SECDED, TMR, exclude/relearn policy
+    pipeline/              Finite lookup, source RMW, protection, and control
+    transport/             Payload encoding and metadata protection
+  backend/cpu/pred/         Shared TAGE backend based on pinned gem5
+simulation/
+  cpp/                     Functional branch-trace replay and standalone shims
+  gem5/                    O3 configurations, core overlay, upstream version pin
+  analysis/                Paired-owner A/B/C/D analysis
+  workloads/               Small regression workloads
+tests/                     C++ correctness gates and Python integration tests
+tools/                     Reusable simulator preparation/build commands
+docs/                      Architecture, model assumptions, experiment protocol
+```
 
-- `final_b4/`: curated latest B4 source candidates and their original-path map; start here.
-- `recovered_static/`: historical source candidates assembled from exact patch context, literal file writes and virtual text/copy transformations.
-- `recovered/`: the independent first-pass recovery from patch requests.
-- `recovery/`: file hashes, provenance, unresolved-state summaries and upstream source pin.
-- `results/summaries/b4_eval_logged_summary.csv`: 42 non-P0 aggregate rows recovered from historical output. These are not the missing per-owner raw records.
-- `scripts/`: recovery and backup tools. Recovery scripts do not execute historical build or simulation commands.
+The required baselines are **P0**, **P_ED** (parity with exclude/relearn), **P_ECC** (SECDED), and **P_TMR**, applied to the same selected history state **S*=346 bits**: raw130, path16, and folded200. Periodic parity and exact direct folding are additional finite-model comparisons.
 
-The deleted final ZIP, ELF, complete source lock and all original trial logs have **not** been recovered. Available tool-output hashes are compared in `recovery/HISTORICAL_HASH_COMPARISON.csv`; absence of a hash match is not verification. Absolute include paths and dependencies may need restoration before a future build.
+## Quick start
 
-The original attachments, papers, course/reference files and private recovery evidence are kept in a separate local download bundle. This public repository contains research-code candidates and authored summaries, rather than the private input bundle.
+Use Python 3.10 or newer and a C++17 compiler. All installation and generated files stay under this checkout.
 
-## Historical experiment interpretation
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+make -j4 test PYTHON=.venv/bin/python
+make smoke
+```
 
-The October records reported completion of B4 clean36, development-fault102 and independent-fault408 program runs, with CPU cap4199. This is a historical recorded result, not a new verification after deletion. SOURCE and WHOLE exposure differ; n=8 owner-level evaluation and shared A/C must not be counted as additional independent samples. Benefits measured against common finite P0 do not establish native-relative superiority. C−A=0 in a common stage-fit model does not mean physical protection costs are zero.
+If the default compiler is too old, pass `CXX=/path/to/g++`. On the current server, GCC 11 is available at `/opt/rh/gcc-toolset-11/root/usr/bin/g++`.
 
-No recovery claim establishes RTL/PPA, mission FIT or full CPU safety. See [recovery notes](docs/RECOVERY.ko.md) and [backup workflow](docs/BACKUP_POLICY.ko.md).
+Generate a synthetic branch-exposure schedule and replay it:
+
+```bash
+.venv/bin/python -m radiation --seed 548 --horizon 10000 --rate 0.001 \
+  --scope raw --multiplicity charm --time-unit branches --output work/example/events.txt
+build/tage-sim --demo 10000 --scheme P_ECC --schedule work/example/events.txt
+```
+
+This is a **synthetic functional smoke test**. It does not measure CPU slowdown or establish a physical radiation rate.
+
+For external traces, use `--trace FILE`. Each row contains `pc taken target conditional`, separated by spaces or commas; addresses accept `0x` notation. Events use one-based branch ordinals and `R<raw-age>` or `W<word>:<bit>` sites. Multiple sites separated by semicolons form one atomic XOR event.
+
+## CPU simulation
+
+gem5 is pinned to **v25.1.0.1**. Its source and compiled executable are local build products, not vendored binaries.
+
+```bash
+.venv/bin/python tools/gem5.py prepare
+.venv/bin/python tools/gem5.py build --jobs 8
+make checksum
+build/gem5/build/X86/gem5.opt --outdir=work/checksum-ecc \
+  simulation/gem5/configs/finite.py --binary build/checksum --scheme P_ECC --execute
+```
+
+Use a fresh `--outdir` for every run. `--initialize-only` constructs the model at tick zero without executing the workload. See [build instructions](docs/build.md) for compiler selection, native reference runs, fault schedules, and output validation.
+
+## Reading guide
+
+- [Architecture](docs/architecture.md): implementation boundaries and resource model.
+- [Radiation models](docs/radiation_models.md): distributions, rates, data semantics, and assumptions.
+- [Experiments](docs/experiments.md): selected-state versus whole-state exposure, paired analysis, and correctness requirements.
+
+Keep private benchmark distributions, input traces, papers, raw datasets, and large run outputs outside Git. Shared source and documentation belong in this repository. Documentation and maintained interfaces are in English.
