@@ -31,6 +31,13 @@ class PairedTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             summarize(rows + [rows[0]], bootstrap=100)
 
+    def test_conditions_stay_separate(self):
+        source = [dict(row, condition='SOURCE') for row in self.rows()]
+        whole = [dict(row, condition='WHOLE') for row in self.rows()]
+        result = summarize(source + whole, bootstrap=100)
+        self.assertEqual(len(result), 2)
+        self.assertEqual({row['condition'] for row in result}, {'SOURCE', 'WHOLE'})
+
 
 if __name__ == '__main__':
     unittest.main()

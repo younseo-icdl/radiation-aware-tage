@@ -33,6 +33,8 @@ def options():
         parser.error('native is a clean reference; protection and injection require --model finite')
     if args.representation == 'direct' and args.scheme != 'P0':
         parser.error('exact direct is an additional unprotected representation')
+    if args.representation == 'direct' and args.update_latency != 1:
+        parser.error('the direct source update path is fixed at L=1; use --update-latency 1')
     if args.inspection_interval and args.scheme != 'P_ED':
         parser.error('periodic inspection requires P_ED')
     if not args.binary.is_file():

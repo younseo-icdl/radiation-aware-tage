@@ -4,7 +4,7 @@ The model has four independent choices: **arrival process**, **multiplicity**, *
 
 ## CHARM-informed marks
 
-The selected 6T SRAM experiment in CHARM Table II reports 205 single-bit events and 9 double-bit events. The corresponding profile is
+The selected 6T SRAM experiment in CHARM Table II (first campaign, 65nm mixed field, 1.2V, all-zero initial data, 14,336 observed cells) reports 205 single-bit events and 9 double-bit events. The corresponding profile is
 
 - P(K=1)=205/214.
 - P(K=2)=9/214.

@@ -28,29 +28,37 @@ The finite SimObjects are registered in gem5's predictor SConscript. The backend
 
 ## CPU smoke and fault schedules
 
+After building gem5, run the reusable 14-case O3 regression (nine clean configurations and five fixed-injection checks):
+
+```bash
+make gem5-test PYTHON=.venv/bin/python GEM5_JOBS=8 GEM5_OUTPUT=work/checksum-gate
+```
+
+This checks all four baselines, periodic parity, exact direct, L=2, the early checkpoint variant, source upsets, and head/FIFO/order metadata repair. Every run must match the native checksum and complete finite helper drain. It refuses an existing output directory and terminates a timed-out simulator process group. These are correctness probes, not a scientific performance campaign.
+
 ```bash
 make checksum
 mkdir -p work
 build/checksum > work/native.stdout
-build/gem5/build/X86/gem5.opt --outdir=work/checksum-native \
-  simulation/gem5/configs/finite.py --binary build/checksum --model native --execute
-build/gem5/build/X86/gem5.opt --outdir=work/checksum-ecc \
-  simulation/gem5/configs/finite.py --binary build/checksum --scheme P_ECC --execute
+.venv/bin/python tools/gem5.py run --outdir work/checksum-native -- \
+  --binary build/checksum --model native --execute
+.venv/bin/python tools/gem5.py run --outdir work/checksum-ecc -- \
+  --binary build/checksum --scheme P_ECC --execute
 cmp work/native.stdout work/checksum-native/program.stdout
 cmp work/native.stdout work/checksum-ecc/program.stdout
 ```
 
 The checksum is a freestanding Linux x86-64 program. It prints `checksum: 2bf45f80b1c37877`. It is a regression workload, not SPEC or a representative performance benchmark.
 
-Use `--representation recurrent|direct`, `--query-latency 1|2`, `--update-latency 1|2`, and one of the four schemes. Periodic parity uses `--scheme P_ED --inspection-interval 64`. Direct folding is an additional P0 representation. `--early-unconditional` selects the separate early checkpoint path. The clean `--model native` reference uses the instrumented backend's ordinary timing path; it is not a separate pristine upstream build.
+Use `--representation recurrent|direct`, `--query-latency 1|2`, `--update-latency 1|2`, and one of the four schemes. Periodic parity uses `--scheme P_ED --inspection-interval 64`. Direct folding is an additional P0 representation with source update L=1; the configuration rejects an apparent direct update L=2. `--early-unconditional` selects the separate early checkpoint path. The clean `--model native` reference uses the instrumented backend's ordinary timing path; it is not a separate pristine upstream build.
 
 Generate a cycle-based SOURCE schedule:
 
 ```bash
 .venv/bin/python -m radiation --seed 548 --horizon 1000000 --rate 1e-6 \
   --scope raw --multiplicity charm --time-unit cycles --output work/source/events.txt
-build/gem5/build/X86/gem5.opt --outdir=work/checksum-fault \
-  simulation/gem5/configs/finite.py --binary build/checksum --scheme P_ECC \
+.venv/bin/python tools/gem5.py run --outdir work/checksum-fault -- \
+  --binary build/checksum --scheme P_ECC \
   --schedule work/source/events.txt --execute
 ```
 

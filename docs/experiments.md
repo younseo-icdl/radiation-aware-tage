@@ -58,8 +58,10 @@ example,P_ECC,eval-001,D,105000,PASS
 
 The analysis resamples complete matched owners, reports B-D and its percentile bootstrap interval, and exposes failed/incomplete owners. It provides no confidence interval from a single owner. Complete-PASS intervals are conditional on those owners and do not erase failures. Check any adaptive selection or multiple-comparison claim separately.
 
+Use a separate input file per exposure/resource condition, or add a `condition` column. When present, this column is part of the grouping key, so SOURCE and WHOLE are never pooled by the analysis.
+
 ## Shared experiment artifacts
 
-Use a fresh output namespace containing the exact input choice, command, generated schedule, runtime logical-state manifest, stdout/stderr, stats, and validation status. Runtime manifests define injection targets and are necessary experimental outputs; source-file hash inventories and one-off report generators are not project modules.
+Prepare scientific producers from a fixed Git commit. Use a fresh output namespace containing that commit, the exact input choice, command, generated schedule, runtime logical-state manifest, stdout/stderr, stats, and validation status. Runtime manifests define injection targets and are necessary experimental outputs; source-file hash inventories and one-off report generators are not project modules.
 
 The source tree contains reusable implementations and gates. Put private benchmark inputs and large outputs in ignored local storage. Keep any shareable result table small, with explicit conditions and a command that can reproduce it. An implementation cleanup or checksum smoke does not produce new scientific CPU results for an earlier experiment matrix.

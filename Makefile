@@ -1,4 +1,4 @@
-CXX = g++
+CXX ?= g++
 CPPFLAGS += -Itage/include -Itage/backend -Isimulation/cpp/shims
 CXXFLAGS ?= -O2 -std=c++17 -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -Wno-misleading-indentation
 BUILD := build
@@ -27,9 +27,16 @@ smoke: all
 clean:
 	rm -rf $(BUILD)/tests $(BUILD)/tage-sim $(BACKEND)
 
-CC = gcc
+CC ?= gcc
 $(BUILD)/checksum: simulation/workloads/checksum.c | $(BUILD)
 	$(CC) -O2 -std=c11 -ffreestanding -fno-stack-protector -mstackrealign -nostdlib -static -no-pie -fno-pie -Wl,-e,_start $< -o $@
 .PHONY: checksum
 checksum: $(BUILD)/checksum
 	$(BUILD)/checksum
+
+GEM5_TREE ?= build/gem5
+GEM5_OUTPUT ?= work/gem5-checksum
+GEM5_JOBS ?= 4
+.PHONY: gem5-test
+gem5-test: $(BUILD)/checksum
+	$(PYTHON) tests/gem5/checksum.py --tree $(GEM5_TREE) --output $(GEM5_OUTPUT) --jobs $(GEM5_JOBS)

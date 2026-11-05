@@ -29,8 +29,14 @@ std::vector<Event> read_events(const std::string &path, const bp::TageAccess &co
     auto words = core.history_words();
     while (std::getline(in, line)) {
         if (line.empty() || line[0] == '#') {
-            if (line.find("time_unit=cycles") != std::string::npos)
-                throw std::invalid_argument("C++ replay requires branch exposure, not CPU cycles");
+            auto unit_position = line.find("time_unit=");
+            if (unit_position != std::string::npos) {
+                std::istringstream header(line.substr(unit_position));
+                std::string unit;
+                header >> unit;
+                if (unit != "time_unit=branches")
+                    throw std::invalid_argument("C++ replay requires branch exposure units");
+            }
             continue;
         }
         std::istringstream row(line);

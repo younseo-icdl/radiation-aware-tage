@@ -13,7 +13,7 @@ def summarize(rows, seed=548, bootstrap=10000):
         raise ValueError('use at least 100 bootstrap resamples')
     groups = defaultdict(dict)
     for row in rows:
-        key = row['program'], row['candidate']
+        key = row['program'], row['candidate'], row.get('condition', 'unspecified')
         owner, cell = row['owner'], row['cell']
         if cell not in 'ABCD' or len(cell) != 1:
             raise ValueError('cell must be A, B, C, or D')
@@ -26,11 +26,11 @@ def summarize(rows, seed=548, bootstrap=10000):
             raise ValueError('PASS cycles must be finite and positive')
         cells[cell] = (status, value)
     output = []
-    for (program, candidate), owners in sorted(groups.items()):
+    for (program, candidate, condition), owners in sorted(groups.items()):
         failures = Counter(status for cells in owners.values() for status, _ in cells.values() if status != 'PASS')
         complete = [cells for _, cells in sorted(owners.items())
                     if set(cells) == set('ABCD') and all(c[0] == 'PASS' for c in cells.values())]
-        record = {'program': program, 'candidate': candidate, 'owners': len(owners),
+        record = {'program': program, 'candidate': candidate, 'condition': condition, 'owners': len(owners),
                   'complete_pass_pairs': len(complete), 'excluded_owners': len(owners) - len(complete),
                   'failed_cells_by_status': dict(failures),
                   'incomplete_owners': sum(set(cells) != set('ABCD') for cells in owners.values())}

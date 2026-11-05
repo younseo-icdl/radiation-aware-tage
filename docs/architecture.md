@@ -41,7 +41,7 @@ Periodic parity checks every 64 eligible history operations. Exact direct foldin
 
 `pipeline/service.hpp` owns authoritative source storage, finite command/read/response/acknowledgment queues, source versions, ID/epoch state, and source-head handling. `pipeline/lookup_port.hpp` adds four token-bound provider contexts. `pipeline/controller.hpp` connects ingress, service, lookup, retirement, and squash handling. `transport/` supplies response payload and mirrored SECDED metadata encoding.
 
-The source query and source update latencies are separately declared as L=1 or L=2. Their nominal initiation interval is II=1. A lookup also crosses an actual provider stage. Operand sampling and publication occur in the implemented stage order. Same-source dependencies and ordered publication can reduce achieved throughput even when independent requests reach one per cycle.
+The recurrent source query and source update latencies are separately declared as L=1 or L=2. Exact direct supports query L=1/2 and a fixed source update L=1. Their nominal initiation interval is II=1. A lookup also crosses an actual provider stage. Operand sampling and publication occur in the implemented stage order. Same-source dependencies and ordered publication can reduce achieved throughput even when independent requests reach one per cycle.
 
 The model includes a vector protection check stage, encode/publication staging, and one decoded repair holding slot. The common P0 finite reference traverses matched no-op stages. Consequently, a small or zero protected-minus-P0 clean cycle difference does not imply zero hardware protection cost. Stage fit and port capacity are software assumptions, not measured RTL timing.
 

@@ -28,7 +28,7 @@ The required baselines are **P0**, **P_ED** (parity with exclude/relearn), **P_E
 
 ## Quick start
 
-Use Python 3.10 or newer and a C++17 compiler. All installation and generated files stay under this checkout.
+Use Python 3.10 or newer and a C++17 compiler. Run commands from the repository root. All installation and generated files stay under this checkout.
 
 ```bash
 python3 -m venv .venv
@@ -59,8 +59,8 @@ gem5 is pinned to **v25.1.0.1**. Its source and compiled executable are local bu
 .venv/bin/python tools/gem5.py prepare
 .venv/bin/python tools/gem5.py build --jobs 8
 make checksum
-build/gem5/build/X86/gem5.opt --outdir=work/checksum-ecc \
-  simulation/gem5/configs/finite.py --binary build/checksum --scheme P_ECC --execute
+.venv/bin/python tools/gem5.py run --outdir work/checksum-ecc -- \
+  --binary build/checksum --scheme P_ECC --execute
 ```
 
 Use a fresh `--outdir` for every run. `--initialize-only` constructs the model at tick zero without executing the workload. See [build instructions](docs/build.md) for compiler selection, native reference runs, fault schedules, and output validation.

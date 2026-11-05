@@ -45,7 +45,7 @@ class ReplayTests(unittest.TestCase):
 
     def test_bad_schedule_rejected_before_replay(self):
         for content in ('1 R0\n2 R1;R1\n', '1 R130\n', '1 W23:0\n',
-                        '# time_unit=cycles\n500 R0\n', '1 R1;\n'):
+                        '# time_unit=cycles\n500 R0\n', '# time_unit=ticks\n500 R0\n', '1 R1;\n'):
             with tempfile.TemporaryDirectory() as directory:
                 path = Path(directory) / 'schedule.txt'
                 path.write_text(content)
