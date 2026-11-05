@@ -1,0 +1,97 @@
+{
+  "pin": "c8222cc67a399bfc01e8658dd14b30d5bfd634f9",
+  "files": [
+    {
+      "path": "src/cpu/pred/tage_base.cc",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/pred/tage_base.cc",
+      "bytes": 30189,
+      "sha256": "c2f9da01a467f3b5a34d267c4dd9fa56975ce8dae182921ca9d7b996268d9348",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/pred/tage_base.hh",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/pred/tage_base.hh",
+      "bytes": 19059,
+      "sha256": "491740aea3922df0197f28218e3c1b429424d12fd61ce04dc828fbb2cf9206fa",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/pred/bpred_unit.cc",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/pred/bpred_unit.cc",
+      "bytes": 27903,
+      "sha256": "f682223331bd1f5eda3ffbd4da817f9b080564e7b05ee649910e653f298767e2",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/pred/bpred_unit.hh",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/pred/bpred_unit.hh",
+      "bytes": 19261,
+      "sha256": "663ec7c3ce9b262c8bc62a3bb2d57b4bcb82c2dd120d1aba80b908466de55476",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/pred/BranchPredictor.py",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/pred/BranchPredictor.py",
+      "bytes": 37360,
+      "sha256": "33e39b7c4edbac40613e6a23aec96718eb4f551aaac824a03106ccec053b8fda",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/pred/SConscript",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/pred/SConscript",
+      "bytes": 4159,
+      "sha256": "1ba26081f02b17a910c01324a1fe002c1b2c01de89c17f2f06ad50592a0678f4",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/o3/cpu.cc",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/o3/cpu.cc",
+      "bytes": 41508,
+      "sha256": "a999b2a102716d088958c6aaa524b1a33f6409b94698eb833f929a152a8f7595",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/o3/cpu.hh",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/o3/cpu.hh",
+      "bytes": 19075,
+      "sha256": "7aacc7a3c789e312a646b486ac27ed1515580dc15ea90ff52104835fb94a6066",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/o3/commit.cc",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/o3/commit.cc",
+      "bytes": 50487,
+      "sha256": "154f663880e367f4a3dcd1f13e209823d20399df4dcd569e8d3e02b3b43d38ca",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/o3/commit.hh",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/o3/commit.hh",
+      "bytes": 17511,
+      "sha256": "f1bbc67876ab3730c4f5b4c8af11ad1e90ec79ff613ce94877a1b9264a08d762",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/o3/fetch.cc",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/o3/fetch.cc",
+      "bytes": 54929,
+      "sha256": "a3540bfe0e18f637718a1d223dd56a7f0255ac3411c08c0714f9fe6e6429944a",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/o3/fetch.hh",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/o3/fetch.hh",
+      "bytes": 18642,
+      "sha256": "0c4506534d3bc3950b4cfe5561e55bca2eb3b5d6422d818b73abdbe087050537",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    },
+    {
+      "path": "src/cpu/o3/dyn_inst.hh",
+      "url": "https://raw.githubusercontent.com/gem5/gem5/c8222cc67a399bfc01e8658dd14b30d5bfd634f9/src/cpu/o3/dyn_inst.hh",
+      "bytes": 39847,
+      "sha256": "c65a8d66b93f25a75011d73993f186edff6d2d7af9a5705a0b73a6247dbed731",
+      "status": "FETCHED_OFFICIAL_PINNED_SOURCE"
+    }
+  ],
+  "purpose": "upstream source seeds for static recovery; no builds or simulations"
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "purpose": "resolve observed preflight warmup sensitivity before interpreting main state rankings",
+  "preregistered_before_main_results_inspection": true,
+  "selection_of_workloads": "all design traces flagged by preflight 400k vs 500k clean MPKI criterion",
+  "alternate_warmup_conditional_branches": 400000,
+  "primary_warmup_conditional_branches": 500000,
+  "model": "M0",
+  "trials_per_workload_field": 100,
+  "seed_base": 35480000,
+  "matching": "same events/positions/100k observation horizon as primary 500k campaign; paired clean twins per warmup",
+  "scope_rule": "scope still selected once from locked primary full-prefix M0; alternate warmup is reported sensitivity, no favorable stopping or trace removal",
+  "holdout_performance_evaluated": false
+}

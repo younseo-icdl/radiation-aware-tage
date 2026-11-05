@@ -1,0 +1,13 @@
+# Sampling/encoder 경계 — 새 C++ 제어 주입 관측
+
+IMPLEMENTED/TESTED RESULT: TIMING_BOUNDARY_AUDIT_A1.json의synthetic C++6 sampling+4 encoderphase사례이며새gem5/실workload성능결과는0이다. Production B2 source/config/ELF를수정하지않았다. Golden값은테스트검증에만썼으며production controller에는전달하지않았다.
+
+P0의source RMW가oldoperand를등록한뒤primary rawbit에1SEU를넣으면fullvector writeback이그fault를덮었다. 같은bit를sample전에넣거나등록된decoder input의rawbit에넣으면P0에서는source에남았다. ECC decoder input의단일bit는기존check로정정됐다. Source-only와추가latch까지공격하는WHOLE이같은실험이아닌이유다.
+
+Source가건강한상태에서실제encoder input phase3의fold operand1bit를뒤집었다. ECC는잘못된check를만든뒤다음decoder가건강했던sourceword를잘못된값으로바꿨다. TMR은같은손상된encoder operand가두replica에전파돼후속vote가source를잘못된값으로바꿨다. 두방법의`corrected`counter는1이었지만golden source복구는아니었다. Parity는이경계에서detect/reset했고P0의no-opencoder는source를바꾸지않았다.
+
+이것은기존codec의S*346단일source-SBU정정시험을반박하지않는다. 새파이프라인의uncodedencoderoperand는추가storage이고WHOLEmanifest에서공격한다. 모든predictorbit완전복구를달성했다고해석하지않는다. CPU손실크기는전체campaign의실제A/B/C/D로판단해야하며이제어fixture숫자를실workload숫자로복사하지않는다.
+
+ASSUMPTION/범위: 현재fullvector register source와sampling/writeback contract에서의결과다. 실제physicalSRAM/PDK/layout/cross-section증거가아니다. Metadata SBU37392는모든추가payloadbit의correctability를뜻하지않는다. WHOLE에서원래rawring의active130과retention1000을나누려면주입당actualhead가필요한데현재CSV는rawhead를로그하지않으므로numericphysicalID만으로둘을인과분류하지않는다. SourceRage와SSTARWordalias의active범위는알수있다.
+
+NEXT: Full paired workload평가에서실제phase/field노출과성능·실패를보되source-only이득을전체storage보호효과로일반화하지않는다. Encoder latch보호/재시도등의추가구조가유리하다고가정하지않으며현재동결producer나실행을바꾸지않는다.
