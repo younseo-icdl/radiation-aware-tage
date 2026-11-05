@@ -13,6 +13,10 @@ for n in names:
    execution.append(dict(report=n,output=t['output'],producer=t['producer_binary_sha256'],cycles=t['cycles'],instructions=t['instructions'],oracle=t.get('oracle',False)))
   elif t.get('CSV_sha256'):assert sha(ROOT/(t['output']+'.csv'))==t['CSV_sha256']
  checks.append(dict(report=n,status=x['status'],actual_completed=x['completed'],sha256=sha(p)))
+first=json.loads((OUT/'reports/C_CPU_GATE_FAILED_V1.json').read_text())
+for t in first['tasks']:
+ for f,h in t['hashes'].items():assert sha(ROOT/t['output']/f)==h,('FAILED_GATE_ARTIFACT_CHANGED',t['output'],f)
+ failures.append(dict(report='C_CPU_GATE_FAILED_V1',label=t['label'],status=t['status'],failure=first['reason']))
 snapshot=json.loads((OUT/'BASELINE_SNAPSHOT.json').read_text())
 for p,h in snapshot['old_files'].items():assert sha(ROOT/p)==h,('OLD_WORK_CHANGED',p)
 for label in ['A','B','C']:
@@ -30,6 +34,6 @@ for n in ['CPU_EVALUATION','B_WHOLE_EVALUATION','B_SPARSE']:
  for t in x['tasks']:
   assert t['producer_binary_sha256']==producer['binary_sha256'] and t['config_sha256']==producer['config_sha256']
   assert not t.get('oracle'),('ORACLE_IN_EVALUATION',n,t['label'])
-write(OUT/'reports/G7_AUDIT.json',dict(status='PASS',old_files_preserved=len(snapshot['old_files']),actual_reports=checks,actual_CPU_runs=len(execution),oracle_CPU_runs=sum(t['oracle'] for t in execution),retained_failures=failures,source_and_transport_hashes_verified=True,pinned_plain_TAGE_algorithm_verified=True,recorded_host_core_hours=used_cpu()/3600,checkpoint_core_hours=32))
+write(OUT/'reports/G7_AUDIT.json',dict(status='PASS',old_files_preserved=len(snapshot['old_files']),actual_reports=checks,actual_CPU_runs=len(execution)+first['actually_started'],valid_CPU_runs=len(execution),failed_initial_C_gate_runs=first['actually_started'],oracle_CPU_runs=sum(t['oracle'] for t in execution),retained_failures=failures,source_and_transport_hashes_verified=True,pinned_plain_TAGE_algorithm_verified=True,recorded_host_core_hours=used_cpu()/3600,checkpoint_core_hours=32))
 write(OUT/'reports/software.lock.json',dict(status='GATES_AND_RAW_OUTPUTS_AUDITED',baseline_commit=snapshot['commit'],implementation_commit=subprocess.check_output(['git','rev-parse','719cc5aa'],text=True).strip(),branch=subprocess.check_output(['git','branch','--show-current'],text=True).strip(),gem5_pin='c8222cc67a399bfc01e8658dd14b30d5bfd634f9',tag='v25.1.0.1',final_producer=producer,source_locks={n:sha(OUT/f'configs/source_{n}.lock.json') for n in ['A','B','C']},platform=platform.platform(),python=platform.python_version(),scope_sha256=sha(ROOT/'sources/protection_scope.lock.json'),inputs={n:sha(OUT/f'configs/{n}_inputs.lock.json') for n in ['design','evaluation']},old_outputs_modified=False,physical_tools_used=False,TCAD_used=False,metric_units='simulated cycles/instructions/IPC, actual GNU host CPU seconds, logical encoded cells; no measured PPA/FIT',audit_sha256=sha(OUT/'reports/G7_AUDIT.json')))
 print('G7 PASS preserved',len(snapshot['old_files']),'old files;',len(execution),'actual CPU runs;',len(failures),'retained failures')

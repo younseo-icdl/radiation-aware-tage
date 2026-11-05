@@ -29,12 +29,6 @@ def audit():
             for key in ('input', 'program_binary', 'expected_stdout', 'payload'):
                 if key in item:
                     assert r.sha(item[key]['path']) == item[key]['sha256'], ('INPUT_DRIFT', cohort, item['program'], key)
-    if (K / 'reports/DEV_CLEAN_COMPLETED.json').exists() and (ROOT / 'reports/NATIVE_REFERENCE6.json').exists() and r.load(ROOT / 'reports/NATIVE_REFERENCE6.json')['status'] == 'PASS' and not (K / 'reports/NATIVE_B4_SYSTEM_CONFIG_GATE.json').exists():
-        import native_config_gate_b4
-        native_config_gate_b4.gate()
-    if (K / 'reports/EVAL_CLEAN_COMPLETED.json').exists() and (ROOT / 'reports/NATIVE_REFERENCE6.json').exists() and r.load(ROOT / 'reports/NATIVE_REFERENCE6.json')['status'] == 'PASS' and not (K / 'reports/NATIVE_B4_EVAL_SYSTEM_CONFIG_GATE.json').exists():
-        import native_config_gate_b4
-        native_config_gate_b4.gate('EVAL')
     complete = (K / 'reports/FINITE_MATRIX_COMPLETED.json').exists()
     if complete:
         for name, count in (('DEV_CLEAN', 18), ('DEV_FAULT', 102), ('EVAL_CLEAN', 18), ('EVAL_FAULT', 408)):

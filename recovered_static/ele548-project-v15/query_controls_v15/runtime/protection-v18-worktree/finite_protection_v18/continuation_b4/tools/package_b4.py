@@ -1,5 +1,5 @@
 """Immutable B4 handoff. Closed raw only; every archived byte is hashed."""
-import sys, pathlib, json, zipfile, hashlib, argparse, re, io
+import sys, pathlib, json, zipfile, hashlib, argparse, re
 sys.dont_write_bytecode = True
 import resources as r
 ROOT = r.BASE
@@ -11,7 +11,7 @@ def package(label):
     out.mkdir(exist_ok=True)
     dest = out / ('BP_SEU_Finite_Protection_B4_' + label + '.zip')
     assert not dest.exists()
-    r.snapshot()
+    r.snapshot(extra_MiB=64)
     paths, raw, omitted = {}, [], []
     def add(path, name=None):
         path = pathlib.Path(path)
@@ -62,25 +62,11 @@ def package(label):
               'matrix_complete': (K / 'reports/FINITE_MATRIX_COMPLETED.json').exists(),
               'resources_at_snapshot': r.snapshot(),
               'scope': 'Local research C++/gem5 evidence only. No PDK, library, license, or proprietary benchmark distribution. Referenced external toolchain/public dependencies remain original-host SHA locks; this is not an installed portable environment.'}
-    # Compress to memory first so disk admission uses measured archive bytes,
-    # rather than a fixed reserve that can reject a fitting handoff.
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+    with zipfile.ZipFile(dest, 'x', zipfile.ZIP_DEFLATED, compresslevel=6) as z:
         z.writestr('HANDOFF_STATUS.json', json.dumps(header, indent=2) + '\n')
         z.writestr('ARCHIVE_SHA256.json', json.dumps(inventory, indent=2) + '\n')
         for name, data in blobs.items():
             z.writestr(name, data)
-    payload = buffer.getvalue()
-    try:
-        r.snapshot(extra_MiB=len(payload) / (1024 * 1024) + 1)
-    except AssertionError as exc:
-        r.put(K / 'reports' / ('ARCHIVE_ADMISSION_BLOCKED_' + label + '.json'), {
-            'status': 'ACTUAL_ZIP_BYTES_REQUIRE_BUDGET_REVIEW_NO_DISK_BYPASS',
-            'compressed_bytes_measured_in_memory': len(payload), 'error': repr(exc),
-            'CPU_trials_started': 0, 'archive_written': False})
-        raise
-    with dest.open('xb') as stream:
-        stream.write(payload)
     with zipfile.ZipFile(dest) as z:
         assert z.testzip() is None
         for name, item in inventory.items():

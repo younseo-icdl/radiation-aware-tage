@@ -22,7 +22,7 @@ class PeriodicSpecHistoryProtocol {
         if(bypass(record))return;
         protection.begin_history_write();
         core.Base::updateHistories(tid,pc,true,taken,target,inst,bi);
-        protection.synchronize();++speculative_writes;
+        protection.after_speculative_history_write();++speculative_writes;
     }
     void corrected(gem5::ThreadID tid,bool actual,uint64_t target,
                    const gem5::StaticInstPtr& inst,Base::BranchInfo* bi,const EpochRecord& record){
@@ -30,7 +30,7 @@ class PeriodicSpecHistoryProtocol {
         if(bypass(record)){++stale_restores_suppressed;return;}
         protection.begin_history_write();
         core.Base::squash(tid,actual,target,inst,bi);
-        protection.synchronize();++speculative_writes;
+        protection.after_speculative_history_write();++speculative_writes;
     }
     void discard(gem5::ThreadID tid,Base::BranchInfo* bi,const EpochRecord& record){
         protection.check();
@@ -38,7 +38,7 @@ class PeriodicSpecHistoryProtocol {
         bool changed=bi->modified;
         if(changed)protection.begin_history_write();
         core.Base::restoreHistState(tid,bi);
-        if(changed)protection.synchronize(); // Never re-encode a no-op/read.
+        if(changed)protection.after_speculative_history_write(); // No read re-encode.
     }
     void commit(gem5::ThreadID tid,uint64_t pc,bool actual,uint64_t target,
                 const gem5::StaticInstPtr& inst,Base::BranchInfo* bi,const EpochRecord& record,int nrand){

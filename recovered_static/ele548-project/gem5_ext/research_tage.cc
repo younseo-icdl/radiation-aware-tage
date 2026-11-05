@@ -29,9 +29,22 @@ void CpuTAGEBase::init(){
         }
     }
     if(!event_path.empty()){event_output.open(event_path);fatal_if(!event_output,"Cannot open event log");
-        event_output<<"event_id,tick,site_ids,before_bits,after_bits,XOR_verified,epoch,refill_remaining,recovery_active\n";}
+        event_output<<"event_id,tick,site_ids,before_bits,after_bits,XOR_verified,epoch,refill_remaining,recovery_active\n";
+        repair_output.open(event_path+".repairs.csv");fatal_if(!repair_output,"Cannot open repair log");
+        repair_output<<"tick,origin,detected_words,repair_busy_until,assumed_repair_cycles\n";}
     if(!read_path.empty()){read_output.open(read_path);fatal_if(!read_output,"Cannot open read log");
         read_output<<"read_id,tick,pc,conditional,events_applied_before_read,detected_before_read,epoch,fallback\n";}
+}
+void CpuTAGEBase::account_repairs(uint64_t before,unsigned origin){
+    auto delta=protection->stats.detected-before;if(!delta)return;
+    fatal_if(origin>=repairs_by_origin.size(),"Unknown repair origin");
+    ++repair_batches;++repairs_by_origin[origin];
+    // One parallel word-repair batch holds the response port for R cycles.
+    // Storage writes begin now, and the independent backend update lane may
+    // continue. Batches arriving while busy serialize; event clock continues.
+    repair_busy_until=std::max(gem5::curTick(),repair_busy_until)+period*repair_cycles;
+    static const char* names[]={"read","consume","speculative","commit","corrected","discard"};
+    if(repair_output){repair_output<<gem5::curTick()<<','<<names[origin]<<','<<delta<<','<<repair_busy_until<<','<<repair_cycles<<'\n';repair_output.flush();}
 }
 void CpuTAGEBase::note_prediction_read(gem5::Addr pc,bool conditional){
     ++prediction_reads;if(gem5::curTick()==last_fault_tick)++lookups_at_fault_tick;
@@ -78,7 +91,9 @@ void CpuTAGEBase::dumpSeu(){
        <<",\"word_reads\":"<<s.word_reads<<",\"word_writes\":"<<s.word_writes<<",\"sidecar_reads\":"<<s.sidecar_reads<<",\"sidecar_writes\":"<<s.sidecar_writes
        <<",\"encode_words\":"<<s.encode_words<<",\"voted_words\":"<<s.voted_words<<",\"injection_priority\":49,\"cpu_tick_priority\":50,\"cycle_ticks\":"<<period
        <<",\"assumed_check_cycles\":"<<check_cycles<<",\"assumed_repair_cycles\":"<<repair_cycles<<",\"end_tick\":"<<gem5::curTick()
-       <<",\"canonical_base_state_hash\":"<<logical_hash<<",\"predictor_rng_draws\":"<<predictor_rng_draws<<",\"predictor_rng_hash\":"<<predictor_rng_hash<<"}\n";
+       <<",\"canonical_base_state_hash\":"<<logical_hash<<",\"predictor_rng_draws\":"<<predictor_rng_draws<<",\"predictor_rng_hash\":"<<predictor_rng_hash
+       <<",\"repair_busy_until\":"<<repair_busy_until<<",\"repair_batches\":"<<repair_batches<<",\"repairs_by_origin\":[";
+    for(unsigned i=0;i<repairs_by_origin.size();++i){if(i)out<<',';out<<repairs_by_origin[i];}out<<"]}\n";
 }
 CpuTAGE::CpuTAGE(const gem5::ResearchTAGEParams& p):TAGE(p),core(*dynamic_cast<CpuTAGEBase*>(p.tage)){}
 CpuTAGE::~CpuTAGE(){delete pending.info;}
@@ -96,24 +111,28 @@ bool CpuTAGE::read_pending(gem5::ThreadID tid){
     pending.info=new CpuInfo(core,pending.pc,pending.conditional,r);
     pending.prediction=core.tagePredict(tid,pending.pc,pending.conditional,pending.info->tageBranchInfo);
     core.note_prediction_read(pending.pc,pending.conditional);pending.read=true;
-    pending.response_due=gem5::curTick()+core.period*core.repair_cycles*(core.protection->stats.detected!=detected);
+    core.account_repairs(detected,0);pending.response_due=std::max(gem5::curTick(),core.repair_busy_until);
     return gem5::curTick()>=pending.response_due;
 }
 bool CpuTAGE::seuPredictionReady(gem5::ThreadID tid,gem5::Addr pc,bool conditional){
     fatal_if(tid,"Only one thread supported");
     if(!pending.active){pending.active=true;pending.pc=pc;pending.conditional=conditional;pending.check_due=gem5::curTick()+core.period*core.check_cycles;}
     fatal_if(pending.pc!=pc||pending.conditional!=conditional,"Pending response PC/type changed without cancellation");
+    if(gem5::curTick()<core.repair_busy_until){
+        if(!pending.read)pending.check_due=std::max(pending.check_due,core.repair_busy_until+core.period*core.check_cycles);
+        ++core.response_hold_cycles;return false;
+    }
     if(gem5::curTick()<pending.check_due){++core.response_hold_cycles;return false;}
     if(!pending.read)read_pending(tid);
     if(gem5::curTick()<pending.response_due){++core.response_hold_cycles;return false;}
     // The second integrity check is the history RMW check at consumption.
     // A detected generation/mode change invalidates the pending direction.
-    auto detected=core.protection->stats.detected;core.protection->check();
+    auto detected=core.protection->stats.detected;core.protection->check();core.account_repairs(detected,1);
     if(!core.protocol->current(pending.info->record)||pending.info->record.fallback!=core.protection->fallback()){
         ++core.retried_responses;delete pending.info;pending.info=nullptr;pending.read=false;
-        pending.check_due=gem5::curTick()+core.period*core.check_cycles;
-        if(core.check_cycles){++core.response_hold_cycles;return false;}read_pending(tid);
-    }else if(core.protection->stats.detected!=detected)pending.response_due=gem5::curTick()+core.period*core.repair_cycles;
+        pending.check_due=std::max(gem5::curTick(),core.repair_busy_until)+core.period*core.check_cycles;
+        if(pending.check_due>gem5::curTick()){++core.response_hold_cycles;return false;}read_pending(tid);
+    }else pending.response_due=std::max(pending.response_due,core.repair_busy_until);
     if(gem5::curTick()<pending.response_due){++core.response_hold_cycles;return false;}return true;
 }
 bool CpuTAGE::predict(gem5::ThreadID tid,gem5::Addr pc,bool conditional,void*& history){
@@ -122,16 +141,20 @@ bool CpuTAGE::predict(gem5::ThreadID tid,gem5::Addr pc,bool conditional,void*& h
 }
 void CpuTAGE::updateHistories(gem5::ThreadID tid,gem5::Addr pc,bool uncond,bool taken,gem5::Addr target,const gem5::StaticInstPtr& inst,void*& history){
     if(!history){assert(uncond);predict(tid,pc,false,history);}auto* info=static_cast<CpuInfo*>(history);
+    auto detected=core.protection->stats.detected;
     core.protocol->speculative(tid,pc,taken,target,inst,info->tageBranchInfo,info->record);
+    core.account_repairs(detected,2);
 }
 void CpuTAGE::update(gem5::ThreadID tid,gem5::Addr pc,bool taken,void*& history,bool squashed,const gem5::StaticInstPtr& inst,gem5::Addr target){
     assert(history);auto* info=static_cast<CpuInfo*>(history);
-    if(squashed){core.protocol->corrected(tid,taken,target,inst,info->tageBranchInfo,info->record);return;}
+    auto detected=core.protection->stats.detected;
+    if(squashed){core.protocol->corrected(tid,taken,target,inst,info->tageBranchInfo,info->record);core.account_repairs(detected,4);return;}
     int nrand=rng->random<int>()&3;++core.predictor_rng_draws;core.predictor_rng_hash^=uint64_t(nrand);core.predictor_rng_hash*=1099511628211ULL;
-    core.protocol->commit(tid,pc,taken,target,inst,info->tageBranchInfo,info->record,nrand);delete info;history=nullptr;
+    core.protocol->commit(tid,pc,taken,target,inst,info->tageBranchInfo,info->record,nrand);core.account_repairs(detected,3);delete info;history=nullptr;
 }
 void CpuTAGE::squash(gem5::ThreadID tid,void*& history){
-    assert(history);auto* info=static_cast<CpuInfo*>(history);core.protocol->discard(tid,info->tageBranchInfo,info->record);delete info;history=nullptr;
+    assert(history);auto* info=static_cast<CpuInfo*>(history);auto detected=core.protection->stats.detected;
+    core.protocol->discard(tid,info->tageBranchInfo,info->record);core.account_repairs(detected,5);delete info;history=nullptr;
 }
 void CpuTAGE::branchPlaceholder(gem5::ThreadID,gem5::Addr,bool,void*&){fatal("Decoupled frontend unsupported in fixed CPU research scope");}
 }

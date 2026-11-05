@@ -45,6 +45,7 @@ def main():
     with out.open('w',newline='') as f:
         w=csv.DictWriter(f,fieldnames=['path','historical_path','expected_SHA256','observed_source_record','recovered_SHA256','status']);w.writeheader();w.writerows(rows)
     summary={'historical_path_refs_found':len(refs),'candidate_comparisons':len(rows),'matches':sum(x['status'].startswith('MATCH') for x in rows),'mismatches':sum(not x['status'].startswith('MATCH') for x in rows),'source_refs':{p:{'sha256':s,'record_line':n} for p,(s,n) in refs.items() if '/producer_source/B4/' in p},'not_full_source_lock_recovery':True,'no_simulations':True}
+    write_json(a.repo/'recovery/PRINTED_FILE_HASH_REFERENCES.json',{p:{'sha256':s,'record_line':n} for p,(s,n) in sorted(refs.items())})
     write_json(a.repo/'recovery/HISTORICAL_HASH_STATUS.json',summary)
     print(json.dumps({k:summary[k] for k in ('historical_path_refs_found','candidate_comparisons','matches','mismatches')},indent=2))
     for row in rows:

@@ -49,15 +49,26 @@ class LookupPort {
    target->fold=r->folds;target->path=r->path;m.phase=2;store(*target,m);
   }
  }
- struct Output {Token token;uint64_t pc;bool conditional;v9::Payload payload;};
- std::optional<Output> take(Token token){
+ struct Output {Token token;uint64_t pc;bool conditional;v9::Payload payload;unsigned path;};
+ struct Descriptor {Token token;uint64_t pc;bool conditional;};
+ std::vector<Descriptor> descriptors(){
+  std::vector<Descriptor> out;if(!poll())return out;
+  for(auto&c:contexts_){auto m=load(c);if(m.phase)out.push_back({m.token,m.pc,m.conditional});}
+  std::sort(out.begin(),out.end(),[](const auto&a,const auto&b){return a.token.packed()<b.token.packed();});return out;
+ }
+ std::optional<Output> take(Token token,bool consume=true){
   if(!poll()||ctl().bit(0))return {};
   for(auto&c:contexts_){auto m=load(c);if(m.phase!=3||m.token!=token)continue;
    if(!c.result.legal_response(m.conditional)){++integrity_failures;throw IntegrityError("invalid provider response encoding");}
-   Output out{m.token,m.pc,m.conditional,c.result};store(c,{});Word w;w.set(0,true);control_.store(w);++consumed;return out;
+   Output out{m.token,m.pc,m.conditional,c.result,c.path};if(!consume)return out;store(c,{});Word w;w.set(0,true);control_.store(w);++consumed;return out;
   }return {};
  }
  std::optional<Output> head(){if(!poll()||ctl().bit(0))return {};Context* first=nullptr;Meta best;for(auto&c:contexts_){auto m=load(c);if(m.phase&&(!first||m.token.packed()<best.token.packed())){first=&c;best=m;}}if(!first||best.phase!=3)return {};return take(best.token,false);}
+ bool discard_ready(Token token){
+  if(!poll()||ctl().bit(0))return false;
+  for(auto&c:contexts_){auto m=load(c);if(m.phase==3&&m.token==token){store(c,{});Word w;w.set(0,true);control_.store(w);++cancelled;return true;}}
+  return false;
+ }
  void cancel(){
   // Actual receiver squash invalidates all unconsumed contexts. Source writes
   // and their ACKs remain in Service, and its repair-held cancel is latched.

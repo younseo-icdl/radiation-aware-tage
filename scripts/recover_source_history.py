@@ -15,6 +15,7 @@ import posixpath
 import re
 import shlex
 import types
+from urllib.parse import unquote, urlsplit
 
 from recover_from_local_records import apply_update, public_candidate, secret_marker, write_json
 
@@ -71,9 +72,9 @@ class VP:
     def as_posix(self): return self.s
     def with_name(self,name):return self.parent/name
     def with_suffix(self,suffix):return self.parent/(posixpath.splitext(self.name)[0]+suffix)
-    def exists(self): return self.s in self.vm.fs or any(k.startswith(self.s + '/') for k in self.vm.fs)
+    def exists(self): return self.s in self.vm.fs or self.s in self.vm.dirs or any(k.startswith(self.s + '/') for k in self.vm.fs)
     def is_file(self): return self.s in self.vm.fs
-    def mkdir(self, *args, **kwargs): return None
+    def mkdir(self, *args, **kwargs): self.vm.dirs.add(self.s);return None
     def read_text(self, *args, **kwargs):
         if self.s not in self.vm.fs: raise Unknown('MISSING_FILE:' + self.s)
         return self.vm.fs[self.s]
@@ -88,13 +89,14 @@ class VP:
 class VM:
     def __init__(self):
         self.fs, self.meta, self.events = {}, {}, []
+        self.dirs=set()
         self.cwd = '/home/youns/workspace/ele548-project'
         self.line = 0
         self.depth = 0
 
     def write(self, path, text, origin):
         s = str(path)
-        if not s.startswith('/home/youns/workspace/ele548-project') or not isinstance(text, str): raise Unknown('NON_PROJECT_WRITE')
+        if not (s.startswith('/home/youns/workspace/ele548-project') or s.startswith('/tmp/ele548')) or not isinstance(text, str): raise Unknown('NON_PROJECT_WRITE')
         p = pathlib.PurePosixPath(s)
         if p.suffix not in ('.py', '.sh', '.cc', '.cpp', '.h', '.hh', '.hpp', '.md', '.txt', '.sv', '.tcl') and p.name not in ('Makefile', 'CMakeLists.txt'): raise Unknown('NOT_SOURCE_TEXT')
         if '/cpu_trials/' in s or len(text) > 2000000: raise Unknown('NOT_SOURCE_TEXT')
@@ -247,9 +249,50 @@ def prop(block,key):
     return json.loads(m.group(1))
 
 
+def recover_read_headers(vm,command,stdout,cwd):
+    """Recover delimited header candidates printed by read-only cat/sed calls.
+
+    Ambiguous/truncated boundaries are skipped. These remain candidates unless
+    an independently printed historical SHA also matches the recovered bytes.
+    """
+    if not isinstance(stdout,str) or 'truncated output' in stdout.lower() or any(s in command for s in ('<<','cat >','write_text')):return
+    reads=[]
+    for part in re.split(r'[;\n]',command):
+        try:tokens=shlex.split(part)
+        except ValueError:continue
+        if not tokens:continue
+        if tokens[0]=='cat':
+            for name in tokens[1:]:
+                if re.match(r'^[A-Za-z0-9_./-]+\.(?:hpp|hh|h)$',name):reads.append((name,None))
+        elif len(tokens)==4 and tokens[:2]==['sed','-n']:
+            m=re.match(r'^1,(\d+)p$',tokens[2])
+            if m and re.match(r'^[A-Za-z0-9_./-]+\.(?:hpp|hh|h)$',tokens[3]):reads.append((tokens[3],int(m.group(1))))
+    markers=list(re.finditer(r'(?m)^#pragma once[^\n]*\n',stdout))
+    if len(markers)!=len(reads):
+        # gem5 .hh files commonly use include guards; research .hpp files use
+        # pragma-once. Keep this unambiguous fallback separate from full reads.
+        only_hpp=[x for x in reads if x[0].endswith('.hpp')]
+        if len(markers)==len(only_hpp):reads=only_hpp
+    if not reads or len(markers)!=len(reads):return
+    oldcwd=vm.cwd;vm.cwd=cwd
+    try:
+        for i,(name,bound) in enumerate(reads):
+            body=stdout[markers[i].start():markers[i+1].start() if i+1<len(markers) else len(stdout)]
+            boundary=re.search(r'(?m)^(?:[A-Za-z0-9_./-]+:\d+[:\-]|\d+:|# )',body)
+            if boundary:body=body[:boundary.start()]
+            body=body.rstrip()+'\n'
+            if bound is not None and len(body.splitlines())>=bound:continue
+            tail=body.rstrip().splitlines()[-1]
+            if not (tail.startswith('}') or tail.startswith('#endif')):continue
+            try:vm.write(VP(vm,name),body,'DELIMITED_OBSERVED_HEADER_CANDIDATE_REQUIRES_HASH')
+            except Unknown:pass
+    finally:vm.cwd=oldcwd
+
+
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--session',type=pathlib.Path,required=True);ap.add_argument('--repo',type=pathlib.Path,required=True);ap.add_argument('--private',type=pathlib.Path,required=True);ap.add_argument('--max-line',type=int,required=True);ap.add_argument('--upstream-seed',type=pathlib.Path);a=ap.parse_args()
+    ap=argparse.ArgumentParser();ap.add_argument('--session',type=pathlib.Path,required=True);ap.add_argument('--repo',type=pathlib.Path,required=True);ap.add_argument('--private',type=pathlib.Path,required=True);ap.add_argument('--max-line',type=int,required=True);ap.add_argument('--upstream-seed',type=pathlib.Path);ap.add_argument('--canonical',action='store_true');ap.add_argument('--observed-slices',type=pathlib.Path);a=ap.parse_args()
     vm=VM();patches=0;heredocs=0;python_blocks=0
+    observed=json.loads(a.observed_slices.read_text()) if a.observed_slices else []
     if a.upstream_seed:
         for path in a.upstream_seed.rglob('*'):
             if path.is_file():
@@ -262,15 +305,59 @@ def main():
             if lineno>a.max_line:break
             o=json.loads(line);x=o.get('payload',{})
             if o.get('type')=='turn_context' and isinstance(x,dict) and x.get('cwd'):vm.cwd=x['cwd']
-            if o.get('type')!='response_item' or x.get('type')!='custom_tool_call' or x.get('name')!='exec':continue
-            vm.line=lineno;source=x.get('input','');actions=[]
-            for m in patch_re.finditer(source):actions.append((m.start(),'patch',json.loads(m.group(1))))
-            for block in object_blocks(source):
-                try:cmd=prop(block,'cmd')
-                except Unknown:continue
-                try:cwd=prop(block,'workdir')
-                except Unknown:cwd=vm.cwd
-                actions.append((source.index(block),'command',(cmd,cwd)))
+            vm.line=lineno;actions=[]
+            if a.canonical:
+                item=x.get('item',{})
+                if o.get('type')!='event_msg' or x.get('type')!='item_completed':continue
+                if item.get('type')=='FileChange':
+                    if item.get('status') not in (None,'completed'):continue
+                    for name,change in item.get('changes',{}).items():
+                        path=VP(vm,name)
+                        if not path.s.startswith('/home/youns/workspace/ele548-project'):continue
+                        try:
+                            if change.get('type')=='add':vm.write(path,change['content'],'OBSERVED_FILE_CHANGE_ADD')
+                            elif change.get('type')=='update':vm.write(path,apply_update(path.read_text(),change['unified_diff'].splitlines()),'OBSERVED_FILE_CHANGE_EXACT_PATCH')
+                            elif change.get('type')=='delete':vm.fs.pop(path.s,None);vm.meta.pop(path.s,None)
+                            patches+=1
+                        except (KeyError,Unknown,ValueError) as exc:vm.events.append({'record_line':lineno,'path':path.s,'reason':str(exc)[:200]})
+                    continue
+                if item.get('type')!='CommandExecution':continue
+                command=item.get('command',[])
+                command=command[-1] if isinstance(command,list) else command
+                cwd=item.get('cwd') or vm.cwd
+                if cwd.startswith('file://'):cwd=unquote(urlsplit(cwd).path)
+                stdout=item.get('aggregated_output')
+                for spec in observed:
+                    if spec['record_line']!=lineno:continue
+                    if not isinstance(stdout,str) or spec['command_substring'] not in command:raise ValueError('OBSERVED_SLICE_COMMAND_MISMATCH')
+                    start=stdout.index(spec['start_marker']);end=stdout.index(spec['end_marker'],start)
+                    text=stdout[start:end]
+                    if hashlib.sha256(text.encode()).hexdigest()!=spec['sha256']:raise ValueError('OBSERVED_SLICE_HASH_MISMATCH')
+                    vm.write(VP(vm,spec['original_path']),text,'EXACT_OBSERVED_MULTIFILE_STDOUT_SLICE')
+                recover_read_headers(vm,command,stdout,cwd)
+                # Exact, complete single-file reads can recover an otherwise
+                # missing base. A bounded sed read proves EOF only when short.
+                if isinstance(stdout,str) and item.get('exit_code')==0 and not any(t in command for t in ('\n',';','|','>')) and 'truncated output' not in stdout.lower():
+                    try:
+                        tokens=shlex.split(command);name=None
+                        if len(tokens)==2 and tokens[0]=='cat':name=tokens[1]
+                        if len(tokens)==4 and tokens[:2]==['sed','-n']:
+                            match=re.match(r'^1,(\d+)p$',tokens[2])
+                            if match and len(stdout.splitlines())<int(match.group(1)):name=tokens[3]
+                        if name:
+                            before=vm.cwd;vm.cwd=cwd;vm.write(VP(vm,name),stdout,'OBSERVED_COMPLETE_SOURCE_STDOUT');vm.cwd=before
+                    except (Unknown,ValueError):pass
+                actions=[(0,'command',(command,cwd))]
+            else:
+                if o.get('type')!='response_item' or x.get('type')!='custom_tool_call' or x.get('name')!='exec':continue
+                source=x.get('input','')
+                for m in patch_re.finditer(source):actions.append((m.start(),'patch',json.loads(m.group(1))))
+                for block in object_blocks(source):
+                    try:cmd=prop(block,'cmd')
+                    except Unknown:continue
+                    try:cwd=prop(block,'workdir')
+                    except Unknown:cwd=vm.cwd
+                    actions.append((source.index(block),'command',(cmd,cwd)))
             for _,kind,value in sorted(actions):
                 if kind=='patch':
                     patch=value;sections=[]
@@ -291,32 +378,50 @@ def main():
                         except (Unknown,ValueError) as exc:vm.events.append({'record_line':lineno,'path':path.s,'reason':str(exc)[:200]})
                     continue
                 command,cwd=value;original_cwd=vm.cwd;vm.cwd=cwd
-                for h in here_re.finditer(command):
-                    body=h.group(5)
-                    if h.group(2):
-                        try:
-                            names=shlex.split(h.group(2));assert len(names)==1
-                            vm.write(VP(vm,names[0]),body+'\n','SHELL_HEREDOC_LITERAL');heredocs+=1
-                        except (Unknown,ValueError,AssertionError):pass
-                    else:
-                        try:vm.statements(ast.parse(body).body,vm.env());python_blocks+=1
-                        except (SyntaxError,Unknown,Abort,Returned):pass
-                # Interpret only virtual source-writing semantics of saved scripts.
+                heres=list(here_re.finditer(command));subactions=[(h.start(),'here',h) for h in heres]
+                outside=lambda at:not any(h.start()<=at<h.end() for h in heres)
                 for invocation in re.finditer(r'(?:^|\n)(?:[^\s\n]*python[0-9.]*)(?:\s+-[A-Za-z]+)*\s+([^\s<>\n]+\.py)(?=\s|$)',command):
-                    script=VP(vm,invocation.group(1))
-                    if not script.is_file():continue
-                    env=vm.env();env['__file__']=str(script)
-                    try:vm.statements(ast.parse(script.read_text()).body,env)
-                    except (SyntaxError,Unknown,Abort,Returned):pass
+                    if outside(invocation.start()):subactions.append((invocation.start(),'script',invocation))
+                for cp in re.finditer(r'(?m)^cp\s+[^\n]+',command):
+                    if outside(cp.start()):subactions.append((cp.start(),'copy',cp))
+                for _,action,data in sorted(subactions,key=lambda x:x[0]):
+                    if action=='copy':
+                        try:
+                            args=[v for v in shlex.split(data.group(0))[1:] if not v.startswith('-')]
+                            if len(args)!=2 or any(x in args for x in (';','&&')):continue
+                            src,dst=VP(vm,args[0]),VP(vm,args[1])
+                            if src.is_file():
+                                if dst.s in vm.dirs or args[1].endswith('/'):dst=dst/src.name
+                                vm.copy(src,dst)
+                            else:vm.copy(src,dst,True)
+                        except (Unknown,ValueError):pass
+                    elif action=='script':
+                        script=VP(vm,data.group(1))
+                        if not script.is_file():continue
+                        env=vm.env();env['__file__']=str(script)
+                        try:vm.statements(ast.parse(script.read_text()).body,env)
+                        except (SyntaxError,Unknown,Abort,Returned):pass
+                    else:
+                        h=data;body=h.group(5)
+                        if h.group(2):
+                            try:
+                                names=shlex.split(h.group(2));assert len(names)==1
+                                vm.write(VP(vm,names[0]),body+'\n','SHELL_HEREDOC_LITERAL');heredocs+=1
+                            except (Unknown,ValueError,AssertionError):pass
+                        else:
+                            try:vm.statements(ast.parse(body).body,vm.env());python_blocks+=1
+                            except (SyntaxError,Unknown,Abort,Returned):pass
                 vm.cwd=original_cwd
     final=[]
     for name,text in sorted(vm.fs.items()):
+        if '/workspace/' not in name:
+            p=a.private/'transient_source_candidates'/pathlib.PurePosixPath(name).name;p.parent.mkdir(exist_ok=True);p.write_text(text);continue
         rel=name.split('/workspace/',1)[1]
         private=a.private/'static_history_candidates'/rel;private.parent.mkdir(parents=True,exist_ok=True);private.write_text(text)
         if public_candidate(rel) and not secret_marker(text):
             p=a.repo/'recovered_static'/rel;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(text)
             final.append({'path':p.relative_to(a.repo).as_posix(),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size,**vm.meta[name],'qualification':'STATIC_TEXT_RECOVERY_CANDIDATE_NOT_BUILT_OR_TESTED'})
-    write_json(a.repo/'recovery/STATIC_HISTORY_RECOVERY.json',{'static_patch_applications':patches,'literal_heredoc_writes':heredocs,'static_Python_blocks':python_blocks,'candidate_count':len(vm.fs),'public_candidate_count':len(final),'skipped_or_unresolved_operations':len(vm.events),'files':final,'simulations_executed':0,'recorded_commands_executed':False})
+    write_json(a.repo/'recovery/STATIC_HISTORY_RECOVERY.json',{'canonical_events_used':a.canonical,'static_patch_applications':patches,'literal_heredoc_writes':heredocs,'static_Python_blocks':python_blocks,'candidate_count':len(vm.fs),'public_candidate_count':len(final),'skipped_or_unresolved_operations':len(vm.events),'files':final,'simulations_executed':0,'recorded_commands_executed':False})
     write_json(a.private/'STATIC_UNRESOLVED_OPERATIONS.json',vm.events)
     print(json.dumps({'patches':patches,'heredocs':heredocs,'Python_blocks':python_blocks,'files':len(vm.fs),'public':len(final),'unresolved':len(vm.events)},indent=2))
 

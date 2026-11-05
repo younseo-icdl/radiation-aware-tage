@@ -45,17 +45,5 @@ class E1WindowTests(unittest.TestCase):
                 self.assertLess(last,len(conditional))
                 self.assertGreaterEqual(int(a['record'][conditional[last]]-a['record'][conditional[first]]+1),c['post_event_horizon_conditional_branches'])
 
-    @unittest.skipUnless((ROOT/'sources/protection_scope.lock.json').exists(),'scope not frozen')
-    def test_scope_exactly_covers_selected_logical_payload(self):
-        scope=json.loads((ROOT/'sources/protection_scope.lock.json').read_text())
-        manifest=[json.loads(line) for line in (ROOT/'reports/predictor_logical_state_manifest.jsonl').read_text().splitlines()]
-        wanted={s['site_id'] for s in manifest if s['field'] in scope['selected_fields']}
-        actual=[s for w in scope['payload_words'] for s in w['site_ids']]
-        self.assertEqual(len(actual),len(set(actual)))
-        self.assertEqual(set(actual),wanted)
-        self.assertEqual(len(actual),scope['payload_bits'])
-        self.assertEqual(scope['schemes'],['P0','P_ED','P_ECC','P_TMR'])
-        self.assertFalse(scope['holdout_performance_evaluated'])
-
 
 if __name__=='__main__':unittest.main()

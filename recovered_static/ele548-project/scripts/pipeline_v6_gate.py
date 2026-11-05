@@ -19,6 +19,9 @@ if a.phase=='base':
   for mode in ['single','pipeline']:
    for rep in ['recurrent','direct']:
     jobs.append(make(item,f'{mode}.{rep}.L{L}','CPU_GATE_BASE',mode=mode,rep=rep,L=L,extra=['--audit','--audit-limit','800']))
+ for mode in ['single','pipeline']:
+  jobs.append(make(item,'JOURNAL_'+mode,'CPU_GATE_BASE',mode=mode,rep='direct',L=1,
+   extra=['--journal-service','--journal-merge-undo','--undo-batch-latency','2']))
  for scheme in ['P_ED','P_ECC','P_TMR']:
   t=make(item,scheme,'CPU_GATE_BASE',mode='native',extra=['--resource-mode','SHARED2']);t.update(scheme=scheme,C=1,policy='N1' if scheme!='P_TMR' else 'LEGACY',k=64 if scheme!='P_TMR' else 0);jobs.append(t)
  rows=execute(jobs,'CPU_GATE_BASE',workers=2)
@@ -32,6 +35,8 @@ if a.phase=='base':
    for k in ['cycles','instructions']:assert r[k]==ref[k],('MATCHED_NOFAULT',L,r['id'],k)
    for k in ['canonical_base_state_hash','predictor_rng_hash','predictor_rng_draws','audit_identity_hash']:
     assert r['seu'][k]==ref['seu'][k],('MATCHED_STATE',L,r['id'],k)
+ j1=next(r for r in rows if r['id']=='JOURNAL_single');j2=next(r for r in rows if r['id']=='JOURNAL_pipeline')
+ for k in ['cycles','instructions']:assert j1[k]==j2[k],('JOURNAL_CAPACITY_EQUALITY',k)
  write(OUT/'reports/CPU_BASE_ACCEPTANCE.json',dict(status='PASS',same_L_single_pipeline_recurrent_direct_exact=True,native_R5_cycles_instructions_equal=True,report_sha256=sha(OUT/'reports/CPU_GATE_BASE.json')))
 elif a.phase=='fault':
  assert json.loads((OUT/'reports/CPU_BASE_ACCEPTANCE.json').read_text())['status']=='PASS'
@@ -49,11 +54,13 @@ elif a.phase=='fault':
  jobs.append(make(item,'RESPONSE_DIRECTION','CPU_GATE_FAULT','RESPONSE_SEU','DIRECTED',str(int(first['tick']))+' '+str(response_direction)+'\n',rep='direct'))
  # Invalid 3-bit queue count is a retained adverse execution failure.
  jobs.append(make(item,'QUEUE_CONTROL_INVALID','CPU_GATE_FAULT','METADATA_ADVERSE','DIRECTED',str(int(first['tick'])-250)+' '+str(origin+36)+'\n',rep='direct'))
+ jobs.append(make(item,'REQUEST_EPOCH_INVALID','CPU_GATE_FAULT','METADATA_ADVERSE','DIRECTED',str(int(first['tick'])-250)+' '+str(origin+65)+'\n',rep='direct'))
+ jobs.append(make(item,'RESPONSE_ID_INVALID','CPU_GATE_FAULT','METADATA_ADVERSE','DIRECTED',str(int(first['tick']))+' '+str(origin+1173)+'\n',rep='direct'))
  rows=execute(jobs,'CPU_GATE_FAULT',workers=2,allowed_failures=('pipeline queue control','inconsistent pipeline queue control','FAIL_PIPELINE'))
  assert all(r['status']=='PASS' for r in rows[:3])
- assert rows[3]['status']!='PASS','Adverse queue corruption silently counted as success'
+ assert all(r['status']!='PASS' for r in rows[3:]),'Adverse metadata corruption silently counted as success'
  assert rows[2]['seu']['applied_events']==1
- write(OUT/'reports/CPU_FAULT_ACCEPTANCE.json',dict(status='PASS_WITH_RETAINED_ADVERSE_FAILURE',successful_fault_runs=3,adverse_failures=1,
+ write(OUT/'reports/CPU_FAULT_ACCEPTANCE.json',dict(status='PASS_WITH_RETAINED_ADVERSE_FAILURE',successful_fault_runs=3,adverse_failures=3,
   scope='Integrity tests do not qualify metadata safety. No failed cycles imputed.',report_sha256=sha(OUT/'reports/CPU_GATE_FAULT.json')))
 else:
  assert json.loads((OUT/'reports/CPU_BASE_ACCEPTANCE.json').read_text())['status']=='PASS'

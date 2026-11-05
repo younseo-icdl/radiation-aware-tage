@@ -1,5 +1,5 @@
 #pragma once
-#include "predictor/tage_adapter.hpp"
+#include "../predictor/tage_access.hpp"
 namespace bp {
 class ContinuationAccess : public TageAccess {
  public:
@@ -8,3 +8,4 @@ class ContinuationAccess : public TageAccess {
  unsigned fold_length(unsigned word)const {if(word>=21)throw std::out_of_range("fold word");return histLengths[word/3+1];}
  Word phi(unsigned word)const {Word v;auto specs=history_words();auto width=specs.at(word).width;for(unsigned age=0;age<fold_length(word);++age)if(raw_bit(age))v.flip(age%width);return v;}
 };
+}

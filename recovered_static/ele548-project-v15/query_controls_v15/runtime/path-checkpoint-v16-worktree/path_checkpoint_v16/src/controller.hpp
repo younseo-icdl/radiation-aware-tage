@@ -89,3 +89,382 @@ class Controller {
  void corrupt(const std::vector<size_t>&ids){std::set<size_t> unique;for(auto n:ids)if(n>=bits()||!unique.insert(n).second)throw std::invalid_argument("controller atomic sites");for(auto n:ids){if(n<port.bits()){port.corrupt({n});continue;}n-=port.bits();if(n<state_.bits()){state_.flip(n);continue;}n-=state_.bits();for(auto&c:commands_){if(n<c.bits()){c.flip(n);break;}n-=c.bits();}}}
 };
 }
+{
+  "parent_commit": "8879e43340a286225795cda258380a3c97e95ea9",
+  "preserved": [
+    {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/reports/CPU18_PROPOSAL.lock.json",
+      "sha256": "0f580dec97adc4e10466364fcaa6be2beef9336b9a96c626714a7449e5fdb191"
+    },
+    {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/reports/CPU_BUILD_A1.json",
+      "sha256": "28ca787c2ce3ac90aca04a9a657d53e368b50860ea2828391c17662a797bdac0"
+    },
+    {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/reports/early_gate_A3.json",
+      "sha256": "4b6ea6dc1340aaf6d6cf8f28bcb84ecd2a3b85d83443aa68a4f94ca7cf17c9be"
+    },
+    {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/reports/POST_EXPORT_VERIFICATION.json",
+      "sha256": "13517bd37ef9a83d219e154871413c18f26f8dc5175671a25d492ec5dd3443c2"
+    },
+    {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/artifacts/BP_SEU_V15_PREPARED_QUERY_EARLY.zip",
+      "sha256": "23fcbbc893202b64973cf33a9e0828f8a2ab2899ee29be9353951d282a785d22"
+    },
+    {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/gem5_build_A1/gem5.query_early.opt",
+      "sha256": "ffd9d1013f9dc567e84b984dce799626fa3609e276c0b91cddd2d66c4921854c"
+    }
+  ],
+  "new_CPU": 0
+}
+{
+  "result": {
+    "status": "PASS_EARLY_UNCOND_ACTUAL_CHECKPOINT_PROTOCOL_NOT_CPU",
+    "normal_controls": 13008,
+    "nested_squash_frames": 720,
+    "metadata_SBU": 848,
+    "expected_DUE": 1,
+    "tiny_wrap_completions": 1944,
+    "max_lookup_pending_native_stream": 4,
+    "CPU_trials": 0,
+    "timing_cases": [
+      {
+        "mode": 0,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": false,
+        "early": false,
+        "prediction_done_cycle": 637,
+        "checkpoint_done_cycle": 640,
+        "retirement_done_cycle": 767,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 0,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": false,
+        "early": true,
+        "prediction_done_cycle": 127,
+        "checkpoint_done_cycle": 131,
+        "retirement_done_cycle": 258,
+        "max_lookup_pending": 4
+      },
+      {
+        "mode": 0,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": true,
+        "early": false,
+        "prediction_done_cycle": 637,
+        "checkpoint_done_cycle": 640,
+        "retirement_done_cycle": 767,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 0,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": true,
+        "early": true,
+        "prediction_done_cycle": 637,
+        "checkpoint_done_cycle": 640,
+        "retirement_done_cycle": 767,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 0,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": false,
+        "early": false,
+        "prediction_done_cycle": 765,
+        "checkpoint_done_cycle": 768,
+        "retirement_done_cycle": 895,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 0,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": false,
+        "early": true,
+        "prediction_done_cycle": 152,
+        "checkpoint_done_cycle": 157,
+        "retirement_done_cycle": 284,
+        "max_lookup_pending": 4
+      },
+      {
+        "mode": 0,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": true,
+        "early": false,
+        "prediction_done_cycle": 765,
+        "checkpoint_done_cycle": 768,
+        "retirement_done_cycle": 895,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 0,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": true,
+        "early": true,
+        "prediction_done_cycle": 765,
+        "checkpoint_done_cycle": 768,
+        "retirement_done_cycle": 895,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 1,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": false,
+        "early": false,
+        "prediction_done_cycle": 510,
+        "checkpoint_done_cycle": 513,
+        "retirement_done_cycle": 640,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 1,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": false,
+        "early": true,
+        "prediction_done_cycle": 127,
+        "checkpoint_done_cycle": 130,
+        "retirement_done_cycle": 257,
+        "max_lookup_pending": 3
+      },
+      {
+        "mode": 1,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": true,
+        "early": false,
+        "prediction_done_cycle": 510,
+        "checkpoint_done_cycle": 513,
+        "retirement_done_cycle": 640,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 1,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": true,
+        "early": true,
+        "prediction_done_cycle": 510,
+        "checkpoint_done_cycle": 513,
+        "retirement_done_cycle": 640,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 1,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": false,
+        "early": false,
+        "prediction_done_cycle": 638,
+        "checkpoint_done_cycle": 641,
+        "retirement_done_cycle": 768,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 1,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": false,
+        "early": true,
+        "prediction_done_cycle": 127,
+        "checkpoint_done_cycle": 131,
+        "retirement_done_cycle": 258,
+        "max_lookup_pending": 4
+      },
+      {
+        "mode": 1,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": true,
+        "early": false,
+        "prediction_done_cycle": 638,
+        "checkpoint_done_cycle": 641,
+        "retirement_done_cycle": 768,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 1,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": true,
+        "early": true,
+        "prediction_done_cycle": 638,
+        "checkpoint_done_cycle": 641,
+        "retirement_done_cycle": 768,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 2,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": false,
+        "early": false,
+        "prediction_done_cycle": 637,
+        "checkpoint_done_cycle": 640,
+        "retirement_done_cycle": 767,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 2,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": false,
+        "early": true,
+        "prediction_done_cycle": 127,
+        "checkpoint_done_cycle": 131,
+        "retirement_done_cycle": 258,
+        "max_lookup_pending": 4
+      },
+      {
+        "mode": 2,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": true,
+        "early": false,
+        "prediction_done_cycle": 637,
+        "checkpoint_done_cycle": 640,
+        "retirement_done_cycle": 767,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 2,
+        "query_L": 1,
+        "update_L": 1,
+        "conditional": true,
+        "early": true,
+        "prediction_done_cycle": 637,
+        "checkpoint_done_cycle": 640,
+        "retirement_done_cycle": 767,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 2,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": false,
+        "early": false,
+        "prediction_done_cycle": 765,
+        "checkpoint_done_cycle": 768,
+        "retirement_done_cycle": 895,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 2,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": false,
+        "early": true,
+        "prediction_done_cycle": 152,
+        "checkpoint_done_cycle": 157,
+        "retirement_done_cycle": 284,
+        "max_lookup_pending": 4
+      },
+      {
+        "mode": 2,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": true,
+        "early": false,
+        "prediction_done_cycle": 765,
+        "checkpoint_done_cycle": 768,
+        "retirement_done_cycle": 895,
+        "max_lookup_pending": 1
+      },
+      {
+        "mode": 2,
+        "query_L": 2,
+        "update_L": 1,
+        "conditional": true,
+        "early": true,
+        "prediction_done_cycle": 765,
+        "checkpoint_done_cycle": 768,
+        "retirement_done_cycle": 895,
+        "max_lookup_pending": 1
+      }
+    ]
+  },
+  "source_lock": {
+    "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/reports/early_gate_A3.source.lock.json",
+    "sha256": "e9d2b2763b2056ad368ddb38b7ba7a3b73060627a6297840a56cd41788a75cf3"
+  },
+  "binary": {
+    "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/early_gate_A3",
+    "sha256": "d7e142d5c8416dd6e74d5c04d0c2745b7c7683cd7e548510796066fa606f6a23"
+  },
+  "build": {
+    "command": [
+      "/opt/rh/gcc-toolset-11/root/usr/bin/g++",
+      "-O2",
+      "-g0",
+      "-std=c++17",
+      "-I/home/youns/workspace/ele548-project-v15/query_controls_v15/src",
+      "-I/home/youns/workspace/ele548-project-v9/src",
+      "-I/home/youns/workspace/ele548-project-v9/src/standalone",
+      "-I/home/youns/workspace/ele548-project-v9/third_party/gem5-native-v9r2/src",
+      "-static-libstdc++",
+      "-static-libgcc",
+      "/home/youns/workspace/ele548-project-v15/query_controls_v15/tests/early_gate.cpp",
+      "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/tage_base.cc",
+      "-o",
+      "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/early_gate_A3"
+    ],
+    "exit_code": 0,
+    "stdout": {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/early_gate_A3_build/stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/early_gate_A3_build/stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "time": {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/early_gate_A3_build/job.time",
+      "sha256": "99bcc22d9aa2d71b96477696a7829e6a6b575e1cb302bc01c7c26d40c36385ce"
+    }
+  },
+  "run": {
+    "command": [
+      "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/early_gate_A3"
+    ],
+    "exit_code": 0,
+    "stdout": {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/early_gate_A3_run/stdout",
+      "sha256": "28b8ead0381cecec5dd8c8fb69474cdac6ad1f66e0e80f81f98de1d7500dac2e"
+    },
+    "stderr": {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/early_gate_A3_run/stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "time": {
+      "path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/early_gate_A3_run/job.time",
+      "sha256": "20a5d90a4a0318acad10b6d5ea765f98d31d72a5d6a11552a44446923c9b50a5"
+    }
+  },
+  "resources": {
+    "CPU_global": 3511,
+    "CPU_cap": 3513,
+    "CPU_new": 0,
+    "reserve2": "failed-stage regression only",
+    "preparation_coreh": 0.115525,
+    "recent_coreh": 3.7757666666666663,
+    "v9_onward_coreh": 14.947575,
+    "global_coreh": 80.34603055555556,
+    "v15_MiB": 64.24609375,
+    "preparation_MiB": 234.50390625,
+    "recent_MiB": 308.3359375,
+    "all7_GiB": 7.853794097900391
+  }
+}

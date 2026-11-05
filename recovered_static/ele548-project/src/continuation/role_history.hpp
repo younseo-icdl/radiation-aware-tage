@@ -96,7 +96,7 @@ class RoleHistoryController {
   ++history_writes;if(interval&&progress<interval)++progress;
   if(committed&&refill){--refill;++stats.refill_updates;core.tagged_enabled(!fallback());}
  }
- void commit_source(uint64_t pc,bool taken){if(policy!=RolePolicy::H1)return;if(!validate_shadow())return;
+ void commit_source(uint64_t pc,bool taken){if(policy!=RolePolicy::H1)return;validate_shadow();
   Word h;h.set(0,taken);for(unsigned i=1;i<130;++i)h.set(i,shadow[0].bit(i-1));shadow[0]=h;shadow[1].limb[0]=((shadow[1].limb[0]<<1)|(pc&1))&65535;
   for(unsigned j=0;j<2;++j){shadow_check[j]=codecs[j+21].encode(shadow[j]);shadow_encode_bits+=words[j+21].width;}
  }

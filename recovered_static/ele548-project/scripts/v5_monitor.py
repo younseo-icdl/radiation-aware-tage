@@ -16,7 +16,10 @@ du=subprocess.check_output(['du','-sk',*paths],cwd=ROOT,text=True)
 disk=sum(int(x.split()[0]) for x in du.splitlines())/1024**2
 cpu=used_cpu()/3600
 active=[]
-for line in subprocess.check_output(['ps','-C','gem5.opt','-o','pid='],text=True).splitlines():
+ps_result=subprocess.run(['ps','-C','gem5.opt','-o','pid='],capture_output=True,text=True,check=False)
+if ps_result.returncode!=0 and not (ps_result.returncode==1 and not ps_result.stdout.strip()):
+ raise RuntimeError(f'gem5 process enumeration failed (ps exit {ps_result.returncode}): {ps_result.stderr.strip()}')
+for line in ps_result.stdout.splitlines():
  pid=int(line)
  try:
   proc=ROOT/f'/proc/{pid}';exe=(proc/'exe').resolve()

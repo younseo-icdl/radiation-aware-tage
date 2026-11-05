@@ -12,6 +12,7 @@
 
 namespace bp::v16 {
 enum class Mode {Recurrent,Direct,Overwrite};
+enum class Ports {SharedOne,SplitTwo};
 enum class Kind:unsigned {Read,Append,Undo,Commit,Hold,ReadPath};
 inline bool read_kind(Kind k){return k==Kind::Read||k==Kind::ReadPath;}
 struct Geometry {unsigned length,width;};
@@ -50,9 +51,12 @@ class Service {
   unsigned qh=0,qt=0,qn=0,rh=0,rt=0,rn=0,head=0,depth=0,reserved=0,id=1,epoch=0,gap=0;
   uint32_t rawver=0,foldver=0;
   bool wrap=false,ack=false,kill=false,turn=false,issued=false,consumed=false,cancel_pending=false;
+  unsigned lh=0,lt=0,ln=0,lgap=0;bool lissued=false,retired=false;
+  unsigned ah=0,at=0,an=0;bool ack_consumed=false;
+  bool read_sampled=false;
  };
  struct Meta {
-  bool valid=false;Kind kind=Kind::Read;Token token{};unsigned n=0,bits=0,arg=0;uint32_t version=0;
+  bool valid=false;Kind kind=Kind::Read;Token token{};unsigned n=0,bits=0,arg=0;uint32_t version=0,predecessor=0;bool recovery=false;
  };
  struct Payload {
   std::array<uint8_t,130> raw{},before{};
@@ -60,31 +64,34 @@ class Service {
   std::array<std::array<uint8_t,7>,2> outgoing{};std::array<uint8_t,2> incoming{};
   unsigned path=0;
  };
- struct Entry {Cell meta{88};Payload data{};};
- Cell header_{156};
- std::array<Entry,4> commands_,responses_;
+ struct Entry {Cell meta;Payload data{};explicit Entry(unsigned bits=97):meta(bits){}};
+ Cell header_{180},ordering_{65};
+ std::array<Entry,4> commands_,reads_,responses_,acks_;
  std::vector<Entry> updates_,lookups_;
  std::array<uint8_t,1130> raw_{};unsigned path_=0;
  std::array<unsigned,21> folds_{};
  uint64_t cycle_=0,hold_until_=0;
  std::vector<Geometry> geometry_;
- Mode mode_;unsigned update_L_,lookup_L_,ii_,id_mask_,epoch_mask_;
+ Mode mode_;unsigned update_L_,lookup_L_,ii_,id_mask_,epoch_mask_;Ports ports_;
  static Word pack(const Header&h){
   Word w;put(w,0,2,h.qh);put(w,2,2,h.qt);put(w,4,3,h.qn);
   put(w,7,2,h.rh);put(w,9,2,h.rt);put(w,11,3,h.rn);
   put(w,14,11,h.head);put(w,25,10,h.depth);put(w,35,10,h.reserved);
-  put(w,45,16,h.id);put(w,61,16,h.epoch);put(w,77,32,h.rawver);put(w,109,32,h.foldver);put(w,141,8,h.gap);
-  w.set(149,h.wrap);w.set(150,h.ack);w.set(151,h.kill);w.set(152,h.turn);w.set(153,h.issued);w.set(154,h.consumed);w.set(155,h.cancel_pending);return w;
+  put(w,45,16,h.id);put(w,61,16,h.epoch);put(w,77,32,h.rawver);put(w,109,32,h.foldver);put(w,141,7,h.gap);w.set(148,h.ack_consumed);
+  w.set(149,h.wrap);w.set(150,h.ack);w.set(151,h.kill);w.set(152,h.turn);w.set(153,h.issued);w.set(154,h.consumed);w.set(155,h.cancel_pending);
+  put(w,156,2,h.lh);put(w,158,2,h.lt);put(w,160,3,h.ln);put(w,163,7,h.lgap);w.set(170,h.read_sampled);w.set(171,h.lissued);w.set(172,h.retired);put(w,173,2,h.ah);put(w,175,2,h.at);put(w,177,3,h.an);return w;
  }
  static Header unpack(const Word&w){
   Header h;h.qh=get(w,0,2);h.qt=get(w,2,2);h.qn=get(w,4,3);h.rh=get(w,7,2);h.rt=get(w,9,2);h.rn=get(w,11,3);
   h.head=get(w,14,11);h.depth=get(w,25,10);h.reserved=get(w,35,10);h.id=get(w,45,16);h.epoch=get(w,61,16);
-  h.rawver=get(w,77,32);h.foldver=get(w,109,32);h.gap=get(w,141,8);
-  h.wrap=w.bit(149);h.ack=w.bit(150);h.kill=w.bit(151);h.turn=w.bit(152);h.issued=w.bit(153);h.consumed=w.bit(154);h.cancel_pending=w.bit(155);return h;
+  h.rawver=get(w,77,32);h.foldver=get(w,109,32);h.gap=get(w,141,7);h.ack_consumed=w.bit(148);
+  h.wrap=w.bit(149);h.ack=w.bit(150);h.kill=w.bit(151);h.turn=w.bit(152);h.issued=w.bit(153);h.consumed=w.bit(154);h.cancel_pending=w.bit(155);
+  h.lh=get(w,156,2);h.lt=get(w,158,2);h.ln=get(w,160,3);h.lgap=get(w,163,7);h.read_sampled=w.bit(170);h.lissued=w.bit(171);h.retired=w.bit(172);h.ah=get(w,173,2);h.at=get(w,175,2);h.an=get(w,177,3);return h;
  }
- static Word pack(const Meta&m){Word w;w.set(0,m.valid);put(w,1,3,unsigned(m.kind));put(w,4,32,m.token.packed());put(w,36,2,m.n);put(w,38,2,m.bits);put(w,40,16,m.arg);put(w,56,32,m.version);return w;}
- static Meta unpack_meta(const Word&w){return {w.bit(0),Kind(get(w,1,3)),Token::unpack(get(w,4,32)),get(w,36,2),get(w,38,2),get(w,40,16),get(w,56,32)};}
+ static Word pack(const Meta&m){Word w;w.set(0,m.valid);put(w,1,3,unsigned(m.kind));put(w,4,32,m.token.packed());put(w,36,10,m.n);put(w,46,2,m.bits);put(w,48,16,m.arg);put(w,64,32,m.version);w.set(96,m.recovery);put(w,97,32,m.predecessor);return w;}
+ static Meta unpack_meta(const Word&w){return {w.bit(0),Kind(get(w,1,3)),Token::unpack(get(w,4,32)),get(w,36,10),get(w,46,2),get(w,48,16),get(w,64,32),get(w,97,32),w.bit(96)};}
  Header hload(){bool repaired=false;auto h=unpack(header_.load(repaired));if(repaired)repair();return h;}
+ Word order_load(){bool repaired=false;auto w=ordering_.load(repaired);if(repaired)repair();return w;}
  Meta mload(Entry&e){bool repaired=false;auto m=unpack_meta(e.meta.load(repaired));if(repaired)repair();return m;}
  static Meta observe(const Entry&e){return unpack_meta(e.meta.a.data);}
  void hstore(const Header&h){header_.store(pack(h));}
@@ -129,20 +136,23 @@ class Service {
   }return out;
  }
  bool empty(const Header&h)const{
-  if(h.qn||h.rn)return false;
+  if(h.qn||h.ln||h.rn||h.an)return false;
   for(const auto&e:updates_)if(observe(e).valid)return false;
   for(const auto&e:lookups_)if(observe(e).valid)return false;
   return true;
  }
  void pop_command(Header&h){mstore(commands_[h.qh],{});h.qh=(h.qh+1)%4;--h.qn;}
+ void pop_read(Header&h){mstore(reads_[h.lh],{});h.lh=(h.lh+1)%4;--h.ln;}
  void push_response(Header&h,const Meta&m,const std::array<unsigned,21>&data,unsigned path){
-  auto& e=responses_[h.rt];mstore(e,m);e.data.input=data;e.data.path=path;
-  h.rt=(h.rt+1)%4;++h.rn;++stats.produced;
+  const bool lookup=read_kind(m.kind);auto& e=lookup?responses_[h.rt]:acks_[h.at];auto reply=m;reply.predecessor=0;mstore(e,reply);
+  if(lookup){e.data.input=data;e.data.path=path;h.rt=(h.rt+1)%4;++h.rn;}
+  else {h.at=(h.at+1)%4;++h.an;}
+  ++stats.produced;
  }
  bool finish(std::vector<Entry>&lane,Header&h,bool lookup,bool&write_used){
   auto& e=lane.back();auto m=mload(e);if(!m.valid)return false;
   if(stale(h,m)){mstore(e,{});++stats.cancelled;++stats.stale_discarded;return true;}
-  if(write_used||h.rn==4){++stats.response_stalls;return false;}
+  if(write_used||(lookup?h.rn:h.an)==4){++stats.response_stalls;return false;}
   std::array<unsigned,21> out{};
   if(m.kind!=Kind::ReadPath&&(lookup||arithmetic(m)&&mode_!=Mode::Direct)){
    out=reduce(e,m,lookup,lane.size()==1,true);
@@ -156,6 +166,12 @@ class Service {
  void shift(std::vector<Entry>&lane,const Header&h,bool lookup){
   if(lane.size()!=2)return;
   auto a=mload(lane[0]),b=mload(lane[1]);if(!a.valid||b.valid)return;
+  if(!lookup&&mode_==Mode::Recurrent&&arithmetic(a)&&!bulk(a)){
+   // The upper11 words consume their predecessor only at this real stage.
+   // The previous job's final result was published earlier in this tick.
+   if(h.foldver!=a.predecessor){++stats.dependency_stalls;return;}
+   for(unsigned w=10;w<21;++w)lane[0].data.input[w]=folds_[w];
+  }
   if(!stale(h,a)&&a.kind!=Kind::ReadPath&&(lookup||arithmetic(a))){
    lane[0].data.partial=reduce(lane[0],a,lookup,true,false);
    if(!lookup&&mode_==Mode::Recurrent&&bulk(a)){
@@ -165,21 +181,35 @@ class Service {
   }
   lane[1].data=lane[0].data;mstore(lane[1],a);mstore(lane[0],{});
  }
- void dispatch(Header&h){
-  if(!h.qn)return;auto m=mload(commands_[h.qh]);
-  if(stale(h,m)){pop_command(h);++stats.cancelled;++stats.stale_discarded;return;}
-  const bool lookup=read_kind(m.kind);
+ bool dispatch(Header&h,bool lookup){
+  if(lookup?!h.ln:!h.qn)return false;if(lookup&&h.read_sampled)return false;
+  auto m=mload(lookup?reads_[h.lh]:commands_[h.qh]);
+  if(stale(h,m)){if(lookup){pop_read(h);h.read_sampled=true;}else pop_command(h);++stats.cancelled;++stats.stale_discarded;return true;}
   auto& lane=lookup?lookups_:updates_;
-  if(mload(lane[0]).valid){++stats.stage_stalls;return;}
-  if(mode_!=Mode::Direct&&h.foldver!=h.rawver&&(lookup||mode_==Mode::Recurrent&&arithmetic(m))){++stats.dependency_stalls;return;}
+  if(mload(lane[0]).valid){++stats.stage_stalls;return false;}
+  auto order=order_load();
+  if(lookup&&ports_==Ports::SharedOne&&order.bit(64))return false;
+  if(lookup&&m.version!=get(order,32,32)){++stats.ordering_stalls;return false;}
+  // A queued read owns the current source version until its operands sample.
+  // This prevents a later source RMW from overtaking a backpressured read.
+  if(!lookup&&(m.kind==Kind::Append||m.kind==Kind::Undo)&&h.ln){auto read=mload(reads_[h.lh]);
+   if(!stale(h,read)&&read.version==get(order,32,32)){++stats.ordering_stalls;return false;}}
+  bool low_bypass=false;
+  if(mode_!=Mode::Direct&&h.foldver!=h.rawver){
+   if(!lookup&&mode_==Mode::Recurrent&&arithmetic(m)&&!bulk(m)&&updates_.size()==2){
+    const auto previous=mload(updates_.back());low_bypass=previous.valid&&arithmetic(previous)&&!bulk(previous)&&previous.version==h.rawver;
+   }
+   if(lookup&&m.kind!=Kind::ReadPath||mode_==Mode::Recurrent&&arithmetic(m)&&!low_bypass){++stats.dependency_stalls;return false;}
+  }
   Payload p;
   if(lookup){
    if(m.kind==Kind::ReadPath)++stats.path_samples;
    else if(mode_==Mode::Direct)for(unsigned a=0;a<130;++a)p.raw[a]=raw_bit(h,a);
    else p.input=folds_;
-   p.path=path_;m.version=h.rawver;++stats.lookup_samples;
+   p.path=path_;h.read_sampled=true;++stats.lookup_samples;
   }else{
-   p.input=folds_;
+   p.input=folds_;m.predecessor=h.rawver;
+   if(low_bypass){for(unsigned w=0;w<10;++w)p.input[w]=updates_.back().data.partial[w];++stats.recurrent_low_forwards;}
    if(m.kind==Kind::Append){
     if(h.depth+m.n>1000)throw IntegrityError("source retention overflow at service");
     for(unsigned n=0;n<m.n;++n){
@@ -209,22 +239,26 @@ class Service {
     h.rawver=m.token.packed();if(mode_==Mode::Direct)h.foldver=h.rawver;
     if(mode_==Mode::Overwrite)for(unsigned a=0;a<130;++a)p.raw[a]=raw_bit(h,a);
    }
-   m.version=h.rawver;++stats.source_services;
+   if(m.kind==Kind::Append||m.kind==Kind::Undo)put(order,32,32,m.token.packed());
+   order.set(64,true);ordering_.store(order);
+   m.version=arithmetic(m)?h.rawver:get(order,32,32);++stats.source_services;
   }
-  lane[0].data=p;mstore(lane[0],m);pop_command(h);++stats.started;
+  lane[0].data=p;mstore(lane[0],m);if(lookup)pop_read(h);else pop_command(h);++stats.started;return true;
  }
  void validate(const Header&h){
-  if(h.qn>4||h.rn>4||h.head>=1130||h.depth>1000||h.reserved>1000||h.depth>h.reserved||h.id>id_mask_||h.epoch>epoch_mask_)throw IntegrityError("illegal source/control range");
+  if(h.qn>4||h.ln>4||h.rn>4||h.an>4||h.head>=1130||h.depth>1000||h.reserved>1000||h.depth>h.reserved||h.id>id_mask_||h.epoch>epoch_mask_)throw IntegrityError("illegal source/control range");
+  if((h.qh+h.qn)%4!=h.qt||(h.lh+h.ln)%4!=h.lt||(h.rh+h.rn)%4!=h.rt||(h.ah+h.an)%4!=h.at)throw IntegrityError("FIFO head/tail/count relation");
   for(unsigned j=0;j<4;++j){
-   bool qlive=false,rlive=false;for(unsigned n=0;n<h.qn;++n)qlive|=j==(h.qh+n)%4;for(unsigned n=0;n<h.rn;++n)rlive|=j==(h.rh+n)%4;
-   if(mload(commands_[j]).valid!=qlive||mload(responses_[j]).valid!=rlive)throw IntegrityError("FIFO occupancy/valid mismatch");
+   bool qlive=false,llive=false,rlive=false,alive=false;for(unsigned n=0;n<h.qn;++n)qlive|=j==(h.qh+n)%4;for(unsigned n=0;n<h.ln;++n)llive|=j==(h.lh+n)%4;for(unsigned n=0;n<h.rn;++n)rlive|=j==(h.rh+n)%4;for(unsigned n=0;n<h.an;++n)alive|=j==(h.ah+n)%4;
+   if(mload(commands_[j]).valid!=qlive||mload(reads_[j]).valid!=llive||mload(responses_[j]).valid!=rlive||mload(acks_[j]).valid!=alive)throw IntegrityError("FIFO occupancy/valid mismatch");
+   if(qlive&&read_kind(mload(commands_[j]).kind)||llive&&!read_kind(mload(reads_[j]).kind)||rlive&&!read_kind(mload(responses_[j]).kind)||alive&&read_kind(mload(acks_[j]).kind))throw IntegrityError("wrong transaction type in FIFO");
   }
   auto check=[&](Entry&e){auto m=mload(e);if(m.valid&&(unsigned(m.kind)>5||m.n>1000||(m.kind==Kind::Append&&(!m.n||m.n>2))||((read_kind(m.kind)||m.kind==Kind::Hold)&&m.n)||m.token.epoch>epoch_mask_||m.token.id>id_mask_))throw IntegrityError("illegal transaction metadata");};
-  for(auto&e:commands_)check(e);for(auto&e:responses_)check(e);for(auto&e:updates_)check(e);for(auto&e:lookups_)check(e);
+  for(auto&e:commands_)check(e);for(auto&e:reads_)check(e);for(auto&e:responses_)check(e);for(auto&e:acks_)check(e);for(auto&e:updates_)check(e);for(auto&e:lookups_)check(e);
  }
  bool poll(){
   try{
-   auto h=hload();for(auto&e:commands_)mload(e);for(auto&e:responses_)mload(e);for(auto&e:updates_)mload(e);for(auto&e:lookups_)mload(e);validate(h);
+   auto h=hload();order_load();for(auto&e:commands_)mload(e);for(auto&e:reads_)mload(e);for(auto&e:responses_)mload(e);for(auto&e:acks_)mload(e);for(auto&e:updates_)mload(e);for(auto&e:lookups_)mload(e);validate(h);
    return cycle_>=hold_until_;
   }catch(const v9::MirrorUncorrectable&e){++stats.integrity_failures;throw IntegrityError(e.what());}
  }
@@ -261,48 +295,60 @@ class Service {
   uint64_t bulk_undos=0,bulk_bits=0,path_samples=0,path_replies=0;
   uint64_t accepted=0,started=0,produced=0,completed=0,cancelled=0;
   uint64_t source_services=0,lookup_samples=0,lookup_reductions=0,update_reductions=0,partial_stages=0,fold_publications=0;
-  uint64_t input_full_stalls=0,stage_stalls=0,response_stalls=0,dependency_stalls=0,II_stalls=0,credit_stalls=0;
-  uint64_t metadata_repairs=0,integrity_failures=0,stale_discarded=0,wrap_drains=0,wrap_completions=0;
+  uint64_t input_full_stalls=0,stage_stalls=0,response_stalls=0,dependency_stalls=0,ordering_stalls=0,II_stalls=0,credit_stalls=0,retired=0;
+  uint64_t metadata_repairs=0,integrity_failures=0,stale_discarded=0,wrap_drains=0,wrap_completions=0,recurrent_low_forwards=0;
  } stats;
- Service(Mode mode,std::vector<Geometry> geometry,unsigned update_L=1,unsigned lookup_L=1,unsigned ii=1,unsigned id_bits=16,unsigned epoch_bits=16):
-  updates_(mode==Mode::Direct?1:update_L),lookups_(lookup_L),geometry_(std::move(geometry)),mode_(mode),update_L_(update_L),lookup_L_(lookup_L),ii_(ii),
-  id_mask_((1u<<std::min(16u,id_bits))-1),epoch_mask_((1u<<std::min(16u,epoch_bits))-1){
+ Service(Mode mode,std::vector<Geometry> geometry,unsigned update_L=1,unsigned lookup_L=1,unsigned ii=1,unsigned id_bits=16,unsigned epoch_bits=16,Ports ports=Ports::SplitTwo):
+  updates_(mode==Mode::Direct?1:update_L,Entry{129}),lookups_(lookup_L),geometry_(std::move(geometry)),mode_(mode),update_L_(update_L),lookup_L_(lookup_L),ii_(ii),
+  id_mask_((1u<<std::min(16u,id_bits))-1),epoch_mask_((1u<<std::min(16u,epoch_bits))-1),ports_(ports){
   if((update_L!=1&&update_L!=2)||(lookup_L!=1&&lookup_L!=2)||ii<1||ii>64||id_bits<2||id_bits>16||epoch_bits<2||epoch_bits>16)throw std::invalid_argument("finite service geometry");
   if(geometry_.size()!=21)throw std::invalid_argument("21-fold geometry required");
   unsigned width=0;for(unsigned w=0;w<21;++w){auto g=geometry_[w];if(!g.length||g.length>130||!g.width||g.width>16||g.length!=geometry_[w/3*3].length)throw std::invalid_argument("pinned fold geometry");width+=g.width;}
   if(width!=200)throw std::invalid_argument("200-bit fold boundary required");
-  hstore(Header{});for(auto&e:commands_)mstore(e,{});for(auto&e:responses_)mstore(e,{});for(auto&e:updates_)mstore(e,{});for(auto&e:lookups_)mstore(e,{});
+  hstore(Header{});ordering_.store({});for(auto&e:commands_)mstore(e,{});for(auto&e:reads_)mstore(e,{});for(auto&e:responses_)mstore(e,{});for(auto&e:acks_)mstore(e,{});for(auto&e:updates_)mstore(e,{});for(auto&e:lookups_)mstore(e,{});
  }
  uint64_t cycle()const{return cycle_;}
  std::optional<Token> accept(Kind kind,unsigned n=0,unsigned bits=0,unsigned arg=0,bool recovery=false){
   if(unsigned(kind)>5||n>1000||(kind==Kind::Append&&n>2)||bits>3||arg>65535||((read_kind(kind)||kind==Kind::Hold)&&n)||kind==Kind::Append&&!n)throw std::invalid_argument("invalid service command");
   if(!poll())return {};auto h=hload();
   if(h.wrap)return {};
-  if(h.qn==4){++stats.input_full_stalls;return {};}
-  if(h.issued||h.gap){++stats.II_stalls;return {};}
+  const bool lookup=read_kind(kind);
+  if((lookup?h.ln:h.qn)==4){++stats.input_full_stalls;return {};}
+  if((lookup?h.lissued||h.lgap:h.issued||h.gap)||(ports_==Ports::SharedOne&&(h.issued||h.lissued))){++stats.II_stalls;return {};}
   if(kind==Kind::Append&&h.reserved+n>1000){++stats.credit_stalls;return {};}
-  Token t{uint16_t(h.id),uint16_t(h.epoch)};Meta m{true,kind,t,n,bits,arg,0};m.recovery=recovery;
-  mstore(commands_[h.qt],m);h.qt=(h.qt+1)%4;++h.qn;
+  Token t{uint16_t(h.id),uint16_t(h.epoch)};Meta m{true,kind,t,n,bits,arg,0};m.recovery=recovery;auto order=order_load();
+  if(lookup){m.version=get(order,0,32);mstore(reads_[h.lt],m);h.lt=(h.lt+1)%4;++h.ln;}
+  else {mstore(commands_[h.qt],m);h.qt=(h.qt+1)%4;++h.qn;if(kind==Kind::Append||kind==Kind::Undo){put(order,0,32,t.packed());ordering_.store(order);}}
   if(kind==Kind::Append)h.reserved+=n;
   if(h.id==id_mask_){h.wrap=true;h.ack=false;++stats.wrap_drains;}else ++h.id;
-  h.issued=true;h.gap=ii_;hstore(h);++stats.accepted;return t;
+  if(lookup){h.lissued=true;h.lgap=ii_;dispatch(h,true);}else {h.issued=true;h.gap=ii_;}hstore(h);++stats.accepted;return t;
  }
  void tick(){
-  ++cycle_;if(!poll())return;auto h=hload();if(h.cancel_pending)apply_cancel(h);h.issued=false;h.consumed=false;if(h.gap)--h.gap;
+  ++cycle_;if(!poll())return;auto h=hload();if(h.cancel_pending)apply_cancel(h);h.issued=false;h.lissued=false;h.retired=false;h.consumed=false;h.ack_consumed=false;h.read_sampled=false;if(h.gap)--h.gap;if(h.lgap)--h.lgap;
+  auto order=order_load();order.set(64,false);ordering_.store(order);
   if(h.rn){auto m=mload(responses_[h.rh]);if(stale(h,m)){mstore(responses_[h.rh],{});h.rh=(h.rh+1)%4;--h.rn;h.consumed=true;++stats.cancelled;++stats.stale_discarded;}}
   bool used=false;
-  if(h.turn){finish(lookups_,h,true,used);finish(updates_,h,false,used);}
+  if(ports_==Ports::SplitTwo){bool query_used=false;finish(updates_,h,false,used);finish(lookups_,h,true,query_used);}
+  else if(h.turn){finish(lookups_,h,true,used);finish(updates_,h,false,used);}
   else {finish(updates_,h,false,used);finish(lookups_,h,true,used);}
-  shift(updates_,h,false);shift(lookups_,h,true);dispatch(h);
+  shift(updates_,h,false);shift(lookups_,h,true);
+  const bool read_sampled=dispatch(h,true);
+  if(ports_==Ports::SplitTwo||!read_sampled)dispatch(h,false);
+  // A real write-first source bypass may satisfy a waiting direct query after
+  // source RMW in this edge. Stored-fold modes still wait for actual reduction.
+  if(ports_==Ports::SplitTwo&&!h.read_sampled)dispatch(h,true);
   if(h.wrap&&h.ack&&empty(h)){h.epoch=(h.epoch+1)&epoch_mask_;h.id=1;h.wrap=false;h.kill=false;h.ack=false;++stats.wrap_completions;}
   hstore(h);
  }
  std::optional<Reply> take(std::optional<Token> expected={}){
-  if(!poll())return {};auto h=hload();if(h.consumed||!h.rn)return {};
-  auto&mcell=responses_[h.rh];auto m=mload(mcell);
-  if(stale(h,m)||expected&&m.token!=*expected)return {};
-  Reply out{m.token,m.kind,m.version,mcell.data.input,mcell.data.path};mstore(mcell,{});
-  h.rh=(h.rh+1)%4;--h.rn;h.consumed=true;hstore(h);++stats.completed;return out;
+  if(!poll())return {};auto h=hload();if(ports_==Ports::SharedOne&&(h.consumed||h.ack_consumed))return {};
+  for(bool lookup:{true,false}){
+   if(lookup?(h.consumed||!h.rn):(h.ack_consumed||!h.an))continue;
+   auto&e=lookup?responses_[h.rh]:acks_[h.ah];auto m=mload(e);if(stale(h,m)||expected&&m.token!=*expected)continue;
+   Reply out{m.token,m.kind,m.version,lookup?e.data.input:std::array<unsigned,21>{},lookup?e.data.path:0,m.recovery};mstore(e,{});
+   if(lookup){h.rh=(h.rh+1)%4;--h.rn;h.consumed=true;}else{h.ah=(h.ah+1)%4;--h.an;h.ack_consumed=true;}
+   hstore(h);++stats.completed;return out;
+  }return {};
  }
  void cancel_reads(){
   const bool ready=poll();auto h=hload();
@@ -314,6 +360,16 @@ class Service {
  }
  bool acknowledge_receiver_drained(){
   if(!poll())return false;auto h=hload();if(!h.wrap||!empty(h))return false;h.ack=true;hstore(h);return true;
+ }
+ // Dedicated one/cycle retirement control port. Caller supplies an actually
+ // retired oldest source record, never a future outcome. No fold/source RMW.
+ // It releases credits only after the corresponding source bits exist.
+ bool can_retire(unsigned n){if(!n||n>2)return false;if(!poll())return false;auto h=hload();return !h.retired&&h.depth>=n&&h.reserved>=n;}
+ bool can_append(unsigned n){if(!n||n>1000)return false;if(!poll())return false;return hload().reserved+n<=1000;}
+ bool retire(unsigned n){
+  if(!n||n>2)throw std::invalid_argument("retire source width");if(!poll())return false;auto h=hload();
+  if(h.retired||h.depth<n||h.reserved<n)return false;
+  h.depth-=n;h.reserved-=n;h.retired=true;hstore(h);++stats.retired;return true;
  }
  bool drained(){if(!poll())return false;return empty(hload());}
  bool wrap_waiting(){if(!poll())return false;return hload().wrap;}
@@ -331,16 +387,18 @@ class Service {
  bool source_bit(unsigned age){if(age>=130)throw std::out_of_range("active source age");if(!poll())throw IntegrityError("source read while metadata held");return raw_bit(hload(),age);}
  std::array<unsigned,21> stored_folds(){if(mode_==Mode::Direct)throw std::logic_error("direct has no stored folds");if(!poll())throw IntegrityError("fold read while metadata held");return folds_;}
  uint64_t pending()const{
-  auto h=unpack(header_.a.data);uint64_t n=std::min(h.qn,4u)+std::min(h.rn,4u);
+  auto h=unpack(header_.a.data);uint64_t n=std::min(h.qn,4u)+std::min(h.ln,4u)+std::min(h.rn,4u)+std::min(h.an,4u);
   for(auto&e:updates_)n+=observe(e).valid;for(auto&e:lookups_)n+=observe(e).valid;return n;
  }
  bool conserved()const{return stats.accepted==stats.completed+stats.cancelled+pending();}
  struct Region {std::string name;size_t start,bits;};
  std::vector<Region> manifest()const{
   std::vector<Region> r;size_t at=0;auto add=[&](std::string s,size_t n){if(n){r.push_back({s,at,n});at+=n;}};
-  add("raw_ring",1130);add("path",16);if(mode_!=Mode::Direct)add("fold",200);add("controller_mirrored_SECDED",header_.bits());
+  add("raw_ring",1130);add("path",16);if(mode_!=Mode::Direct)add("fold",200);add("controller_mirrored_SECDED",header_.bits());add("ordering_mirrored_SECDED",ordering_.bits());
   for(unsigned i=0;i<4;++i)add("command_metadata_"+std::to_string(i),commands_[i].meta.bits());
+  for(unsigned i=0;i<4;++i)add("read_metadata_"+std::to_string(i),reads_[i].meta.bits());
   for(unsigned i=0;i<4;++i){add("response_metadata_"+std::to_string(i),responses_[i].meta.bits());add("response_payload_"+std::to_string(i),216);}
+  for(unsigned i=0;i<4;++i)add("source_ack_metadata_"+std::to_string(i),acks_[i].meta.bits());
   for(unsigned i=0;i<updates_.size();++i){add("update_metadata_"+std::to_string(i),updates_[i].meta.bits());add("update_payload_"+std::to_string(i),payload_bits(false,i));}
   for(unsigned i=0;i<lookups_.size();++i){add("lookup_metadata_"+std::to_string(i),lookups_[i].meta.bits());add("lookup_payload_"+std::to_string(i),payload_bits(true,i));}
   return r;
@@ -352,8 +410,11 @@ class Service {
   if(id<1130)return raw_[id];id-=1130;if(id<16)return (path_>>id)&1;id-=16;
   if(mode_!=Mode::Direct){if(id<200)return field_bit(folds_,id);id-=200;}
   if(id<header_.bits())return header_.bit(id);id-=header_.bits();
+  if(id<ordering_.bits())return ordering_.bit(id);id-=ordering_.bits();
   for(const auto&e:commands_){if(id<e.meta.bits())return e.meta.bit(id);id-=e.meta.bits();}
+  for(const auto&e:reads_){if(id<e.meta.bits())return e.meta.bit(id);id-=e.meta.bits();}
   for(const auto&e:responses_){if(id<e.meta.bits())return e.meta.bit(id);id-=e.meta.bits();if(id<216)return payload_bit(e.data,id,true,0,true);id-=216;}
+  for(const auto&e:acks_){if(id<e.meta.bits())return e.meta.bit(id);id-=e.meta.bits();}
   for(unsigned i=0;i<updates_.size();++i){const auto&e=updates_[i];if(id<e.meta.bits())return e.meta.bit(id);id-=e.meta.bits();auto n=payload_bits(false,i);if(id<n)return payload_bit(e.data,id,false,i);id-=n;}
   for(unsigned i=0;i<lookups_.size();++i){const auto&e=lookups_[i];if(id<e.meta.bits())return e.meta.bit(id);id-=e.meta.bits();auto n=payload_bits(true,i);if(id<n)return payload_bit(e.data,id,true,i);id-=n;}
   throw std::logic_error("manifest traversal");
@@ -362,8 +423,11 @@ class Service {
   if(id<1130){raw_[id]^=1;return;}id-=1130;if(id<16){path_^=1u<<id;return;}id-=16;
   if(mode_!=Mode::Direct){if(id<200){flip_field(folds_,id);return;}id-=200;}
   if(id<header_.bits()){header_.flip(id);return;}id-=header_.bits();
+  if(id<ordering_.bits()){ordering_.flip(id);return;}id-=ordering_.bits();
   for(auto&e:commands_){if(id<e.meta.bits()){e.meta.flip(id);return;}id-=e.meta.bits();}
+  for(auto&e:reads_){if(id<e.meta.bits()){e.meta.flip(id);return;}id-=e.meta.bits();}
   for(auto&e:responses_){if(id<e.meta.bits()){e.meta.flip(id);return;}id-=e.meta.bits();if(id<216){flip_payload(e.data,id,true,0,true);return;}id-=216;}
+  for(auto&e:acks_){if(id<e.meta.bits()){e.meta.flip(id);return;}id-=e.meta.bits();}
   for(unsigned i=0;i<updates_.size();++i){auto&e=updates_[i];if(id<e.meta.bits()){e.meta.flip(id);return;}id-=e.meta.bits();auto n=payload_bits(false,i);if(id<n){flip_payload(e.data,id,false,i);return;}id-=n;}
   for(unsigned i=0;i<lookups_.size();++i){auto&e=lookups_[i];if(id<e.meta.bits()){e.meta.flip(id);return;}id-=e.meta.bits();auto n=payload_bits(true,i);if(id<n){flip_payload(e.data,id,true,i);return;}id-=n;}
   throw std::out_of_range("service bit");

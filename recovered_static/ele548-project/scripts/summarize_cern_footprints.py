@@ -157,6 +157,11 @@ def main():
             lo, hi = difference['matched_trial_bootstrap95CI']
             lines.append('| '+Path(name).stem+' | '+scheme+' | '+' | '.join(f"{g['delta_MPKI']['mean']:.6g}" for g in rows)
                          +f" | {difference['mean']:.6g} [{lo:.6g}, {hi:.6g}] |")
+    ar_comparisons = [g for g in groups if g['file'] == 'clust_Ar1050MeV.txt' and g['scheme'] == 'P_ECC'
+                      and g['mode'] == 'repeat' and g['normalization'] == 'equal_event']
+    if all(g['difference_from_P_ED_same_mapping']['matched_trial_bootstrap95CI'][0] <= 0 <=
+           g['difference_from_P_ED_same_mapping']['matched_trial_bootstrap95CI'][1] for g in ar_comparisons):
+        lines += ['', 'Ar1050 조건에서 ECC−parity의 matched CI는 이번 세 mapping 모두 0을 포함했다. Mean의 순서만으로 두 방법의 우위를 확정하지 않는다. 이 비교는 CERN_FOOTPRINT_SUMMARY.json의 difference_from_P_ED_same_mapping에 있다.']
     lines += ['', 'Single-event 20 seeds/condition와 repeated 10 seeds/condition, equal-event / equal-expected-flip를 모두 실행했다. Equal-flip clock은 λ/E[K|recorded K≥2]이며 두 proton 조건과 Ar 조건을 pooling하지 않았다. 모든 event/K/좌표/translation/site/seed/schedule와 CSV를 보존하고 hash를 대조했다.', '',
         'Matched-seed CI는 6개 고정 holdout workload에 조건화한 bootstrap 2000회다. Branch 수를 독립 표본 수로 쓰지 않는다. 원본 catalog의 grouping 오류, singleton 누락, 물리 배치 불확실성은 이 CI 밖이다. Harm/help/zero를 모두 보존하고 원 instruction denominator로 ΔMPKI를 계산한다.', '',
         '배치는 16×22 가상 논리 tile의 bijection이다. 원본 offsets를 전부 유지하고 유효 translation만 선택한다. Dispersed 대조는 동일 K를 유지하면서 공간적 연결만 제거한다. No wrapping/clipping 또는 K 축소. Extra parity/ECC/control/replica cells는 이번 payload 비교에서 제외하고 E2/E3의 별도 exposure 시험으로 다룬다.', '',

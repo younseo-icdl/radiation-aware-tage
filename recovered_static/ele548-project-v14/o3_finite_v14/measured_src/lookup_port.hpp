@@ -49,12 +49,12 @@ class LookupPort {
    target->fold=r->folds;target->path=r->path;m.phase=2;store(*target,m);
   }
  }
- struct Output {Token token;uint64_t pc;bool conditional;v9::Payload payload;};
- std::optional<Output> take(Token token){
+ struct Output {Token token;uint64_t pc;bool conditional;v9::Payload payload;unsigned path;};
+ std::optional<Output> take(Token token,bool consume=true){
   if(!poll()||ctl().bit(0))return {};
   for(auto&c:contexts_){auto m=load(c);if(m.phase!=3||m.token!=token)continue;
    if(!c.result.legal_response(m.conditional)){++integrity_failures;throw IntegrityError("invalid provider response encoding");}
-   Output out{m.token,m.pc,m.conditional,c.result};store(c,{});Word w;w.set(0,true);control_.store(w);++consumed;return out;
+   Output out{m.token,m.pc,m.conditional,c.result,c.path};if(!consume)return out;store(c,{});Word w;w.set(0,true);control_.store(w);++consumed;return out;
   }return {};
  }
  std::optional<Output> head(){if(!poll()||ctl().bit(0))return {};Context* first=nullptr;Meta best;for(auto&c:contexts_){auto m=load(c);if(m.phase&&(!first||m.token.packed()<best.token.packed())){first=&c;best=m;}}if(!first||best.phase!=3)return {};return take(best.token,false);}

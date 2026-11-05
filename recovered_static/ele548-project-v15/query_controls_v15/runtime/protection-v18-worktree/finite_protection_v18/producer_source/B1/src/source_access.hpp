@@ -76,3 +76,57 @@ template<class Parent>class SourceAccess:public Parent {
  }
 };
 }
+void CpuPipelineV9R2TAGE::seuSquashBegin(gem5::ThreadID tid){fatal_if(tid,"V15 single thread");core.engine->begin();}
+void CpuPipelineV9R2TAGE::seuSquashEnd(gem5::ThreadID tid){fatal_if(tid,"V15 single thread");core.engine->end();}
+bool CpuPipelineV9R2TAGE::seuPipelineDrained()const{return core.engine&&core.drained();}
+bool CpuPipelineV9R2TAGE::seuCanRetire(gem5::ThreadID tid,void*history){fatal_if(tid,"V15 single thread");if(!history)return true;const bool ready=core.can_retire(static_cast<TageBranchInfo*>(history)->tageBranchInfo->nGhist);
+ // OBSERVATION_BEGIN
+ if(!ready){if(core.early&&!core.early->quiescent())++core.early_retire_wait_calls;else if(core.engine->diagnostic_recovery_waiting())++core.retire_recovery_wait_calls;else ++core.retire_credit_decode_wait_calls;}
+ // OBSERVATION_END
+ return ready;}
+void CpuPipelineV9R2TAGE::seuReserveRetire(gem5::ThreadID tid,void*history){fatal_if(tid,"V15 single thread");if(history)fatal_if(!core.retire(static_cast<TageBranchInfo*>(history)->tageBranchInfo->nGhist),"V15 retirement without actual source credit");}
+void CpuPipelineV9R2TAGE::update(gem5::ThreadID tid,gem5::Addr pc,bool taken,void*&history,bool squashed,const gem5::StaticInstPtr&inst,gem5::Addr target){
+ fatal_if(!history,"V15 training has no owned BI");auto* info=static_cast<TageBranchInfo*>(history);auto*bi=info->tageBranchInfo;if(squashed){core.squash(tid,taken,target,inst,bi);return;}
+ int draw=rng->random<int>()&3;++core.predictor_rng_draws;core.predictor_rng_hash^=uint64_t(draw);core.predictor_rng_hash*=1099511628211ULL;
+ if(bi->condBranch){core.updateStats(taken,bi);core.condBranchUpdate(tid,pc,taken,bi,draw,target,bi->tagePred);}core.updateHistories(tid,pc,false,taken,target,inst,bi);delete info;history=nullptr;
+}
+void CpuPipelineV9R2TAGE::seuAuditCommit(uint64_t,uint64_t pc,unsigned micro,bool last,bool control,void*){++core.committed_ops;core.committed_controls+=control;for(uint64_t value:{pc,uint64_t(micro),uint64_t(last),uint64_t(control)}){core.committed_identity^=value;core.committed_identity*=1099511628211ULL;}}
+void CpuPipelineV9R2TAGE::branchPlaceholder(gem5::ThreadID,gem5::Addr,bool,void*&){fatal("V15 decoupled frontend not supported");}
+
+void CpuPipelineV9R2TAGEBase::load_faults(){
+ if(!event_path_.empty()){event_output_.open(event_path_);fatal_if(!event_output_,"V18 event log unavailable");event_output_<<"event,tick,token,logical_id,before,after,conditional_gate,stage_phase,stage_lookup,lower_tick\n";detector_output_.open(event_path_+".detector.csv");fatal_if(!detector_output_,"V18 detector log unavailable");detector_output_<<"tick,detected,corrected,due,resets,epoch,refill,fallback\n";}
+ if(schedule_path_.empty())return;std::ifstream in(schedule_path_);fatal_if(!in,"V18 schedule unavailable");std::string line;gem5::Tick previous=0;
+ while(std::getline(in,line)){
+  if(line.empty()||line[0]=='#')continue;std::istringstream input(line);Fault f;std::string sites,extra;fatal_if(!(input>>f.tick>>sites)||bool(input>>extra)||!f.tick||f.tick<previous,"V18 malformed schedule");previous=f.tick;f.lower_tick=f.tick;
+  std::stringstream tokens(sites);std::string token;while(std::getline(tokens,token,';')){fatal_if(token.empty(),"V18 empty event site");if(token.rfind("G1R:",0)==0)f.gated=true;f.sites.push_back(token);}fatal_if(f.sites.empty(),"V18 empty atomic event");faults_.push_back(std::move(f));
+ }
+}
+size_t CpuPipelineV9R2TAGEBase::resolve_site(const std::string&token)const{
+ if(token.rfind("G1R:",0)==0)return resolve_site(token.substr(4));
+ const size_t n=table_bits();if(token[0]=='R'){
+  size_t used=0;auto age=std::stoul(token.substr(1),&used);fatal_if(used!=token.size()-1||age>=130,"V18 invalid raw-age alias");return n+engine->port.source.active_raw_site(age);
+ }
+ if(token[0]=='W'){
+  auto colon=token.find(':');fatal_if(colon==std::string::npos,"V18 invalid S* word alias");size_t a=0,b=0;auto word=std::stoul(token.substr(1,colon-1),&a),bit=std::stoul(token.substr(colon+1),&b);auto widths=engine->port.source.selected_widths();fatal_if(a!=colon-1||b!=token.size()-colon-1||word>=23||bit>=widths[word],"V18 invalid canonical word bit");
+  if(word==21)return n+engine->port.source.active_raw_site(bit);if(word==22)return n+1130+bit;fatal_if(mode_==v18::Mode::Direct,"V18 Direct has no stored fold");size_t id=n+1146;for(unsigned w=0;w<word;++w)id+=widths[w];return id+bit;
+ }
+ size_t used=0;auto id=std::stoull(token,&used);fatal_if(used!=token.size()||id>=n+model_bits(),"V18 invalid physical logical site");return id;
+}
+void CpuPipelineV9R2TAGEBase::inject_next(){
+ fatal_if(faults_frozen_||fault_index_>=faults_.size()||faults_[fault_index_].tick!=gem5::curTick(),"V18 injection lifecycle");auto&f=faults_[fault_index_];unsigned phase=unsigned(protection()->unit.logical_bit(0))|(unsigned(protection()->unit.logical_bit(1))<<1);bool lookup=protection()->unit.logical_bit(144);
+ if(f.gated&&(phase!=1||lookup)){f.tick=((gem5::curTick()/period)+1)*period+1;schedule(injection_,f.tick);return;}
+ std::vector<size_t>ids;std::vector<bool>before;std::set<size_t>unique;
+ for(auto&token:f.sites){auto id=resolve_site(token);fatal_if(!unique.insert(id).second,"V18 duplicate physical bit in one atomic event");ids.push_back(id);before.push_back(logical_bit(id));}
+ corrupt(ids);
+ for(unsigned i=0;i<ids.size();++i){bool after=logical_bit(ids[i]);fatal_if(after==before[i],"V18 XOR event did not change logical bit");if(event_output_)event_output_<<applied_events_<<','<<gem5::curTick()<<','<<f.sites[i]<<','<<ids[i]<<','<<before[i]<<','<<after<<','<<f.gated<<','<<phase<<','<<lookup<<','<<f.lower_tick<<'\n';}
+ if(event_output_)event_output_.flush();++applied_events_;applied_flips_+=ids.size();++fault_index_;if(fault_index_<faults_.size()){auto&next=faults_[fault_index_];if(next.gated&&next.tick<=gem5::curTick())next.tick=gem5::curTick()+1;schedule(injection_,next.tick);}
+}
+}
+namespace bp::v15 {
+bool RecoveryBridge::ready(gem5::o3::BAC& bac){
+ auto*pred=dynamic_cast<bp::CpuPipelineV9R2TAGE*>(bac.bpu->cPred);if(!pred)return true;
+ fatal_if(bac.numThreads!=1||bac.decoupledFrontEnd,"V15 requires one thread coupled frontend");
+ bool incoming=bac.fromCommit->commitInfo[0].squash||bac.fromDecode->decodeInfo[0].squash;if(!incoming)return true;
+ if(!pred->core.prepare_recovery()){++pred->core.recovery_hold_cycles;return false;}return true;
+}
+}

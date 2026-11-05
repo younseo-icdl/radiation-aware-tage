@@ -10,7 +10,7 @@ int main(){try{
   auto p=rec.step(b,[&](const Base::BranchInfo&bi){if(!b.conditional)return;hp=bi.hitBank;pp=bi.provider;for(unsigned j=1;j<=7;++j){x.push_back(bi.tableIndices[j]);x.push_back(bi.tableTags[j]);}});
   auto q=dir.step(b,[&](const Base::BranchInfo&bi){if(!b.conditional)return;hq=bi.hitBank;pq=bi.provider;for(unsigned j=1;j<=7;++j){y.push_back(bi.tableIndices[j]);y.push_back(bi.tableTags[j]);}});
   check(p==q&&x==y&&hp==hq&&pp==pq,"normal read/provider equality");
-  if(!(i%997)){check(rec.core.equal(dir.core)&&rec.rng==dir.rng,"table/training/RNG equality");auto s=dir.core.save();State copy("direct");copy.load(s);check(copy.equal(dir.core),"deep snapshot");copy.corrupt({copy.sites().back().id});check(!copy.equal(dir.core),"snapshot alias");}
+    if(!(i%997)){check(rec.core.equal(dir.core)&&rec.rng==dir.rng,"table/training/RNG equality");auto s=dir.core.save();State copy("direct");copy.load(s);copy.raw_ring=dir.core.raw_ring;copy.raw_head=dir.core.raw_head;check(copy.equal(dir.core),"deep snapshot");copy.corrupt({copy.sites()[0].id});check(!copy.equal(dir.core),"snapshot alias");}
  }
  // Speculation and inverse rollback with multiple outstanding records.
  State a("recurrent",8,true),b("direct",8,true);std::vector<Base::BranchInfo*>aa,bb;
@@ -21,7 +21,7 @@ int main(){try{
  }
  for(int i=511;i>=0;--i){a.restoreHistState(0,aa[i]);b.restoreHistState(0,bb[i]);check(a.equal(b)&&a.hashes()==b.hashes(),"inverse rollback equality");delete aa[i];delete bb[i];}
  // Independent derived-state upset has no input into direct lookup.
- Adapter x("direct"),y("direct");auto sites=x.core.sites();for(auto&s:sites)if(s.kind==5){y.core.corrupt({s.id});break;}
+ Adapter x("direct"),y("direct");auto sites=x.core.sites();for(auto&s:sites)if(s.kind==5){y.core.TageState::corrupt({s.id});break;}
  for(unsigned i=0;i<1000;++i){Branch br{0x1234+4*(i%16),0,bool(i&1),true};check(x.step(br)==y.step(br),"helper fold influenced direct function");}
  // Source bit eviction is bounded only under the same fixed stream, no rollback.
  for(unsigned age:{0u,1u,64u,129u}){

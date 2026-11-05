@@ -1,0 +1,23 @@
+[
+  {
+    "curated_path": "final_b4/gem5_overlay/src/cpu/o3/cpu.cc",
+    "original_compiled_or_frozen_path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+    "expected_and_recovered_sha256": "7dcce0a5ad06a07d8bcc45d6f53491a2584c584e1bed1510104b5b8c7b9a7eb4",
+    "source_record_line": 37892,
+    "status": "MATCH_HISTORICALLY_PRINTED_FINAL_B4_SHA"
+  },
+  {
+    "curated_path": "final_b4/gem5_overlay/o3_protection_v18.py",
+    "original_compiled_or_frozen_path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/runtime/producers/B4/config/o3_protection_v18.py",
+    "expected_and_recovered_sha256": "74ef84a744c580076f0e54834ea80d6c6ba1e94b5a933328aabbe838d91489cf",
+    "source_record_line": 37885,
+    "status": "MATCH_HISTORICALLY_PRINTED_FINAL_B4_SHA"
+  },
+  {
+    "curated_path": "final_b4/gem5_overlay/observer_v18.py",
+    "original_compiled_or_frozen_path": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/runtime/producers/B4/config/observer_v18.py",
+    "expected_and_recovered_sha256": "dc14c798238422b5d4e21ddee1d23e11b540ef77d02d226e55e7e81e3bca2c06",
+    "source_record_line": 37885,
+    "status": "MATCH_HISTORICALLY_PRINTED_FINAL_B4_SHA"
+  }
+]

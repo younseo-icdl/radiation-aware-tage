@@ -12,7 +12,20 @@ for n in required:report(n)
 assert load(F/'ANALYSIS.lock.json')['status']=='MEASURED_AGGREGATION'
 summary=csvrows('CPU_PAIRED_SUMMARY.csv');abcd=csvrows('CPU_ABCD.csv')
 evalphase='EVALUATION_V3_FAULT';ev=[r for r in summary if r['cohort']==evalphase]
-programs=sorted(set(r['program'] for r in ev));policies=['PARITY64','BATCH_DIRECT','BATCH_STRAT16']
+frozen=load(R5/'configs/EVALUATION_V3_PREDECLARED.lock.json')
+programs=sorted(x['name'] for x in frozen['inputs']);policies=['PARITY64','BATCH_DIRECT','BATCH_STRAT16']
+assert len(programs)==len(set(programs))==5 and frozen['owners_per_program_condition']==20
+raw_evaluation=report(evalphase)['tasks'];assert len(raw_evaluation)==800
+expected={(p,s,i) for p in programs for s in frozen['conditions'] for i in frozen['policies']}
+groups=collections.defaultdict(set);unique=set()
+for r in raw_evaluation:
+ key=(r['program'],r['scenario'],r['id'],r['owner']);assert key not in unique;unique.add(key)
+ groups[key[:3]].add(r['owner'])
+assert set(groups)==expected and all(len(v)==20 for v in groups.values()),'FROZEN_EVALUATION_COVERAGE'
+for p in programs:
+ for s in frozen['conditions']:
+  owner_sets=[groups[(p,s,i)] for i in frozen['policies']]
+  assert all(x==owner_sets[0] for x in owner_sets),'UNPAIRED_OWNER_SET'
 def f(x,n=3):return '' if x is None or x=='' else f'{float(x):.{n}f}'
 def summary_table(rows):
  s='|program|조건|방법|valid/planned|정상 overhead %|B−D 순이득 %p [95% CI]|오류 후 추가 비용 %p(A기준)|\n|---|---|---|---:|---:|---:|---:|\n'
@@ -20,6 +33,16 @@ def summary_table(rows):
   s+=f"|{r['program']}|{r['scenario']}|{r['policy']}|{r['n_valid_pairs']}/{r['n_scheduled']}|{f(r['normal_overhead_pct'])}|{f(r['mean_gain_pp'])} [{f(r['gain_CI_low'])}, {f(r['gain_CI_high'])}]|{f(r['mean_residual_pp'])}|\n"
  return s
 evaltext=summary_table([r for r in ev if r['policy']!='NATIVE'])
+cleans=report('EVALUATION_V3_CLEAN_ALL')['tasks']
+assert len(cleans)==20 and {(r['program'],r['id']) for r in cleans}=={(p,i) for p in programs for i in frozen['policies']}
+cleantext='|program|주기 parity %|동일 fold 직접 계산 %|16위치 직접 계산 %|\n|---|---:|---:|---:|\n'
+normal={}
+for program in programs:
+ a=next(r['cycles'] for r in cleans if r['program']==program and r['id']=='NATIVE')
+ values={policy:100*(next(r['cycles'] for r in cleans if r['program']==program and r['id']==policy)/a-1) for policy in policies}
+ normal[program]=values
+ cleantext+='|'+program+'|'+'|'.join(f(values[p],4) for p in policies)+'|\n'
+cleantext+='|프로그램 동일가중 평균|'+'|'.join(f(statistics.mean(v[p] for v in normal.values()),4) for p in policies)+'|\n'
 macro=[]
 for scenario in sorted(set(r['scenario'] for r in ev)):
  for policy in policies:
@@ -48,7 +71,7 @@ IMPLEMENTED/TESTED RESULT: 개발과 다른 입력3개, 공개 추가 프로그�
 
 A=정상 reference, B=오류 reference, C=정상 policy, D=오류 policy. 총 순이득은 B−D이며, 오류에 따른 추가 피해 감소는 (B−A)−(D−C)이다. 이 DID에는 표현별 민감도·노출·timing 상호작용도 포함되므로 복구 메커니즘만을 분리한 인과 추정치가 아니다. 각 프로그램/조건에서 동일 owner를 짝지은 뒤 bootstrap10000회, 명목95% CI를 계산했다. 프로그램 macro는 프로그램 동일가중이다. 20owners는 드문 프로그램 실패 확률을 검증할 수 있는 수가 아니며 CI가0을 포함해도 동등성 증명은 아니다. 여러 조건의 CI에는 familywise 보정이 없다.
 
-'''+evaltext+'''
+'''+cleantext+'\n'+evaltext+'''
 CPU_PAIRED_SUMMARY.csv에는 signed 피해의 경험적 p90/max와 helpful/zero 비율도 기록했다. n4 개발·n2 반복 작업·n20 평가의 표본 분위수를 실제 환경의 상위 tail 확률로 해석하지 않는다. 이 작은 표본의 bootstrap CI는 특히 탐색적이며 paired owner를 task 반복 수만큼 늘리지 않았다.
 
 WHOLE은 명시된 논리 population의 SBU 가속 시나리오이며 타겟 방사선 rate가 아니다. inherited checkpoint/CPU ownership 제외 범위가 남아 완전한 물리 storage 정합 비교도 아니다. 추가 metadata 오류로 실행이 실패한 owner는 cycles를 성공값으로 보간하지 않는다. 표의 valid/planned가 다르면 CI는 성공한 paired owners에만 조건부이고 전체 population의 성능 우위로 발표할 수 없다.
@@ -91,12 +114,13 @@ negative='''# 유리하지 않은 결과와 미해결 조건
 7. whole enumerated population은 common CPU ownership/checkpoint 제외를 유지한다. Native backing retention과 새 direct journal의 물리 ownership inventory가 정합하지 않아 이 결과만으로 whole-chip reliability/physical storage 우위를 결론내릴 수 없다.
 8. R28 문헌 참조의 spectrum/FF 이전은 미확인이다. 희소율 계산은 fixed-window partial surrogate이며 p>=2와 추가 storage hazard를0으로 채우지 않는다. mission FIT/실제 소자 rate 또는 우위 교차점을 만들지 않는다.
 9. 모든 packet/codec/lookup L/II는 CPU model 계약이다. RTL/PDK/실제 read fanout 및 clockability는 검증하지 않았다.
+10. 독립 정상 평가에서 direct의 basicmath_sseio overhead는2.61%, sparse16의 bitcount_det는5.59%였다. 개발3개 프로그램의2% 이내 결과를 새 프로그램 전반으로 확대할 수 없었다. sparse16의5program 동일가중 정상 overhead도2%를 넘었다. 이 결과를 보고 tap/resource를 수정하지 않았다.
 '''
 (F/'NEGATIVE_RESULTS.ko.md').write_text(negative)
 
 hardware='''# HDL 이전 후보 판정과 계약
 
-판정: **현재 fully qualified 새 하드웨어 후보0개.** 아래 두 구조는 조건부 연구 모델이며 '새 승자'로 승격하지 않는다. 포인터/queue DUE의 total transition 부재가 직접 실패 시험에서 확인됐고, primary lookup timing과 전체 물리 storage ownership도 미확정이다. 독립 평가의 평균 cycles가 좋아도 이 안전 gate를 대체하지 못한다.
+판정: **현재 fully qualified 새 하드웨어 후보0개.** 아래 두 구조는 조건부 연구 모델이며 '새 승자'로 승격하지 않는다. 포인터/queue DUE의 total transition 부재가 직접 실패 시험에서 확인됐고, primary lookup timing과 전체 물리 storage ownership도 미확정이다. 정상2% budget을 넘는 추가 프로그램도 확인됐다. 독립 평가의 평균 cycles가 좋아도 이 안전 gate나 프로그램별 퇴행을 대체하지 못한다.
 
 |구조|정상 예측 함수|조건부 이점|필수 자원과 한계|
 |---|---|---|---|
@@ -115,7 +139,7 @@ novelty 한계: direct folding/circular journal/partial history/parity/ECC는 �
 
 final='''# 두 연구 축의 최종 판정
 
-결론: 재귀 fold를 없애는 표현은 fixed-stream의 오래 남는 오류 피해를 줄였다. 유한한 source 복원 거래를 BPU squash 단위로 묶으면 정상 CPU 비용도 줄일 수 있었다. 그러나 **새 하드웨어 승자는 확정하지 않는다.** metadata-invalid 안전 gate가 실패했고, lookup 추가0cycle과 population ownership의 물리 타당성도 남아 있다.
+결론: 재귀 fold를 없애는 표현은 fixed-stream의 오래 남는 오류 피해를 줄였다. 유한한 source 복원 거래를 BPU squash 단위로 묶으면 정상 CPU 비용도 줄일 수 있었다. 그러나 **새 하드웨어 승자는 확정하지 않는다.** 새 프로그램에서 정상2% 초과 사례가 나왔고 metadata-invalid 안전 gate도 실패했다. lookup 추가0cycle과 population ownership의 물리 타당성도 남아 있다.
 
 ## DONE — 실행·검증한 것
 
@@ -127,7 +151,7 @@ final='''# 두 연구 축의 최종 판정
 
 ## 독립 평가 — 프로그램별 결과
 
-'''+evaltext+'''
+'''+cleantext+'\n'+evaltext+'''
 결과를 읽을 때: source-targeted CHARM와 table/추가 metadata를 포함하는 whole-enumerated SBU는 서로 다른 모집단이다. 두 조건의 time compression을 조절해 승자를 고르지 않았다. failure가 있으면 표는 complete paired survivors에만 조건부이며 전체 성능/안전성 우위가 아니다. 정상2%와 실익0.05%p 등의 문턱은 사전 선언한 engineering choices다.
 
 ## NOT DONE

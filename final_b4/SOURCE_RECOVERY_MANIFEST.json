@@ -1,0 +1,1128 @@
+{
+  "status": "PARTIAL_FINAL_B4_SOURCE_RECOVERY_NOT_A_QUALIFIED_REBUILD",
+  "files": [
+    {
+      "path": "final_b4/gem5_overlay/o3_protection_v18.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/o3_protection_v18.py",
+      "sha256": "74ef84a744c580076f0e54834ea80d6c6ba1e94b5a933328aabbe838d91489cf",
+      "bytes": 5270,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/gem5_overlay/observer_v18.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/observer_v18.py",
+      "sha256": "dc14c798238422b5d4e21ddee1d23e11b540ef77d02d226e55e7e81e3bca2c06",
+      "bytes": 1605,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/gem5_overlay/src/cpu/o3/bac.hh",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/bac.hh",
+      "sha256": "afe34a9bb66f6f41530336344b58ae9208868d8cfce36f6ffe58dcb37e3d55b3",
+      "bytes": 16853,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/gem5_overlay/src/cpu/o3/commit.cc",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "sha256": "154f663880e367f4a3dcd1f13e209823d20399df4dcd569e8d3e02b3b43d38ca",
+      "bytes": 50487,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "sha256": "7dcce0a5ad06a07d8bcc45d6f53491a2584c584e1bed1510104b5b8c7b9a7eb4",
+      "bytes": 41863,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "sha256": "b6fc42f7638a22c7b9945edd224c6a3d78071de670c7d2abd05bb34d6f6950d0",
+      "bytes": 19352,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.cc",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.cc",
+      "sha256": "17878e023701918050d30da0bd43946d01857b5b1a8f98fe15312a25bb2449a8",
+      "bytes": 20802,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.hh",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.hh",
+      "sha256": "843c6ad00b6e9275dcd9673cf138787de73ce2bd24816bc90463430e2a1628df",
+      "bytes": 3043,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/src/controller.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/controller.hpp",
+      "sha256": "767058ae0befdca6fe26e8511a4cbcf354a55eb5ed01f822ec64db2190de4feb",
+      "bytes": 9649,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/src/early_receiver.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/early_receiver.hpp",
+      "sha256": "94ec4af700f0012162b0cb7024fd00876b95687955fbc9c7e0a207063f888790",
+      "bytes": 4821,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/src/inverse_jump.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/inverse_jump.hpp",
+      "sha256": "bea8adfda65d23baee32ba9c6ce2f73359a96beefda039c426ba305fc92a0de4",
+      "bytes": 1218,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/src/lookup_port.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/lookup_port.hpp",
+      "sha256": "a4311f6c503b0ea2b63e0bf2785e402dabc592d47a1c85cf61f4f39267f64898",
+      "bytes": 8205,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/src/service.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/service.hpp",
+      "sha256": "3990d687f703481d3925e9e8f82621e89a9e1a4d9b6527e4612581d65cf215a1",
+      "bytes": 37130,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/src/source_access.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_access.hpp",
+      "sha256": "1e8f6830d7cfaa2f4e04f6a2e78e860cd70b80028d5768df88856bad5fe13fe5",
+      "bytes": 7798,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/src/source_protection.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_protection.hpp",
+      "sha256": "847e5b27a5a4002066372bb7d85737bbfa78eda87fb72c662e51320ba3835b86",
+      "bytes": 25767,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/src/vector_protection.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/vector_protection.hpp",
+      "sha256": "0a96fcdd56f0ac03e671447fd8ac27e64af12df507618537aef0cdc5bdc9c078",
+      "bytes": 10343,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tests/commit_ingress_gate.cpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/commit_ingress_gate.cpp",
+      "sha256": "b6c1df339900b2bce423c08728cbf14582d9fd9515815732afa9fc7467545c9b",
+      "bytes": 4172,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tests/rmw_phase_gate.cpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/rmw_phase_gate.cpp",
+      "sha256": "cc633a2a2c0637388894fdeb2028515e9321383d076e1f6cc61864e395f1b862",
+      "bytes": 2799,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tests/scope_gate.cpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/scope_gate.cpp",
+      "sha256": "ab5a01ce47d2aa770a5f91479d824f7fbc6c3304012f81c273cfa4e72fc0b39c",
+      "bytes": 3581,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tests/source_guard_gate.cpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/source_guard_gate.cpp",
+      "sha256": "c4e6cd91e8625a2151bbdeb533a1972c4a118c35f1bf5046da05e98daa301260",
+      "bytes": 8364,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tests/source_transport_gate.cpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/source_transport_gate.cpp",
+      "sha256": "fa63931c470d0380c139cb6fc01ea96f10da0a58fffc70f64173ee4d630e3dc1",
+      "bytes": 8062,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tests/transaction_gate.cpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/transaction_gate.cpp",
+      "sha256": "a8062ed7d85b5cc2e1272be0c138ba42979809f9bf1aa8dca123a691e2ee0cc6",
+      "bytes": 1211,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tests/vector_gate.cpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/vector_gate.cpp",
+      "sha256": "28226d0466467bff1c5d8f190b07d985deee21202f89c8d6d0f8e5e127b5f878",
+      "bytes": 6625,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tests/zero_undo_gate.cpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/zero_undo_gate.cpp",
+      "sha256": "084b223332cb542db6caedfc05c95e56152b38691a50dfb1d51a6900fc89b782",
+      "bytes": 1267,
+      "kind": "LATEST_B4_SNAPSHOT_TEXT_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/analyze.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/analyze.py",
+      "sha256": "a2d15c978d39167cb89ec98438ed7b554b29324c7bcae7a69f3b7395c0a6eb40",
+      "bytes": 4888,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/build_cpu.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/build_cpu.py",
+      "sha256": "15b916620d2858b37f3f3691561b005df6678dddc6aba314397a9e8212878c25",
+      "bytes": 3749,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/campaign.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/campaign.py",
+      "sha256": "6155983d514ed38892c746a60d33bc7d01670cecbccf50a8961c179c80ce30ce",
+      "bytes": 7164,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/cohorts.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/cohorts.py",
+      "sha256": "84888d05639959fa96580f7434ec58e003ee469a3d77160d7e99007e3e6b85fa",
+      "bytes": 6015,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/common.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/common.py",
+      "sha256": "d5ac780532035ac3f0ad90513183527dc3e5d60f95592e6b408eb3698692c9f3",
+      "bytes": 2137,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/cpu_runner.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/cpu_runner.py",
+      "sha256": "3b3832d6e5eaad792328fc819baf8213f67a4c7fab0cc3bcd4918b3ef39de472",
+      "bytes": 9672,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/finalize_actual.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/finalize_actual.py",
+      "sha256": "9544cb394e2a4bced2bdc43793ca1ff92ac5d1ba01bc28df147661d347bb3bc6",
+      "bytes": 6886,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/gate_cpu.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/gate_cpu.py",
+      "sha256": "f10dd0addb1803b1658719cf90c3074835fe7b0b9449c5e58966f57f6d599a2d",
+      "bytes": 2181,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/hold_b2_correctness.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/hold_b2_correctness.py",
+      "sha256": "b264700f690269ee60e586b231a7cac742d7cae070af75f39f5d94d50cde6635",
+      "bytes": 1739,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/initialize.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/initialize.py",
+      "sha256": "6ad7a76e6f53eeee9aac6e59ef388b37408a9c6952594a2b5f3f86b875bbe809",
+      "bytes": 2351,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/initialize_named.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/initialize_named.py",
+      "sha256": "1fa7ad851ddfc376dd973f094e41c391ea0d7e4fdf96fddb4504466bdfd5da9a",
+      "bytes": 1263,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/map_gate.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/map_gate.py",
+      "sha256": "56016c0e106c0990fd98983359d354e4c8161be21b28515e135a85f26fa24664",
+      "bytes": 1422,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/native_break_even.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/native_break_even.py",
+      "sha256": "81e94a7868a72292e07781b068d0b94f61da7c363386bdf5a78ca04e8291c6e0",
+      "bytes": 1771,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/native_reference.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/native_reference.py",
+      "sha256": "24f48ba60312d2094af887086641334672e6c38a723a3434a5f0ed8d8783e832",
+      "bytes": 4913,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/package_evidence.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/package_evidence.py",
+      "sha256": "6ba16d8cc5f377f32af72c20f43a751a759adcbb568cccc11987460dc5729352",
+      "bytes": 3479,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/rebuild_b1.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/rebuild_b1.py",
+      "sha256": "c2599691de5fc4082043aa2b1c1e418645a1692737562807acf5d0812ea5e189",
+      "bytes": 3760,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/rebuild_b2.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/rebuild_b2.py",
+      "sha256": "be8b3bd46eb4fb7da9d84f98029658d863413a513b5dfef64ccddf1bcbfcfd6a",
+      "bytes": 3794,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/rebuild_b3.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/rebuild_b3.py",
+      "sha256": "60f97d59ced03f80468b982b3fd9f6b36fbc90aa1f4dca4fad80ec2651fdef7d",
+      "bytes": 3783,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/rebuild_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/rebuild_b4.py",
+      "sha256": "fb5a2c6bb0e083b38a15d4414e63bbd60ffdc0a24b4f5ec2db08c48aa3d50a55",
+      "bytes": 3928,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/rebuild_b4_c1.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/rebuild_b4_c1.py",
+      "sha256": "ae0824d9a88d7a038658cab69ec3533f954597f819899c81762ea0533c909f93",
+      "bytes": 3958,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/recovery_o3_diagnostic.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/recovery_o3_diagnostic.py",
+      "sha256": "c30df54d97f1ef475b82e1491ed21a6612a5d5e26d53147c5330fa8a675e1889",
+      "bytes": 1925,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/regression_b2.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/regression_b2.py",
+      "sha256": "3a5296bc793d3b1cea00d1129298f5219e54a338433e70c95de5a57be3592b32",
+      "bytes": 1870,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/regression_b2_continue.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/regression_b2_continue.py",
+      "sha256": "836c760175aa63f0dceec6a73698e48d6e03c5e1f437c72d82df718d061c2f28",
+      "bytes": 3168,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/resources.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/resources.py",
+      "sha256": "1e8cbf0709320420fd1c0cd354419f3edd424b497e2c8d17737049711f55af54",
+      "bytes": 2580,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/run_round.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/run_round.py",
+      "sha256": "dce23db44fae9d65140bebb382b68e2ed8fa0e5add8f86f8556cf189d4d114d5",
+      "bytes": 5572,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/status.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/status.py",
+      "sha256": "2d1a03f6326ca734521a8f0b5c70e01964c3958e1900b6b8d151461a83f9aa32",
+      "bytes": 1152,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/tools/watch_finalize.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/tools/watch_finalize.py",
+      "sha256": "b288d6dff86181a4f0cfce4caf6ef943cc3820ebab9bf0f3dedda2cdc8458028",
+      "bytes": 1863,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/campaign.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/campaign.py",
+      "sha256": "4c415b2eb4dfc4dd82e241db4d07aa6addbdc0aacd7f91cefce6ef5c7cf5804a",
+      "bytes": 7468,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/cost_controls_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/cost_controls_b4.py",
+      "sha256": "3fb48bf742727a4f5998aeaa409dfcd44d920ee31d6d33e6f3b335537031a2ff",
+      "bytes": 5180,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/cpu_runner.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/cpu_runner.py",
+      "sha256": "1eabe03438defd1553217c4038a1a9590d991f4508aa4b1abe4613a60a9e540d",
+      "bytes": 10085,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/finalize_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/finalize_b4.py",
+      "sha256": "c301a925841b540e6673d7a155f6213e85f39aef7d811436cdd13e0bc5d1c236",
+      "bytes": 8353,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/gate_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/gate_b4.py",
+      "sha256": "c19a25d08095582fc013e0f5cd4ef6408d3d42b5b293df2776f3a8e59cbd2c17",
+      "bytes": 2161,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/handoff_delta_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/handoff_delta_b4.py",
+      "sha256": "9473f0d2c9c2675a300c66e9a60c641999d6f951481f4281cb8535448400f0a6",
+      "bytes": 3371,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/initialize_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/initialize_b4.py",
+      "sha256": "84bbbfdad3ed3912525569f61f40164634791736754ba99b9e5d3841a2d79d2c",
+      "bytes": 1727,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/native_break_even_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/native_break_even_b4.py",
+      "sha256": "2381c2341643bc594eb07423ff4503647eea03b2e13673e4c6af3e26030e67b3",
+      "bytes": 1907,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/native_config_gate_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/native_config_gate_b4.py",
+      "sha256": "8918a052b397896d93734d3208e4779f3f782967c23f4d001c7f95a9eb5a22dc",
+      "bytes": 2563,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/package_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/package_b4.py",
+      "sha256": "3b17fdf8c9199a885e0357ec105f9d07218234f6b1b0f956d34177b50778e42d",
+      "bytes": 4704,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/run_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/run_b4.py",
+      "sha256": "22d611c8d074c00489e08b6ec5f25a229f192561939c5c0e301b62fb61ff6217",
+      "bytes": 7632,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/status_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/status_b4.py",
+      "sha256": "66fc314dfe89ebd58052fd6e4db689204089e23901ef1768a71ab46ac499bec0",
+      "bytes": 1568,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_b4/tools/watch_b4.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_b4/tools/watch_b4.py",
+      "sha256": "8cfa6beb3d54892a91aa83b97d00c538d8d123be593f8f39b714b9ee64e1eb24",
+      "bytes": 1610,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_4199/tools/report_completed.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_4199/tools/report_completed.py",
+      "sha256": "37b7620a28e8517d89e0815d1de0c4d81016b00051efb5aca69fc51fd2da0b96",
+      "bytes": 14736,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/continuation_4199/tools/resume_eval.py",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/continuation_4199/tools/resume_eval.py",
+      "sha256": "c7bb845511fdba1b1628feb2d5afcbb3bebb4a2c6f1e026403ae6fc0d2938483",
+      "bytes": 8001,
+      "kind": "RECOVERED_BUILD_RUN_ANALYSIS_TOOL_NOT_EXECUTED",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/support/ele548-project-v9/src/rate_pipeline_v9/payload.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_pipeline_v9/payload.hpp",
+      "sha256": "983a4c45cbede9045586d59d32e4ae2fcd3c56e3e10a22c69801313edeb8f8f6",
+      "bytes": 2492,
+      "kind": "RECOVERED_TRANSITIVE_RESEARCH_DEPENDENCY_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/support/ele548-project-v9/src/rate_pipeline_v9/mirror_secded.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_pipeline_v9/mirror_secded.hpp",
+      "sha256": "4b6bc4af50604993841b21501fa4f5cd8118852846ab8be59056ad915d6e81ce",
+      "bytes": 1781,
+      "kind": "RECOVERED_TRANSITIVE_RESEARCH_DEPENDENCY_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/support/ele548-project-v9/src/rate_state_v9_support/history_access.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/history_access.hpp",
+      "sha256": "59005e21feb154989481e3e37380b2f65be51007dfb78849d36e2863268df308",
+      "bytes": 2154,
+      "kind": "RECOVERED_TRANSITIVE_RESEARCH_DEPENDENCY_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/support/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "sha256": "426764bc198622268e8880b23ca9d0d1df6504c4bf653fde27490283bc6a5b0a",
+      "bytes": 2536,
+      "kind": "RECOVERED_TRANSITIVE_RESEARCH_DEPENDENCY_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/support/ele548-project-v9/src/protection/word.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/protection/word.hpp",
+      "sha256": "bb4e6abda6d2ce1251ea9e48f823b10b5503c0306788fa3cacda4fdbbb574c85",
+      "bytes": 3747,
+      "kind": "RECOVERED_TRANSITIVE_RESEARCH_DEPENDENCY_CANDIDATE",
+      "rebuilt_or_tested": false
+    },
+    {
+      "path": "final_b4/support/ele548-project-v9/src/predictor/tage_access.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/predictor/tage_access.hpp",
+      "sha256": "97ea6d74d0cd5145abde9326f4f69a69f30230e602ca16c94989146c34a6557e",
+      "bytes": 5415,
+      "kind": "RECOVERED_TRANSITIVE_RESEARCH_DEPENDENCY_CANDIDATE",
+      "rebuilt_or_tested": false
+    }
+  ],
+  "resolved_quote_includes": [
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/bac.hh",
+      "include": "cpu/pred/bpred_unit.hh",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "cpu/pred/research_native_v9r2_tage.hh",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.hh"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.cc",
+      "include": "cpu/pred/research_native_v9r2_tage.hh",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.hh"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.cc",
+      "include": "cpu/o3/bac.hh",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/bac.hh"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.cc",
+      "include": "cpu/pred/bpred_unit.hh",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.hh",
+      "include": "/home/youns/workspace/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_access.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_access.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/controller.hpp",
+      "include": "lookup_port.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/lookup_port.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/early_receiver.hpp",
+      "include": "controller.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/controller.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/lookup_port.hpp",
+      "include": "service.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/service.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/lookup_port.hpp",
+      "include": "/home/youns/workspace/ele548-project-v9/src/rate_pipeline_v9/payload.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_pipeline_v9/payload.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/service.hpp",
+      "include": "/home/youns/workspace/ele548-project-v9/src/rate_pipeline_v9/mirror_secded.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_pipeline_v9/mirror_secded.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/service.hpp",
+      "include": "inverse_jump.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/inverse_jump.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_access.hpp",
+      "include": "controller.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/controller.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_access.hpp",
+      "include": "early_receiver.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/early_receiver.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_access.hpp",
+      "include": "source_protection.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_protection.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_access.hpp",
+      "include": "/home/youns/workspace/ele548-project-v9/src/rate_state_v9_support/history_access.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/history_access.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_protection.hpp",
+      "include": "vector_protection.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/vector_protection.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_protection.hpp",
+      "include": "cpu/pred/research_native_v9r2_tage.hh",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.hh"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_protection.hpp",
+      "include": "cpu/o3/bac.hh",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/bac.hh"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_protection.hpp",
+      "include": "cpu/pred/bpred_unit.hh",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/vector_protection.hpp",
+      "include": "service.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/service.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/commit_ingress_gate.cpp",
+      "include": "source_access.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_access.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/commit_ingress_gate.cpp",
+      "include": "/home/youns/workspace/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/state.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/rmw_phase_gate.cpp",
+      "include": "source_protection.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_protection.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/rmw_phase_gate.cpp",
+      "include": "/home/youns/workspace/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/state.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/scope_gate.cpp",
+      "include": "controller.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/controller.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/scope_gate.cpp",
+      "include": "/home/youns/workspace/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/state.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/source_guard_gate.cpp",
+      "include": "source_access.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_access.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/source_guard_gate.cpp",
+      "include": "/home/youns/workspace/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/state.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/source_transport_gate.cpp",
+      "include": "source_access.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_access.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/source_transport_gate.cpp",
+      "include": "/home/youns/workspace/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/state.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/transaction_gate.cpp",
+      "include": "source_protection.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_protection.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/transaction_gate.cpp",
+      "include": "/home/youns/workspace/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/state.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/vector_gate.cpp",
+      "include": "vector_protection.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/vector_protection.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/vector_gate.cpp",
+      "include": "/home/youns/workspace/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/state.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/zero_undo_gate.cpp",
+      "include": "source_protection.hpp",
+      "source_candidate": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_protection.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/tests/zero_undo_gate.cpp",
+      "include": "/home/youns/workspace/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/state.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v9/src/rate_pipeline_v9/mirror_secded.hpp",
+      "include": "../protection/word.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/protection/word.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v9/src/rate_state_v9_support/history_access.hpp",
+      "include": "../predictor/tage_access.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/predictor/tage_access.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "include": "history_access.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/rate_state_v9_support/history_access.hpp"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v9/src/predictor/tage_access.hpp",
+      "include": "../protection/word.hpp",
+      "source_candidate": "recovered_static/ele548-project-v9/src/protection/word.hpp"
+    }
+  ],
+  "unresolved_quote_includes": [
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/bac.hh",
+      "include": "base/statistics.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/bac.hh",
+      "include": "cpu/o3/comm.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/bac.hh",
+      "include": "cpu/o3/dyn_inst_ptr.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/bac.hh",
+      "include": "cpu/o3/limits.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/bac.hh",
+      "include": "cpu/pred/branch_type.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/bac.hh",
+      "include": "cpu/timebuf.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "cpu/o3/commit.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "base/compiler.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "base/loader/symtab.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "base/logging.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "cpu/base.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "cpu/checker/cpu.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "cpu/exetrace.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "cpu/o3/cpu.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "cpu/o3/dyn_inst.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "cpu/o3/limits.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "cpu/o3/thread_state.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "cpu/timebuf.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "debug/Activity.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "debug/Commit.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "debug/CommitRate.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "debug/Drain.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "debug/ExecFaulting.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "debug/HtmCpu.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "params/BaseO3CPU.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "sim/faults.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/commit.cc",
+      "include": "sim/full_system.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "cpu/o3/cpu.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "cpu/activity.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "cpu/checker/cpu.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "cpu/checker/thread_context.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "cpu/o3/dyn_inst.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "cpu/o3/limits.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "cpu/o3/thread_context.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "cpu/simple_thread.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "cpu/thread_context.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "debug/Activity.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "debug/Drain.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "debug/O3CPU.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "debug/Quiesce.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "enums/MemoryMode.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "sim/cur_tick.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "sim/full_system.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "sim/process.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "sim/stat_control.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/o3/cpu.cc",
+      "include": "sim/system.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "base/statistics.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "base/types.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "cpu/inst_seq.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "cpu/pred/branch_type.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "cpu/pred/btb.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "cpu/pred/conditional.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "cpu/pred/indirect.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "cpu/pred/ras.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "cpu/static_inst.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "enums/TargetProvider.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "params/BranchPredictor.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "sim/probe/pmu.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/bpred_unit.hh",
+      "include": "sim/sim_object.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.cc",
+      "include": "base/logging.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.hh",
+      "include": "cpu/pred/tage.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.hh",
+      "include": "params/PipelineV9R2TAGE.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.hh",
+      "include": "params/PipelineV9R2TAGEBase.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/gem5_overlay/src/cpu/pred/research_native_v9r2_tage.hh",
+      "include": "sim/eventq.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v15/query_controls_v15/runtime/protection-v18-worktree/finite_protection_v18/producer_source/B4/src/source_protection.hpp",
+      "include": "base/logging.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v9/src/rate_state_v9_support/state.hpp",
+      "include": "../predictor/tage_adapter.hpp",
+      "status": "MISSING_RESEARCH_SOURCE"
+    },
+    {
+      "requiring_source": "recovered_static/ele548-project-v9/src/predictor/tage_access.hpp",
+      "include": "cpu/pred/tage_base.hh",
+      "status": "UPSTREAM_OR_GENERATED_HEADER"
+    }
+  ],
+  "simulations_executed": 0,
+  "original_completed_archive_recovered": false,
+  "absolute_includes_preserved": true
+}

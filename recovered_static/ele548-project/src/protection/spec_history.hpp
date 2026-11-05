@@ -20,21 +20,21 @@ class SpecHistoryProtocol {
         protection.check();
         if(bypass(record))return;
         core.Base::updateHistories(tid,pc,true,taken,target,inst,bi);
-        protection.synchronize();++speculative_writes;
+        protection.after_speculative_history_write();++speculative_writes;
     }
     void corrected(gem5::ThreadID tid,bool actual,uint64_t target,
                    const gem5::StaticInstPtr& inst,Base::BranchInfo* bi,const EpochRecord& record){
         protection.check();
         if(bypass(record)){++stale_restores_suppressed;return;}
         core.Base::squash(tid,actual,target,inst,bi);
-        protection.synchronize();++speculative_writes;
+        protection.after_speculative_history_write();++speculative_writes;
     }
     void discard(gem5::ThreadID tid,Base::BranchInfo* bi,const EpochRecord& record){
         protection.check();
         if(bypass(record)){++stale_restores_suppressed;return;}
         bool changed=bi->modified;
         core.Base::restoreHistState(tid,bi);
-        if(changed)protection.synchronize(); // Never re-encode a no-op/read.
+        if(changed)protection.after_speculative_history_write(); // No read re-encode.
     }
     void commit(gem5::ThreadID tid,uint64_t pc,bool actual,uint64_t target,
                 const gem5::StaticInstPtr& inst,Base::BranchInfo* bi,const EpochRecord& record,int nrand){

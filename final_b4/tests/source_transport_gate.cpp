@@ -1,0 +1,40 @@
+#include "source_access.hpp"
+#include "/home/youns/workspace/ele548-project-v9/src/rate_state_v9_support/state.hpp"
+#include <iostream>
+using namespace bp::v18b4;
+static void need(bool x,const char*s){if(!x)throw std::runtime_error(s);}
+static bp::v9::Payload dummy(uint64_t,bool,const std::array<unsigned,21>&,unsigned){return {};}
+static auto geometry(){bp::RoundState s;std::vector<Geometry>g;auto words=s.history_words();for(unsigned i=0;i<21;++i)g.push_back({s.fold_length(i),words[i].width});return g;}
+static Controller make(Protect p,Mode m=Mode::Recurrent,unsigned id=16){Controller c(m,geometry(),1,1,id,id);c.port.source.attach_guard(std::make_unique<FiniteProtection>(c.port.source.selected_widths(),p,m==Mode::Direct));return c;}
+static auto&guard(Controller&c){auto*g=dynamic_cast<FiniteProtection*>(c.port.source.guard());need(g,"missing guard");return *g;}
+static void drain(Controller&c){for(unsigned n=0;n<400;++n){if(c.drained())return;c.advance(dummy);}throw std::runtime_error("transport drain timeout");}
+static void consume(Controller&c,Token t){for(unsigned n=0;n<400&&!c.peek(t);++n)c.advance(dummy);need(bool(c.take(t)),"transport consume");}
+struct Model:SourceAccess<bp::RoundState>{Model(const gem5::TAGEBaseParams&p):SourceAccess(p){configure(Mode::Recurrent,1,1);enable_protection(Protect::Parity,Mode::Recurrent);}};
+int main(){try{
+ unsigned metadata=0,full=0,squashes=0,wraps=0,max_cycles=0,min_pending=99,stale=0,boundary=0;
+ for(unsigned mode=0;mode<6;++mode){auto policy=mode==5?Protect::P0:Protect(mode);auto seed=make(policy,mode==5?Mode::Direct:Mode::Recurrent);auto token=seed.request(0x1000,true);need(bool(token),"metadata seed");
+  for(const auto&r:seed.manifest())if(r.name.find("metadata")!=std::string::npos||r.name.find("control")!=std::string::npos||r.name.find("ordering_")==0||r.name.find("source_action_mirrored")!=std::string::npos){
+   if(r.name.find("_hold")!=std::string::npos)continue;
+   for(size_t bit=r.start;bit<r.start+r.bits;++bit){auto c=seed;bool before=c.logical_bit(bit);c.corrupt({bit});need(c.logical_bit(bit)!=before,"transport XOR");consume(c,*token);drain(c);need(c.conserved(),"metadata SBU violated conservation");auto data=c.port.source.selected_words();need(data==SourceGuard::Words{},"metadata changed source payload");++metadata;}
+  }
+  auto c=make(policy,mode==5?Mode::Direct:Mode::Recurrent);std::vector<Token> pending;unsigned accepted=0,completed=0,cycles=0,maxpending=0;
+  for(unsigned i=0;i<1000&&completed<128;++i){if(accepted<128){auto t=c.request(0x1000,true);if(t){pending.push_back(*t);++accepted;}}c.advance(dummy);maxpending=std::max(maxpending,unsigned(c.port.pending()));if(!pending.empty()&&c.peek(pending.front())){need(bool(c.take(pending.front())),"all-mode throughput");pending.erase(pending.begin());++completed;}cycles=i+1;}
+  need(accepted==128&&completed==128&&cycles<=132&&maxpending>=3,"all-mode II1");max_cycles=std::max(max_cycles,cycles);min_pending=std::min(min_pending,maxpending);
+  auto saturated=make(policy,mode==5?Mode::Direct:Mode::Recurrent);std::vector<Token> four;for(unsigned n=0;n<4;++n){auto t=saturated.request(0x1000,true);need(bool(t),"fill four contexts");four.push_back(*t);saturated.advance(dummy);}need(!saturated.request(0x1000,true),"finite provider queue overfull");for(auto t:four)consume(saturated,t);drain(saturated);need(saturated.conserved(),"queue-full lost request");++full;
+  auto cancelled=make(policy,mode==5?Mode::Direct:Mode::Recurrent);auto t=cancelled.request(0x1000,true);cancelled.advance(dummy);cancelled.cancel();drain(cancelled);need(!cancelled.peek(*t)&&cancelled.port.cancelled==1&&cancelled.conserved(),"stage squash escaped");++squashes;
+ }
+ // Decoder/encode both have real stored operands. A second SEU before the
+ // decode edge is combined with the first by the actual SECDED law.
+ {auto c=make(Protect::Ecc);c.corrupt({c.port.source.selected_site(0,0)});auto t=c.request(0x1000,true);size_t input=0;for(auto&r:c.manifest())if(r.name=="protect_stage_payload")input=r.start;need(input,"stage input region");c.corrupt({input+1});consume(c,*t);drain(c);need(guard(c).fallback()&&guard(c).unit.stats.due==1,"mid-stage second upset not DUE");}
+ // Invalidate a ready pre-reset provider result and recompute only through
+ // the same real provider port; do not publish a saved old result as fresh.
+ {auto c=make(Protect::Parity);auto a=c.request(0x1000,true);for(unsigned n=0;n<20&&!c.peek(*a);++n)c.advance(dummy);need(bool(c.peek(*a)),"stale setup result");c.corrupt({c.port.source.selected_site(21,0)});auto b=c.request(0x1004,true);need(bool(b),"stale second request");for(unsigned n=0;n<20&&!guard(c).fallback();++n)c.advance(dummy);need(guard(c).fallback()&&c.port.stale_protection_responses>0,"old protection epoch was not invalidated");consume(c,*a);consume(c,*b);drain(c);need(c.conserved(),"stale response lifecycle");stale=c.port.stale_protection_responses;}
+ // The inactive retention region is OUTSIDE S*. Re-entry is not a codec
+ // correction: count this boundary and retain its corrupted physical value.
+ {auto c=make(Protect::Ecc);c.append(1,1,0);drain(c);auto outside=(c.port.source.selected_site(21,129)+1)%1130;c.corrupt({outside});need(c.prepare_recovery(),"boundary admission");c.begin();c.restore(1,0);c.end();drain(c);auto data=c.port.source.selected_words();need(data[21].bit(129)&&guard(c).unit.stats.corrected==0&&c.port.source.stats.unverified_retention_reentries==1,"unverified reentry misreported as codec repair");boundary=1;}
+ {auto c=make(Protect::Ecc,Mode::Recurrent,2);for(unsigned i=0;i<40;++i){std::optional<Token>t;for(unsigned n=0;n<100&&!t;++n){t=c.request(0x1000,true);if(!t)c.advance(dummy);}need(bool(t),"tiny wrap admission");consume(c,*t);drain(c);}wraps=c.port.source.stats.wrap_completions;need(wraps>8&&c.conserved(),"tiny source wrap deadlock");}
+ // Recovery phase suppresses old speculative source/training; a clean
+ // 130-commit refill cannot resume until ACTUAL CPU history is empty.
+ {gem5::TAGEBaseParams p;p.speculativeHistUpdate=true;Model m(p);auto*old=m.makeBranchInfo(0x1000,true);m.tagePredict(0,0x1000,true,old);m.updateHistories(0,0x1000,true,true,0x1040,{},old);for(unsigned n=0;n<100&&!m.drained();++n)m.advance();m.engine->port.source.corrupt({m.engine->port.source.selected_site(21,0)});auto t=m.request(0x1004,true);for(unsigned n=0;n<100&&!m.engine->peek(*t);++n)m.advance();auto*newbi=m.consume(*t);need(m.fallback(),"model reset");m.condBranchUpdate(0,old->branchPC,true,old,0,0x1040,old->tagePred);need(m.stale_training_suppressed==1,"old training not suppressed");for(unsigned n=0;n<100&&!m.prepare_recovery();++n)m.advance();m.engine->begin();m.restoreHistState(0,old);m.engine->end();for(unsigned n=0;n<100&&!m.drained();++n)m.advance();for(unsigned n=0;n<129;++n){m.engine->committed_history(n&1,n&1);for(unsigned j=0;j<100&&!m.drained();++j)m.advance();}auto pending=m.request(0x1008,true);need(bool(pending),"pre-barrier request");m.engine->committed_history(true,1);for(unsigned j=0;j<100&&m.protection()->unit.refill_remaining();++j)m.advance();need(m.protection()->unit.refill_remaining()==0&&!m.frontend_blocked(false),"already-issued barrier request deadlocked");for(unsigned j=0;j<100&&!m.engine->peek(*pending);++j)m.advance();auto*last=m.consume(*pending);for(unsigned j=0;j<100&&!m.drained();++j)m.advance();need(m.frontend_blocked(false)&&m.fallback(),"refill resumed with old CPU history");delete old;delete newbi;delete last;need(!m.frontend_blocked(true)&&!m.fallback(),"actual drain ACK did not resume");}
+ std::cout<<"{\"status\":\"PASS_FINITE_TRANSPORT_AND_FAULT_BOUNDARIES_NOT_CPU\",\"metadata_SBU\":"<<metadata<<",\"all6_queue_full\":"<<full<<",\"all6_stage_squash\":"<<squashes<<",\"all6_independent128_max_cycles\":"<<max_cycles<<",\"all6_min_max_pending\":"<<min_pending<<",\"source_wraps\":"<<wraps<<",\"stale_provider_reissued\":"<<stale<<",\"unprotected_retention_reentry_not_codec_success\":"<<boundary<<",\"CPU_trials\":0}\n";
+}catch(const std::exception&e){std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}}
