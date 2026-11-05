@@ -5,8 +5,9 @@ import re
 import subprocess
 import sys
 
-root=pathlib.Path(subprocess.check_output(['git','rev-parse','--show-toplevel'],text=True).strip())
-names=subprocess.check_output(['git','diff','--cached','--name-only','-z','--diff-filter=ACMR']).split(b'\0')
+root=pathlib.Path(subprocess.check_output(['git','rev-parse','--show-toplevel'],universal_newlines=True).strip())
+command=['git','ls-files','-z'] if '--all' in sys.argv else ['git','diff','--cached','--name-only','-z','--diff-filter=ACMR']
+names=subprocess.check_output(command).split(b'\0')
 bad=[];count=0
 for raw in names:
     if not raw:continue
