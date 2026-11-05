@@ -38,8 +38,13 @@ def flying_audit(path):
             'interpretation': 'record audit only; no MCU classification or calibrated per-bit rate'}
 
 
-def fetch_cern(destination, names=None):
-    """Use fixed provider URLs and verify MD5 before accepting a download."""
+def fetch_cern(destination, names=None, require_clean=True):
+    """Cache provider-verified bytes and audit each complete cluster file.
+
+    A parser rejection never deletes verified source bytes. Cache-only callers
+    can retain anomalous records for review; strict model qualification stays
+    the default and uses the unchanged cluster parser.
+    """
     catalog = json.loads(Path(__file__).with_name('datasets.json').read_text())
     listed = {entry['name']: entry for entry in catalog['files']}
     names = names or catalog['default_subset']
@@ -58,11 +63,19 @@ def fetch_cern(destination, names=None):
                 raw = response.read(100 * 1024 * 1024 + 1)
         if len(raw) > 100 * 1024 * 1024 or hashlib.md5(raw).hexdigest() != entry['md5']:
             raise ValueError('provider MD5 mismatch or size limit: ' + name)
-        clusters = parse(raw.decode('utf-8'))  # Validate the ENTIRE file.
         if not target.exists():
             with target.open('xb') as output:
                 output.write(raw)
-        yield {'file': str(target), 'clusters': len(clusters), 'provider_md5_verified': True}
+        result = {'file': str(target), 'bytes': len(raw), 'provider_md5_verified': True}
+        try:
+            clusters = parse(raw.decode('utf-8'))  # Audit the ENTIRE file.
+        except ValueError as error:
+            if require_clean:
+                raise ValueError('strict parser rejected {}: {}'.format(name, error)) from error
+            result.update(parse_status='REVIEW_REQUIRED', parse_error=str(error), clusters=None)
+        else:
+            result.update(parse_status='PASS', clusters=len(clusters))
+        yield result
 
 
 def main():
@@ -81,7 +94,11 @@ def main():
     flying.add_argument('--multiplicity', choices=['single', 'charm'], default='single')
     fetch = commands.add_parser('fetch-cern', help='download and fully validate public cluster files')
     fetch.add_argument('--destination', type=Path, required=True)
-    fetch.add_argument('--names', nargs='+')
+    selection = fetch.add_mutually_exclusive_group()
+    selection.add_argument('--names', nargs='+')
+    selection.add_argument('--all', action='store_true', help='fetch every file in the provider catalog')
+    fetch.add_argument('--cache-only', action='store_true',
+                       help='retain MD5-verified files and report parser anomalies for review')
     a = p.parse_args()
     if a.command == 'cern':
         rows = parse(a.input.read_text())
@@ -107,7 +124,11 @@ def main():
             result['schedule'] = str(a.schedule)
             result['replay_records'] = len(records)
     else:
-        result = list(fetch_cern(a.destination, a.names))
+        names = a.names
+        if a.all:
+            catalog = json.loads(Path(__file__).with_name('datasets.json').read_text())
+            names = [entry['name'] for entry in catalog['files']]
+        result = list(fetch_cern(a.destination, names, require_clean=not a.cache_only))
     print(json.dumps(result, indent=2))
 
 

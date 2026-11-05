@@ -1,8 +1,11 @@
 import tempfile
+import hashlib
+import io
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 from radiation.cern import parse
-from radiation.data import flying_audit
+from radiation.data import flying_audit, fetch_cern
 
 CLUSTER = '''cluster 1 with xmin 10 xmax 11 ymin 20 ymax 20
 xadd 10 yadd 20 01:02:03
@@ -13,6 +16,38 @@ NUMBER OF EVENTS = 2
 
 
 class DatasetTests(unittest.TestCase):
+    def catalog(self, raw):
+        return {'files': [{'name': 'example.txt', 'url': 'https://example.invalid/example.txt',
+                           'md5': hashlib.md5(raw).hexdigest()}], 'default_subset': ['example.txt']}
+
+    def test_cache_preserves_verified_source_when_parser_requires_review(self):
+        raw = (CLUSTER + CLUSTER).encode()
+        with tempfile.TemporaryDirectory() as directory:
+            with patch('radiation.data.json.loads', return_value=self.catalog(raw)), \
+                    patch('radiation.data.urllib.request.urlopen', return_value=io.BytesIO(raw)):
+                result = list(fetch_cern(directory, require_clean=False))[0]
+            self.assertTrue(result['provider_md5_verified'])
+            self.assertEqual(result['parse_status'], 'REVIEW_REQUIRED')
+            self.assertEqual((Path(directory)/'example.txt').read_bytes(), raw)
+            with patch('radiation.data.json.loads', return_value=self.catalog(raw)), \
+                    patch('radiation.data.urllib.request.urlopen') as network:
+                with self.assertRaises(ValueError):
+                    list(fetch_cern(directory))
+                network.assert_not_called()
+            self.assertEqual((Path(directory)/'example.txt').read_bytes(), raw)
+
+    def test_cache_rejects_mismatched_existing_file_without_overwriting(self):
+        raw = CLUSTER.encode()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'example.txt'
+            path.write_bytes(b'existing bytes')
+            with patch('radiation.data.json.loads', return_value=self.catalog(raw)), \
+                    patch('radiation.data.urllib.request.urlopen') as network:
+                with self.assertRaises(ValueError):
+                    list(fetch_cern(directory, require_clean=False))
+                network.assert_not_called()
+            self.assertEqual(path.read_bytes(), b'existing bytes')
+
     def test_whole_cluster_grammar(self):
         row = parse(CLUSTER)[0]
         self.assertEqual(row['coordinates'], [[10, 20], [11, 20]])

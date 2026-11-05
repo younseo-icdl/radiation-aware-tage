@@ -38,6 +38,8 @@ The [public cluster collection](https://doi.org/10.5281/zenodo.8314389) provides
 
 Acquisition uses fixed provider URLs and checks provider MD5 before accepting a file. A mismatch preserves an existing file and fails. No API availability is required.
 
+To cache all 28 proton/ion files for offline experiments, use `python -m radiation.data fetch-cern --all --cache-only --destination data/cern`. The entire `data/` directory is excluded from Git. Existing files are verified and reused; every file is audited in full. Cache-only mode retains provider-MD5-verified bytes when the strict parser finds duplicate IDs/coordinates or other anomalies and reports `REVIEW_REQUIRED`. A verified download is not automatic model qualification. Without `--cache-only`, parser rejection still fails the command; the verified raw file remains available for review. The strict cluster parser and experiment input checks are unchanged.
+
 Conditional footprint stress samples published K>=2 records uniformly, then translates each complete shape onto an **assumed 16x22 logical tile** with 346 valid cells. Contiguous-word, interleaved-word, and dispersed-same-K mappings are controls. Unmappable shapes fail; clusters are never silently clipped. This does not identify P(MCU), true particle identity, source live exposure, or target physical cell placement. The source clustering methods include [2014](https://doi.org/10.1109/TNS.2014.2313742), [2015](https://doi.org/10.1109/TNS.2015.2496874), and [2020 characterization](https://doi.org/10.1109/REDW51883.2020.9325822). Clock labels are not a calibrated arrival stream for this CPU.
 
 ## Flying Laptop detection timestamps
