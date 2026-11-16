@@ -28,7 +28,7 @@ The required baselines are **P0**, **P_ED** (parity with exclude/relearn), **P_E
 
 ## Quick start
 
-Use Python 3.10 or newer and a C++17 compiler. Run commands from the repository root. All installation and generated files stay under this checkout.
+Use Python 3.10 or newer and a C++17 compiler. Run commands from the repository root. The virtual environment and simulator builds stay under this checkout. Private inputs and outputs may be linked from storage outside the repository.
 
 ```bash
 python3 -m venv .venv
