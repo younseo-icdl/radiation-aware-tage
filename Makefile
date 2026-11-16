@@ -8,6 +8,8 @@ TESTS := $(patsubst tests/cpp/%.cpp,$(BUILD)/tests/%,$(TEST_SOURCES))
 HEADERS := $(shell find tage simulation/cpp/shims -name '*.hpp' -o -name '*.hh')
 .PHONY: all test cpp-test python-test smoke clean
 all: $(BUILD)/tage-sim
+$(BUILD)/tage-causal: simulation/cpp/causal.cpp $(BACKEND) $(HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< $(BACKEND) -o $@
 $(BUILD) $(BUILD)/tests:
 	mkdir -p $@
 $(BACKEND): tage/backend/cpu/pred/tage_base.cc $(HEADERS) | $(BUILD)
@@ -19,7 +21,7 @@ $(BUILD)/tests/%: tests/cpp/%.cpp $(BACKEND) $(HEADERS) | $(BUILD)/tests
 cpp-test: $(TESTS)
 	@set -e; for t in $(TESTS); do echo "Running $$t"; "$$t"; done
 PYTHON ?= python3
-python-test: $(BUILD)/tage-sim
+python-test: $(BUILD)/tage-sim $(BUILD)/tage-causal
 	$(PYTHON) -m unittest discover -s tests/python -v
 test: cpp-test python-test
 smoke: all

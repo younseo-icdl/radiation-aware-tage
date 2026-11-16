@@ -197,5 +197,39 @@ class TageAccess : public Base {
         handleAllocAndUReset(false, actual, bi, nrand);
     }
     unsigned history_depth() const { return maxHist; }
+    int history_cursor() const { return threadHistory[0].ptGhist; }
+    unsigned nonspec_path_history() const { return unsigned(threadHistory[0].nonSpecPathHist); }
+    bool all_tagged_banks_enabled() const {
+        for (unsigned bank = 1; bank <= nHistoryTables; ++bank)
+            if (!noSkip[bank])
+                return false;
+        return true;
+    }
+    unsigned fold_history_length(unsigned word) const {
+        if (word >= nHistoryTables * 3)
+            throw std::out_of_range("fold history word");
+        return histLengths[word / 3 + 1];
+    }
+    struct LearningView {
+        std::vector<unsigned> prediction, hysteresis, counter, tag, useful, chooser;
+        int64_t allocation_clock;
+    };
+    // Observations only: no repair, allocation, history update, or RNG draw.
+    LearningView learning_view() const {
+        LearningView v;
+        v.prediction.assign(btablePrediction.begin(), btablePrediction.end());
+        v.hysteresis.assign(btableHysteresis.begin(), btableHysteresis.end());
+        for (unsigned bank = 1; bank <= nHistoryTables; ++bank)
+            for (unsigned row = 0; row < (1u << logTagTableSizes[bank]); ++row) {
+                const auto &entry = gtable[bank][row];
+                v.counter.push_back(unsigned(entry.ctr) & ((1u << tagTableCounterBits) - 1));
+                v.tag.push_back(entry.tag);
+                v.useful.push_back(entry.u);
+            }
+        for (auto value : useAltPredForNewlyAllocated)
+            v.chooser.push_back(unsigned(value) & ((1u << useAltOnNaBits) - 1));
+        v.allocation_clock = tCounter;
+        return v;
+    }
 };
 } // namespace bp
