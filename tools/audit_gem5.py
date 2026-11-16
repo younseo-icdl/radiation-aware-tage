@@ -54,7 +54,9 @@ def audit(repo, tree, producer='HEAD', pristine=False):
         errors.append('upstream commit differs from the pin')
     expected = {} if pristine else expected_overlay(repo, producer_sha)
     if not pristine:
-        expected['src/cpu/pred/SConscript'] = git(tree, 'show', 'HEAD:src/cpu/pred/SConscript') + REGISTRATION
+        paths = git(repo, 'ls-tree', '-z', '--name-only', producer_sha, '--', 'simulation/gem5/registration.txt')
+        registration = git(repo, 'show', producer_sha + ':simulation/gem5/registration.txt') if paths else REGISTRATION
+        expected['src/cpu/pred/SConscript'] = git(tree, 'show', 'HEAD:src/cpu/pred/SConscript') + registration
     files = []
     for name, content in sorted(expected.items()):
         target = tree/name

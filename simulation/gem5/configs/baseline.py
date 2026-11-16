@@ -13,29 +13,17 @@ from m5.objects import (System, SrcClockDomain, VoltageDomain, AddrRange,
 from gem5.components.memory.dram_interfaces.ddr3 import DDR3_1600_8x8
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--binary', type=Path, required=True)
-    parser.add_argument('--input', type=Path)
-    parser.add_argument('--max-ticks', type=int, default=2000000000000)
-    parser.add_argument('--seed', type=int, default=548)
-    mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument('--execute', action='store_true')
-    mode.add_argument('--initialize-only', action='store_true')
-    args = parser.parse_args()
-    if not args.binary.is_file() or (args.input and not args.input.is_file()):
-        parser.error('binary or input does not exist')
-    if args.max_ticks <= 0:
-        parser.error('max-ticks must be positive')
-    output = Path(m5.options.outdir).resolve()
+def create_system(args, output, conditional_predictor=None):
     system = System()
     system.clk_domain = SrcClockDomain(clock='2GHz', voltage_domain=VoltageDomain())
     system.mem_mode = 'timing'
     system.mem_ranges = [AddrRange('256MiB')]
     system.cpu = X86O3CPU(numThreads=1, decoupledFrontEnd=False)
+    if conditional_predictor is None:
+        conditional_predictor = TAGE(tage=TAGEBase(minHist=5, maxHist=130,
+            takenOnlyHistory=False, speculativeHistUpdate=True))
     system.cpu.branchPred = BranchPredictor(instShiftAmt=0,
-        conditionalBranchPred=TAGE(tage=TAGEBase(minHist=5, maxHist=130,
-            takenOnlyHistory=False, speculativeHistUpdate=True)),
+        conditionalBranchPred=conditional_predictor,
         takenOnlyHistory=False, speculativeHistUpdate=True)
     system.membus = SystemXBar()
 
@@ -65,6 +53,25 @@ def main():
     system.cpu.workload = Process(cmd=command, output=str(output/'program.stdout'),
                                   errout=str(output/'program.stderr'))
     system.cpu.createThreads()
+    return system
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--binary', type=Path, required=True)
+    parser.add_argument('--input', type=Path)
+    parser.add_argument('--max-ticks', type=int, default=2000000000000)
+    parser.add_argument('--seed', type=int, default=548)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--execute', action='store_true')
+    mode.add_argument('--initialize-only', action='store_true')
+    args = parser.parse_args()
+    if not args.binary.is_file() or (args.input and not args.input.is_file()):
+        parser.error('binary or input does not exist')
+    if args.max_ticks <= 0:
+        parser.error('max-ticks must be positive')
+    output = Path(m5.options.outdir).resolve()
+    system = create_system(args, output)
     root = Root(full_system=False, system=system)
     m5.core.seedRandom(args.seed)
     m5.instantiate()

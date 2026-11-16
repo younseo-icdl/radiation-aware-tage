@@ -52,8 +52,7 @@ def prepare(destination):
                 shutil.copy2(str(source), str(target))
     sconscript = destination / 'src/cpu/pred/SConscript'
     with sconscript.open('a') as out:
-        out.write("\nSimObject('FiniteTAGE.py', sim_objects=['FiniteTAGEBase', 'FiniteTAGE'])\n")
-        out.write("Source('finite_tage.cc')\n")
+        out.write((ROOT / 'simulation/gem5/registration.txt').read_text())
     print('Prepared {} at {}'.format(TAG, destination))
 
 
@@ -64,6 +63,8 @@ def main():
     p.add_argument('--jobs', type=int, default=4)
     p.add_argument('--cxx', help='compiler for this build only')
     p.add_argument('--outdir', type=Path, help='fresh run directory; required by run')
+    p.add_argument('--config', type=Path, default=ROOT/'simulation/gem5/configs/finite.py',
+                   help='simulation config; default is the finite comparison')
     arguments = sys.argv[1:]
     split = arguments.index('--') if '--' in arguments else len(arguments)
     a = p.parse_args(arguments[:split])
@@ -84,8 +85,10 @@ def main():
             executable = a.tree.resolve() / 'build/X86/gem5.opt'
             if not executable.is_file():
                 raise ValueError('gem5 executable is missing; build this tree first')
+            if not a.config.is_file():
+                raise ValueError('simulation config is missing')
             command([executable, '--outdir=' + str(a.outdir.resolve()),
-                     ROOT / 'simulation/gem5/configs/finite.py'] + config_args,
+                     a.config.resolve()] + config_args,
                     env=environment())
     except (ValueError, subprocess.CalledProcessError) as error:
         p.exit(1, str(error) + '\n')
