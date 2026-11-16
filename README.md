@@ -37,7 +37,7 @@ make -j4 test PYTHON=.venv/bin/python
 make smoke
 ```
 
-If the default compiler is too old, pass `CXX=/path/to/g++`. On the current server, GCC 11 is available at `/opt/rh/gcc-toolset-11/root/usr/bin/g++`.
+If the default compiler is too old, pass `CXX=/path/to/g++`. On RHEL 8 with GCC Toolset 13 installed, use `/opt/rh/gcc-toolset-13/root/usr/bin/g++`.
 
 Generate a synthetic branch-exposure schedule and replay it:
 

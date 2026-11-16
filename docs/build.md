@@ -2,7 +2,7 @@
 
 ## Local dependencies
 
-Use Python 3.10+ and a C++17 compiler. gem5 v25.1.0.1 supports GCC 11 through 14.2. On the current server use GCC 11 from `/opt/rh/gcc-toolset-11/root/usr/bin/`.
+Use Python 3.10+ and a C++17 compiler. gem5 v25.1.0.1 supports GCC 11 through 14.2. On RHEL 8 with GCC Toolset 13 installed, use `/opt/rh/gcc-toolset-13/root/usr/bin/`.
 
 ```bash
 python3 -m venv .venv
@@ -11,7 +11,25 @@ make -j4 test all PYTHON=.venv/bin/python CXX=/path/to/g++
 make checksum CC=/path/to/gcc
 ```
 
-If the system Python is old, create the venv with an available newer interpreter. On the current server `/opt/miniconda3/bin/python` is available. No sudo or global package installation is needed.
+If the system Python is old, create the venv with an available newer interpreter. gem5 also needs the matching Python development headers and link library; a working interpreter alone is insufficient. Check for `Python.h` in the directory reported by `python3 -c 'import sysconfig; print(sysconfig.get_config_var("INCLUDEPY"))'`.
+
+For RHEL 8 with Python 3.12, an administrator can install missing build prerequisites with:
+
+```bash
+sudo dnf install python3.12-devel zlib-devel
+```
+
+The compiler, make, Git, m4, and pkg-config must also be available. Python packages are installed in the local venv without administrator access. Optional gem5 features may require additional system libraries; inspect the configuration output before installing them.
+
+A user-local Python distribution that includes its matching headers, `python3-config`, and shared library is another option when system development packages are unavailable. Create `.venv` with that interpreter and keep the distribution installed for the lifetime of the simulator build. The build helper selects its Python configuration and library directory for child processes.
+
+## Restore private experiment inputs
+
+Extract transfer archives into a private directory outside the public checkout. Keep their original data, outputs, and historical producer identities together. Verify the restored bytes before resuming experiments, and do not execute setup commands embedded in archived documents without checking them against the destination environment.
+
+When `data` and `work` do not already exist, they can be symlinks to the restored private directories. Both directory and symlink forms are ignored by Git. Preserve historical outputs and use a fresh output directory for every new run. Private host paths, course scripts, PDK and library files, and local restoration inventories belong outside this repository.
+
+## Standalone replay
 
 `build/tage-sim` uses standalone gem5 interface shims and the shared backend. It is not an instruction-set or cycle simulator. `make clean` removes only its generated object, replay executable, and C++ test binaries; it does not delete a gem5 tree or experiment outputs.
 
