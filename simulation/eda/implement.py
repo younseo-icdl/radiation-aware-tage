@@ -1,5 +1,6 @@
 """Implement a frozen mapped TAGE block using a private physical site."""
 import argparse
+from decimal import Decimal
 import json
 from pathlib import Path
 import re
@@ -7,6 +8,21 @@ import shlex
 import shutil
 import subprocess
 from .synthesize import ROOT, tcl_word
+
+
+def retime_history_sdc(text, period_ns):
+    period = Decimal(str(period_ns))
+    if not period.is_finite() or period <= 0:
+        raise ValueError('route clock period must be finite and positive')
+    pattern = (r'^(create_clock -name "history_clk" -period )[\d.]+'
+               r'( -waveform \{)0\.0 [\d.]+(\} \[get_ports clk_i\])$')
+    text, count = re.subn(
+        pattern,
+        lambda m: m[1]+format(period, 'f')+m[2]+'0.0 '+format(period/2, 'f')+m[3],
+        text, flags=re.MULTILINE)
+    if count != 1:
+        raise ValueError('expected one generated history clock and 50% waveform')
+    return text
 
 
 def die_utilization(bbox_text, area_text, top):
@@ -65,8 +81,16 @@ def main():
         }:
             raise ValueError('a passed TAGE synthesis producer is required')
         top=(a.synthesis/'TOP.txt').read_text().strip()
-        values=physical_values(json.loads(a.site.read_text()),top,a.cpus)
+        config=json.loads(a.site.read_text())
+        values=physical_values(config,top,a.cpus)
         values['registered'] = int(parent['scope'] == 'B1A_HISTORY_DATAPATH')
+        route_period=config.get('route_clock_period_ns')
+        if route_period is not None and (not values['registered']
+                or not isinstance(route_period, (int, float)) or isinstance(route_period, bool)):
+            raise ValueError('route_clock_period_ns is numeric and applies to the registered history')
+        constraints=(a.synthesis/'mapped.sdc').read_text()
+        if route_period is not None:
+            constraints=retime_history_sdc(constraints,route_period)
         if not 0<a.timeout<float('inf'):
             raise ValueError('finite positive host timeout required')
     except (ValueError, OSError, KeyError) as error:
@@ -74,8 +98,8 @@ def main():
     out=a.output.resolve()
     for name in ['inputs','flow','reports','outputs']:
         (out/name).mkdir(parents=True,exist_ok=True)
-    for name in ['mapped.v','mapped.sdc']:
-        shutil.copy2(a.synthesis/name,out/'inputs'/name)
+    shutil.copy2(a.synthesis/'mapped.v',out/'inputs/mapped.v')
+    (out/'inputs/mapped.sdc').write_text(constraints)
     for name in ['innovus_hash.tcl','mmmc_hash.tcl']:
         shutil.copy2(Path(__file__).with_name(name),out/'flow'/name)
     with (out/'site.tcl').open('x') as f:
@@ -83,6 +107,7 @@ def main():
             f.write('set {} {}\n'.format(key, '[list '+value+']' if key=='lef_files' else tcl_word(value)))
     metadata={'scope':parent['scope'],'source_synthesis':str(a.synthesis.resolve()),
               'source_parent':parent,'physical_site':str(a.site.resolve()),'constraints':values,
+              'route_clock_period_ns':route_period,
               'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
               'source_dirty':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),
               'status':'RUNNING','signoff':'NOT_FOUNDRY_SIGNOFF','full_history_stage_qualified':False,

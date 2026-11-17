@@ -77,3 +77,10 @@ still need their own audit.
 Commands, fingerprints, trace counts and reports are saved under the
 private `work/gem5-activity-gate-20261117-r1/`. The old producers are
 retained. No held-out workload ran.
+
+The Xcelium lease test now also drives an append after the publication
+edge and checks that the following edge advances the head and updates
+the newly canonical fold. This directed sequence passed in
+`work/b1-lease-phase-gate-20261117-r1/`. It establishes the RTL phase
+ordering for this case. A complete trace replay must still reconcile
+all service start, publication and operation edges independently.

@@ -2,11 +2,21 @@ from pathlib import Path
 import tempfile
 import unittest
 from simulation.eda.synthesize import site_values, tcl_word
-from simulation.eda.implement import die_utilization, physical_values
+from simulation.eda.implement import die_utilization, physical_values, retime_history_sdc
 from simulation.eda.history_timing import worst_path
 
 
 class EdaConfigTests(unittest.TestCase):
+    def test_route_period_preserves_other_sdc_constraints(self):
+        original = ('create_clock -name "history_clk" -period 0.5 -waveform {0.0 0.25} [get_ports clk_i]\n'
+                    'set_clock_uncertainty 0.025 [get_clocks history_clk]\n')
+        self.assertEqual(retime_history_sdc(original, 6.5),
+                         original.replace('0.5 -waveform {0.0 0.25}', '6.5 -waveform {0.0 3.25}'))
+        with self.assertRaises(ValueError):
+            retime_history_sdc(original+original, 6.5)
+        with self.assertRaises(ValueError):
+            retime_history_sdc(original, float('inf'))
+
     def test_registered_sta_units_and_corner(self):
         report = ('Path 1: VIOLATED (-0.176 ns) Late Output Delay Assertion\n'
                   ' View: slowview\n Startpoint: (R) head_reg/CK\n'

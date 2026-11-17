@@ -40,7 +40,10 @@ def routed_case(directory):
     if not 65 <= utilization <= 75:
         raise ValueError('routed die utilization is outside 65–75%')
     synth = record['source_parent']
-    period_ps = Decimal(str(synth['constraints']['clock_period_ns'])) * 1000
+    route_period = record.get('route_clock_period_ns')
+    if route_period is None:
+        route_period = synth['constraints']['clock_period_ns']
+    period_ps = Decimal(str(route_period)) * 1000
     paths = {key: worst_path((directory/'reports'/name).read_text(), view, analysis)
              for key, name, view, analysis in (
                  ('setup', 'setup_path.rpt', 'slowview', 'Late'),

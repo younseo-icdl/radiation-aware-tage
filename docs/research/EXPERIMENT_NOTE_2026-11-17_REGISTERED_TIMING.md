@@ -105,3 +105,26 @@ the second query saw a different raw window, reinforcing the need to
 close the prediction-to-append feedback path or explicitly schedule
 the dependent query across edges. A two-port count alone cannot justify
 a common no-stall CPU clock. No new CPU experiments were run.
+
+## Physical fallback under a feasible optimization target
+
+At the later 50-minute observation both primary runs still spent
+time in pre-CTS timing optimization. The last reported optimizer
+WNS was -5.383 ns and -5.097 ns for recurrent and lease4096. These
+snapshots do not qualify a clock, but they indicate that closing
+500 ps in this datapath is an unsuitable optimization target.
+
+The route launcher accepts an optional registered history clock
+period in its private site file. It changes only the generated
+history clock and half-period waveform in a fresh copy of the SDC.
+The original netlist and constraints are retained. The timing
+summary uses the route's period for its estimate.
+
+A fallback at a common 6.5 ns optimization target is queued only if
+the original route coordinator becomes terminal without a density
+pass. The value is a provisional target chosen above the latest
+pre-CTS estimate, rather than a measured CPU clock. The attempt
+will reuse the same mapped designs, PVT, floorplan sizing procedure
+and the 65–75% die utilization requirement. Reports and producer
+status are kept in a fresh batch. Profile timing in the routed
+design will determine what can be backannotated.
