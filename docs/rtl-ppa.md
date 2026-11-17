@@ -105,6 +105,13 @@ now uses elaboration constants. The production 30,000-operation and lease
 gates passed on this revision. The first mapping trial uses the recurrent
 baseline to see whether this change resolves the synthesis runtime issue.
 
+All second-batch mappings and the third recurrent pilot reached their
+1,800 s host limits. The user requested a longer synthesis allowance.
+The fourth batch maps recurrent, Hybrid05 and lease4096 with a common
+7,200 s limit and three Genus CPUs per case. It uses the same RTL revision
+and site constraints as the third pilot. Private producers and the plan
+are under `work/b1a-synthesis-20261117-r4/`.
+
 ## Port activity on the routed hash
 
 `python -m simulation.eda.hash_activity` exports the PC, path, raw and stored
