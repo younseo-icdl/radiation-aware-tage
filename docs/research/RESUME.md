@@ -12,6 +12,13 @@ Add an English experiment note for each meaningful implementation or
 validation step. Record the question, frozen contract, commands and
 producer paths, result or failure, and the next decision.
 
+The bounded activity observer and checksum results are in
+`EXPERIMENT_NOTE_2026-11-17_HISTORY_ACTIVITY.md`. The independently
+built activity producer passed native and finite checksum gates.
+RTL activity conversion still needs validated phase and owner-slot
+mapping. Keep the held-out runs sealed while this and physical timing
+are pending.
+
 Completed new feedback work: state/bank audit, seven primary-source cards with
 access limits, production fold-causality command and sweep, hand trace/PNG/PDF,
 bank-select publication kernel/unit gates, claim ledger and revised specification.

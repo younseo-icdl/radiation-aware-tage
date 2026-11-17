@@ -48,3 +48,32 @@ need a different delivery contract than the current RTL's undo-first
 interface. Preserve and report such a mismatch. Driving precomputed
 operands measures the history block and its own switching. Runtime and
 feedback scheduling still require the held-out physical timing gate.
+
+## Bounded capture result
+
+The independent eight-job build from source 17bd5bc completed. The
+four checksum executions agreed within each capture-off/on pair in
+stdout and complete `native.json` bytes. Exit was at 43,216,000 ticks
+for native and 43,280,500 for lease4096. The new producer passed all
+16 native cases, all five native cross-checks and all 14 finite
+checksum cases.
+
+| Capture, ticks [0, 40,000,000) | Queries | Appends | Undos | Publications | Peak append owners |
+|---|---:|---:|---:|---:|---:|
+| Native | 18,618 | 23,950 | 78 | 0 | 14 |
+| Lease4096 | 18,592 | 23,916 | 78 | 5 | 14 |
+
+The native prefix had no conflict under the conservative grouping
+checker. Lease4096 had two publication ticks followed by an append
+at the same tick, 13,767,000 and 34,283,500. The simulator callback
+order was publication then append. RTL's publication branch excludes
+append at the same active edge. A plausible replay maps publication to
+the opening edge and the later CPU operation to the following edge.
+This needs an explicit RTL phase check before using the capture as
+power stimulus or crediting the gem5 timing. The checksum has only
+one query and one append per observed tick. Wider workload feeds
+still need their own audit.
+
+Commands, fingerprints, trace counts and reports are saved under the
+private `work/gem5-activity-gate-20261117-r1/`. The old producers are
+retained. No held-out workload ran.
