@@ -36,6 +36,28 @@ int main() {
         }
         check(direct.equal(rolling), "clean full learning/history state after rollovers");
         auto before = direct.save();
+        DirectAccess<TageState> all_direct(params);all_direct.direct_queries=true;
+        for(unsigned mask:{0u,3u,5u,64u,96u,127u}) {
+            direct.load(before);direct.direct_queries=false;direct.direct_bank_mask=mask;
+            for(unsigned w=0;w<21;++w) {
+                Word corrupt;corrupt.limb[0]=input();direct.write_history_word(w,corrupt);
+            }
+            auto state=direct.save();rolling.load(state);all_direct.load(state);
+            auto *h=direct.makeBranchInfo(0x4320,true);
+            auto *r=rolling.makeBranchInfo(0x4320,true);
+            auto *d=all_direct.makeBranchInfo(0x4320,true);
+            direct.tagePredict(0,0x4320,true,h);rolling.tagePredict(0,0x4320,true,r);
+            all_direct.tagePredict(0,0x4320,true,d);
+            for(unsigned bank=1;bank<=7;++bank) {
+                auto *expected=(mask>>(bank-1))&1 ? d:r;
+                check(h->tableIndices[bank]==expected->tableIndices[bank] &&
+                      h->tableTags[bank]==expected->tableTags[bank],"hybrid bank mask endpoint");
+            }
+            check(direct.save().folded==state.folded,"hybrid query must not repair storage");
+            delete h;delete r;delete d;
+        }
+        direct.load(before);rolling.load(before);
+        direct.direct_queries=true;direct.direct_bank_mask=0;
         auto word = direct.read_history_word(0); word.flip(0);
         direct.write_history_word(0, word);
         auto corrupt = direct.save();

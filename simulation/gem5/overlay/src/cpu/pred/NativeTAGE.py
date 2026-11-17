@@ -14,6 +14,10 @@ class NativeTAGEBase(TAGEBase):
     manifest_file = Param.String('', 'Supported logical targets; not a whole-state certificate')
     origin_file = Param.String('', 'Original raw-bit provenance under append/undo/rollover')
     direct_queries = Param.Bool(False, 'Derive consumed folds directly from current raw history')
+    direct_bank_mask = Param.Unsigned(0, 'Static whole-bank direct mask, bits0..6')
+    lease_period = Param.Unsigned(0, 'Actual speculative raw appends between quiescent rebases; zero disables')
+    lease_latency_ticks = Param.Tick(1000, 'Charged quiescent canonical service time, not measured PPA')
+    lease_log_file = Param.String('', 'Actual autonomous lease start/publish event trace')
     cxx_exports = [PyBindMethod('dumpResearch')]
 
 
@@ -26,6 +30,7 @@ class NativeTAGE(TAGE):
     query_latency = Param.Unsigned(0, 'Additional conditional-query latency, in CPU cycles')
     cycle_ticks = Param.Unsigned(500, 'CPU clock period in simulator ticks')
     force_base = Param.Bool(False, 'Diagnostic: force base output while retaining TAGE internals')
+    max_restore_owners = Param.Unsigned(512, 'Declared finite history-owner capacity, asserted and measured')
 
 
 class BimodalMin(ConditionalPredictor):

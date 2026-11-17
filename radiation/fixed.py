@@ -24,8 +24,8 @@ def arrival_ticks(seed, horizon_ticks, events_per_second, max_events=1000000):
     """Continuous Poisson time, rounded up on the fixed nominal reference grid.
 
     Candidate CPU clock changes do not change this grid or events/second. A
-    final continuous arrival may round at most 499 ticks beyond the requested
-    horizon; that requested/rounded coverage distinction stays in the descriptor.
+    Quantized events beyond the requested horizon are future events. Regenerating
+    a longer tape from the same seed preserves the complete shorter prefix.
     """
     if (isinstance(horizon_ticks, bool) or not isinstance(horizon_ticks, int)
             or horizon_ticks <= 0 or max_events <= 0):
@@ -38,9 +38,12 @@ def arrival_ticks(seed, horizon_ticks, events_per_second, max_events=1000000):
         time += float(clock.exponential(NOMINAL_HZ/events_per_second))
         if time > horizon_ticks/REFERENCE_CYCLE_TICKS:
             return
+        position=max(1, math.ceil(time))*REFERENCE_CYCLE_TICKS
+        if position>horizon_ticks:
+            return
         if count >= max_events:
             raise ValueError('event bound exceeded; no rate truncation is allowed')
-        yield max(1, math.ceil(time))*REFERENCE_CYCLE_TICKS
+        yield position
         count += 1
 
 
@@ -59,9 +62,10 @@ def whole_events(seed, horizon_ticks, semantic_union, scale, max_events=1000000)
     their own actual stored bit or absent site. This function does not certify
     that a supplied population covers every predictor/checkpoint/control bit.
     """
-    keys = sorted(semantic_union)
-    if not keys or len(set(keys)) != len(keys) or any(not isinstance(k, str) or not k for k in keys):
+    keys = list(semantic_union)
+    if not keys or any(not isinstance(k, str) or not k for k in keys) or len(set(keys))!=len(keys):
         raise ValueError('a nonempty unique semantic bit union is required')
+    keys.sort()
     locations = rng(seed, 'location')
     rate = len(keys)*per_bit_rate(scale)
     for tick in arrival_ticks(seed, horizon_ticks, rate, max_events):
@@ -95,7 +99,8 @@ def schedule(environment, seed, horizon_ticks, catalog=None, max_events=1000000)
     info = {'environment': environment, 'seed': seed, 'time_unit': 'ticks',
             'ticks_per_second': TICKS_PER_SECOND, 'reference_cycle_ticks': REFERENCE_CYCLE_TICKS,
             'nominal_reference_hz': NOMINAL_HZ, 'requested_horizon_ticks': horizon_ticks,
-            'rounded_coverage_end_tick': math.ceil(horizon_ticks/REFERENCE_CYCLE_TICKS)*REFERENCE_CYCLE_TICKS,
+            'coverage_end_tick': horizon_ticks,
+            'last_reference_grid_tick': (horizon_ticks//REFERENCE_CYCLE_TICKS)*REFERENCE_CYCLE_TICKS,
             'events_per_second_union': rate, 'union_bits': union_size,
             'applicable_bits': applicable_size, 'emitted_union_events': len(rows)+no_site,
             'applicable_events': len(rows), 'absent_site_events': no_site,

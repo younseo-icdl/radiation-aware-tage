@@ -112,6 +112,10 @@ class BPredUnit : public SimObject
     void seuAuditCommit(ThreadID tid,InstSeqNum sn,Addr pc,unsigned micro,bool last,bool control){
         void* info=nullptr;if(control)for(auto*h:predHist[tid])if(h->seqNum==sn){info=h->bpHistory;break;}
         cPred->seuAuditCommit(sn,pc,micro,last,control,info);
+        if(control)for(auto*h:predHist[tid])if(h->seqNum==sn){
+            cPred->seuAuditBranch(info,h->predTaken,h->condPred,h->btbHit,
+                                 h->mispredict,unsigned(h->targetProvider));break;
+        }
     }
     bool seuCanRetire(ThreadID tid, InstSeqNum sn) {
         for(auto* h:predHist[tid])if(h->seqNum==sn)return cPred->seuCanRetire(tid,h->bpHistory);

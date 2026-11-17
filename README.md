@@ -67,6 +67,7 @@ Use a fresh `--outdir` for every run. `--initialize-only` constructs the model a
 
 ## Reading guide
 
+- [Integrated continuation](docs/integrated-plan.md): authorized history RTL/PPA scope, fixed environments and gated next work.
 - [Bounded follow-up decision](docs/results/decision-2026-11-16.md): costed direct-query evaluation, owner uncertainty, and base headroom controls.
 - [RHEL 8 clean comparison](docs/results/rhel8-clean-2026-11-16.md): migration checks, checksum gate, and workload results.
 - [Architecture](docs/architecture.md): implementation boundaries and resource model.

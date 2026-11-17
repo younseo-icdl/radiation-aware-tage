@@ -74,3 +74,30 @@ and `work/rtl-hash-gate-20261117-r1` through `r3`. The package itself is restore
 privately under `radiation-aware-tage-private/integrated-handoff-20261117-r1`;
 its 60 internal manifest entries passed integrity verification. This package
 check does not authenticate historical scientific measurements.
+
+## Matched B0 synthesis, before route
+
+All five variants mapped in Genus with the same slow 0.9 V/125 C library,
+medium optimization, 500 ps virtual reference, 50 ps input/output delays,
+25 ps uncertainty, 50 ps input transition and 0.01 pF output load.
+
+| Variant | Direct mask | Cells | Library cell area | Reported data path, ps | Worst slack, ps |
+|---|---:|---:|---:|---:|---:|
+| Recurrent | 0x00 | 621 | 1304.730 | 482 | -106 |
+| Full direct | 0x7f | 1448 | 2489.076 | 792 | -417 |
+| Profile hybrid | 0x05 | 615 | 1329.354 | 482 | -106 |
+| Shortest-two control | 0x03 | 562 | 1254.456 | 476 | -101 |
+| Longest-two control | 0x60 | 1524 | 2710.692 | 782 | -407 |
+
+Area is the raw synthesis-library cell-area report, not routed area or complete
+history-subsystem area. The input/output/uncertainty budget matters: even the
+recurrent block violates this target, so it is invalid to charge an added cycle
+only to direct or to declare any of these a qualified full stage. Equal bank
+count is not equal circuitry; cross-output optimization/sharing differs.
+Retain failures of timing rather than lowering only one design's load or target.
+
+The first elaboration used a named assignment syntax unsupported by this Genus
+interface; it failed and was preserved. The positional parameter expression
+passed in a fresh producer. Raw artifacts are `work/b0-hash-*-20261117-r*/`, with
+the private comparison in `B0_SYNTHESIS_RESULTS.json`. Matched routing and then
+the actual B1 storage/read/update/undo/control interface remain separate gates.

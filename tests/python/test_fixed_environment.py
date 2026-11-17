@@ -35,6 +35,13 @@ class FixedEnvironmentTests(unittest.TestCase):
         self.assertGreater(len(ticks), len(set(ticks)))
         self.assertEqual(ticks, sorted(ticks))
 
+    def test_longer_tape_keeps_exact_prefix_and_non_grid_horizon(self):
+        short_horizon=TICKS_PER_SECOND+173
+        short=list(source_events(548,short_horizon))
+        longer=list(source_events(548,2*TICKS_PER_SECOND))
+        self.assertTrue(all(t<=short_horizon for t,_ in short))
+        self.assertEqual(short,[(t,s) for t,s in longer if t<=short_horizon])
+
     def test_bad_population_rate_and_bound_are_explicit(self):
         with self.assertRaises(ValueError):
             list(whole_events(548, 1000, ['same', 'same'], 10**15))

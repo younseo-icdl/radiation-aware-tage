@@ -21,6 +21,14 @@ def main():
     parser.add_argument('--schedule', type=Path)
     parser.add_argument('--diagnostics', action='store_true')
     parser.add_argument('--direct', action='store_true', help='Direct own-history query folds')
+    parser.add_argument('--direct-bank-mask', type=lambda s:int(s,0), default=0)
+    parser.add_argument('--lease-period', type=int, default=0,
+                        help='Actual raw appends (including speculation/unconditional) per rebase')
+    parser.add_argument('--lease-service-cycles', type=int, default=2,
+                        help='Charged quiescent service, development assumption until qualified')
+    parser.add_argument('--cycle-ticks', type=int, default=500,
+                        help='CPU period in default 1ps ticks; does not rescale the fault tape')
+    parser.add_argument('--max-restore-owners', type=int, default=512)
     parser.add_argument('--query-latency', type=int, default=0,
                         help='Additional conditional-query CPU cycles, explicitly modeled')
     parser.add_argument('--max-ticks', type=int, default=2000000000000)
@@ -37,16 +45,25 @@ def main():
         parser.error('max-ticks must be positive')
     if not 0 <= args.query_latency <= 32:
         parser.error('query-latency must be 0..32')
+    if (not 0 <= args.direct_bank_mask < 128 or not 0 <= args.lease_period <= 65535
+            or args.lease_service_cycles <= 0 or args.cycle_ticks <= 0 or args.max_restore_owners <= 0):
+        parser.error('invalid mask, lease, clock, or owner capacity')
+    if args.lease_period and (args.direct or args.direct_bank_mask or args.query_latency):
+        parser.error('combined lease/direct/delayed policies are not admitted')
     output = Path(m5.options.outdir).resolve()
     base = NativeTAGEBase(minHist=5, maxHist=130, takenOnlyHistory=False,
         direct_queries=args.direct,
+        direct_bank_mask=args.direct_bank_mask, lease_period=args.lease_period,
+        lease_latency_ticks=args.lease_service_cycles*args.cycle_ticks,
+        lease_log_file=str(output/'lease_events.csv') if args.lease_period else '',
         speculativeHistUpdate=True,
         schedule_file=str(args.schedule.resolve()) if args.schedule else '',
         event_file=str(output/'events.csv'), summary_file=str(output/'native.json'),
         manifest_file=str(output/'logical_manifest.json'),
         origin_file=str(output/'raw_origins.csv') if args.diagnostics else '')
     predictor = NativeTAGE(tage=base,
-        query_latency=args.query_latency, cycle_ticks=500,
+        query_latency=args.query_latency, cycle_ticks=args.cycle_ticks,
+        max_restore_owners=args.max_restore_owners,
         commit_trace_file=str(output/'committed.csv.gz') if args.diagnostics else '')
     system = create_system(args, output, predictor)
     root = Root(full_system=False, system=system)
@@ -65,6 +82,9 @@ def main():
         'exit_cause': event.getCause(), 'exit_code': event.getCode(),
         'finite_source_transport': 'NOT_INSTANTIATED',
         'conditional_query_admission_latency_cycles': args.query_latency,
+        'cpu_cycle_ticks': args.cycle_ticks, 'lease_period_raw_appends': args.lease_period,
+        'lease_service_cycles': args.lease_service_cycles,
+        'lease_service_scope': 'own raw; quiescent restore-owner drain; no physical stage-fit assertion',
         'post_exit_advance_ticks': 0,
         'native_branch_history_may_remain_at_architectural_exit': True,
         'performance_scope': 'program completion, no observer/drain time added',

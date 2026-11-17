@@ -9,6 +9,14 @@ template <class Parent> class DirectAccess : public Parent {
   public:
     using Parent::Parent;
     bool direct_queries = false;
+    unsigned direct_bank_mask = 0;
+    bool uses_direct(unsigned bank) const {
+        if(!bank || bank>this->nHistoryTables) throw std::out_of_range("direct bank");
+        return direct_queries || ((direct_bank_mask>>(bank-1))&1);
+    }
+    unsigned effective_direct_mask() const {
+        return direct_queries ? (1u<<this->nHistoryTables)-1 : direct_bank_mask;
+    }
     unsigned direct_word(unsigned word) const {
         if (word >= this->nHistoryTables*3)
             throw std::out_of_range("direct fold word");
@@ -25,7 +33,7 @@ template <class Parent> class DirectAccess : public Parent {
 
   protected:
     int gindex(gem5::ThreadID tid, gem5::Addr pc, int bank) const override {
-        if (!direct_queries) return Parent::gindex(tid, pc, bank);
+        if (!uses_direct(bank)) return Parent::gindex(tid, pc, bank);
         if (tid) throw std::invalid_argument("direct query single thread");
         unsigned shifted = pc >> this->instShiftAmt;
         unsigned hlen = std::min(unsigned(this->histLengths[bank]), this->pathHistBits);
@@ -35,7 +43,7 @@ template <class Parent> class DirectAccess : public Parent {
                & ((1u << this->logTagTableSizes[bank])-1);
     }
     uint16_t gtag(gem5::ThreadID tid, gem5::Addr pc, int bank) const override {
-        if (!direct_queries) return Parent::gtag(tid, pc, bank);
+        if (!uses_direct(bank)) return Parent::gtag(tid, pc, bank);
         if (tid) throw std::invalid_argument("direct query single thread");
         return ((pc >> this->instShiftAmt) ^ direct_word((bank-1)*3+1)
                 ^ (direct_word((bank-1)*3+2) << 1))

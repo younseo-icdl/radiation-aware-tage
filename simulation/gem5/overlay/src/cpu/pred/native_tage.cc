@@ -26,9 +26,27 @@ NativeTAGEBase::NativeTAGEBase(const gem5::NativeTAGEBaseParams &p)
     : DirectAccess<TageAccess>(p), schedule_path_(p.schedule_file), event_path_(p.event_file),
       summary_path_(p.summary_file), manifest_path_(p.manifest_file),
       injection_([this] { injectNext(); }, name()+".native_xor", false,
-                 gem5::Event::CPU_Tick_Pri-1) {
+                 gem5::Event::CPU_Tick_Pri-2),
+      lease_publication_([this] {
+          if(frozen_) return;
+          if(!owner) throw std::logic_error("lease publication has no actual owner");
+          owner->completeLease();
+          if(maintenance_) maintenance_<<"publish,"<<gem5::curTick()<<','<<lease.age()<<','
+              <<owner->liveHistoryOwners()<<','<<lease.ready_time()<<'\n';
+      },name()+".lease_publish",false,gem5::Event::CPU_Tick_Pri-1),
+      lease(p.lease_period,p.lease_latency_ticks) {
     if (p.numThreads != 1) throw std::invalid_argument("native observation currently supports one thread");
+    if(p.nHistoryTables!=7 || p.maxHist!=130 || p.pathHistBits!=16 || p.takenOnlyHistory)
+        throw std::invalid_argument("native integrated study requires the frozen plain TAGE geometry");
     direct_queries = p.direct_queries;
+    direct_bank_mask = p.direct_bank_mask;
+    if(direct_bank_mask>127 || (lease.enabled() && effective_direct_mask()))
+        throw std::invalid_argument("invalid mask or unadmitted combined lease/hybrid");
+    if(!p.lease_log_file.empty()) {
+        maintenance_.open(p.lease_log_file);
+        if(!maintenance_) throw std::runtime_error("cannot open lease event trace");
+        maintenance_<<"event,tick,age,live_owners,ready_tick\n";
+    }
     if (!p.origin_file.empty()) {
         origins_.open(p.origin_file);
         if (!origins_) throw std::runtime_error("cannot open raw origin trace");
@@ -38,6 +56,14 @@ NativeTAGEBase::NativeTAGEBase(const gem5::NativeTAGEBaseParams &p)
 }
 NativeTAGEBase::~NativeTAGEBase() {
     if (injection_.scheduled()) deschedule(injection_);
+    if(lease_publication_.scheduled()) deschedule(lease_publication_);
+}
+void NativeTAGEBase::armLeasePublication() {
+    if(frozen_ || !lease.busy() || lease_publication_.scheduled()) return;
+    if(lease.ready_time()<=gem5::curTick()) throw std::logic_error("lease publication was not armed on time");
+    schedule(lease_publication_,lease.ready_time());
+    if(maintenance_) maintenance_<<"start,"<<gem5::curTick()<<','<<lease.age()<<','
+        <<(owner ? owner->liveHistoryOwners() : 0)<<','<<lease.ready_time()<<'\n';
 }
 void NativeTAGEBase::init() {
     Base::init();
@@ -47,7 +73,7 @@ void NativeTAGEBase::init() {
     if (!event_path_.empty()) {
         events_.open(event_path_);
         if (!events_) throw std::runtime_error("cannot open injection trace");
-        events_ << "event_ordinal,requested_tick,applied_tick,multiplicity,logical_site_ids,raw_physical_indices\n";
+        events_ << "event_ordinal,requested_tick,applied_tick,multiplicity,logical_site_ids,raw_physical_indices,bit_values_before,bit_values_after\n";
     }
     writeManifest();
 }
@@ -73,6 +99,11 @@ void NativeTAGEBase::loadFaults() {
                 if (unit != "time_unit=ticks") throw std::invalid_argument("native injector requires ticks");
                 ticks_declared = true;
             }
+            pos=line.find("horizon=");
+            if(pos!=std::string::npos) {
+                std::istringstream header(line.substr(pos+8));
+                std::string value;header>>value;declared_horizon_=integer(value);
+            }
             continue;
         }
         std::istringstream row(line);
@@ -95,42 +126,60 @@ void NativeTAGEBase::loadFaults() {
 }
 size_t NativeTAGEBase::resolve(const std::string &mark) const {
     if (mark.empty()) throw std::invalid_argument("empty site");
+    auto checked=[&](size_t id) {
+        if(id>=sites_.size()) {
+            if(id-sites_.size()>=lease.age_bits()) throw std::out_of_range("logical site id");
+        } else if(sites_[id].kind==5 && uses_direct(sites_[id].bank))
+            throw std::invalid_argument("direct bank has no consumed stored-fold target");
+        return id;
+    };
+    if(mark.rfind("L:AGE:",0)==0) return checked(sites_.size()+integer(mark.substr(6)));
     if (mark[0] == 'R') {
         auto age = integer(mark.substr(1));
         if (age >= maxHist) throw std::out_of_range("raw age");
-        return words_[nHistoryTables*3].sites.at(age);
+        return checked(words_[nHistoryTables*3].sites.at(age));
     }
     if (mark[0] == 'W') {
         auto colon = mark.find(':');
         if (colon == std::string::npos) throw std::invalid_argument("expected W<word>:<bit>");
         auto word = integer(mark.substr(1, colon-1)), bit = integer(mark.substr(colon+1));
         if (word >= words_.size() || bit >= words_[word].width) throw std::out_of_range("history site");
-        return words_[word].sites.at(bit);
+        return checked(words_[word].sites.at(bit));
     }
     auto id = integer(mark);
-    if (id >= sites_.size()) throw std::out_of_range("logical site id");
-    return id;
+    return checked(id);
 }
 void NativeTAGEBase::injectNext() {
     if (frozen_) return;
     while (next_fault_ < faults_.size() && faults_[next_fault_].tick == gem5::curTick()) {
         observeOrigins("before_injection", true);
         auto &fault = faults_[next_fault_];
-        std::vector<size_t> ids;
+        std::vector<size_t> ids, ordinary;
         std::vector<int> physical;
         for (const auto &mark : fault.sites) {
             auto id = resolve(mark); ids.push_back(id);
+            if(id>=sites_.size()) continue;
+            ordinary.push_back(id);
             const auto &site = sites_[id];
-            if (direct_queries && site.kind == 5)
-                throw std::invalid_argument("direct has no consumed stored-fold target");
             if (site.kind == 4 && site.bank == 0)
                 physical.push_back(history_cursor()+site.row);
         }
-        corrupt(ids); // One validated XOR group. No fold/code refresh or detection.
+        auto value=[&](size_t id) {
+            return id<sites_.size() ? ((payload(sites_[id])>>sites_[id].bit)&1u)
+                 : ((lease.age()>>(id-sites_.size()))&1u);
+        };
+        std::vector<unsigned> before,after;
+        for(auto id:ids) before.push_back(value(id));
+        // All members were validated before any write; no callback/yield inside
+        // the atomic group. No fold/code refresh is part of injection.
+        if(!ordinary.empty()) corrupt(ordinary);
+        for(auto id:ids) if(id>=sites_.size()) lease.xor_age(id-sites_.size());
+        for(auto id:ids) after.push_back(value(id));
         for (int cell : physical) raw_origins_[cell].insert(++origin_id_);
         if (events_) {
             events_ << next_fault_+1 << ',' << fault.tick << ',' << gem5::curTick() << ',' << ids.size() << ',';
-            list(events_, ids); events_ << ','; list(events_, physical); events_ << '\n';
+            list(events_, ids); events_ << ','; list(events_, physical); events_ << ',';
+            list(events_,before);events_<<',';list(events_,after);events_<<'\n';
         }
         ++next_fault_; flips_ += ids.size();
         observeOrigins("after_injection", true);
@@ -156,6 +205,10 @@ void NativeTAGEBase::observeOrigins(const char *reason, bool force) {
     last_active_ = active; last_live_ = live;
 }
 void NativeTAGEBase::updateGHist(gem5::ThreadID tid, uint64_t bits, uint8_t n) {
+    lease.append(n);
+    if(gem5::curTick()!=append_tick_) {append_tick_=gem5::curTick();appends_this_tick_=0;}
+    appends_this_tick_+=n;
+    maximum_raw_appends_per_tick=std::max(maximum_raw_appends_per_tick,appends_this_tick_);
     if (n && threadHistory[tid].ptGhist < n) {
         const int old = threadHistory[tid].ptGhist;
         const int count = int(maxHist)+1000;
@@ -188,6 +241,9 @@ void NativeTAGEBase::updateHistories(gem5::ThreadID tid, gem5::Addr pc, bool spe
     observeOrigins("history_callback");
 }
 void NativeTAGEBase::restoreHistState(gem5::ThreadID tid, Base::BranchInfo *bi) {
+    if(gem5::curTick()!=restore_tick_) {restore_tick_=gem5::curTick();restores_this_tick_=0;}
+    if(bi->modified) restores_this_tick_+=bi->nGhist;
+    maximum_raw_restores_per_tick=std::max(maximum_raw_restores_per_tick,restores_this_tick_);
     Base::restoreHistState(tid, bi);
     ++source_epoch;
     observeOrigins("restore");
@@ -199,7 +255,7 @@ NativeSample NativeTAGEBase::sample(const Base::BranchInfo &bi, uint64_t id) con
     s.raw = read_history_word(nHistoryTables*3); s.path = read_history_word(nHistoryTables*3+1).limb[0];
     s.nonspec_path = nonspec_path_history();
     for (unsigned w = 0; w < nHistoryTables*3; ++w) {
-        unsigned fold = direct_queries ? direct_word(w) : read_history_word(w).limb[0], canonical = 0;
+        unsigned fold = uses_direct(w/3+1) ? direct_word(w) : read_history_word(w).limb[0], canonical = 0;
         for (unsigned age = 0; age < histLengths[w/3+1]; ++age)
             if (s.raw.bit(age)) canonical ^= 1u << (age % words_[w].width);
         s.folds.push_back(fold);
@@ -217,19 +273,49 @@ void NativeTAGEBase::writeManifest() const {
     if (!out) throw std::runtime_error("cannot open native target manifest");
     unsigned selected = 0;
     for (const auto &word : words_) selected += word.width;
-    out << "{\"method\":\"" << (direct_queries ? "direct_query_TAGE" : "ordinary_unprotected_TAGE")
-        << "\",\"consumed_stored_folds\":" << (direct_queries ? "false" : "true")
+    unsigned direct_mask=effective_direct_mask();
+    unsigned dead_fold_bits=0;
+    for(unsigned w=0;w<21;++w) if(uses_direct(w/3+1)) dead_fold_bits+=words_[w].width;
+    out << "{\"method\":\"" << (direct_mask ? "direct_or_hybrid_query_TAGE" : "ordinary_recurrent_TAGE")
+        << "\",\"direct_bank_mask\":" << direct_mask
+        << ",\"consumed_stored_folds\":" << (direct_mask==127 ? "false" : "true")
         << ",\"fault_coordinate\":\"ticks\","
         "\"placement\":\"logical stored fields; raw age resolves once at injection\","
         "\"physical_hardware_mapping\":\"UNKNOWN\",\"WHOLE_coverage\":false,"
         "\"excluded\":[\"head\",\"pending/checkpoint fields\",\"chooser/RNG\",\"observer storage\"],"
-        "\"logical_sites\":" << sites_.size() << ",\"selected_history_bits\":" << selected << ",\"words\":[";
+        "\"logical_sites_including_dead_software_folds\":" << sites_.size()+lease.age_bits()
+        << ",\"logical_sites\":" << sites_.size()+lease.age_bits()
+        << ",\"enumerated_active_fault_bits\":" << sites_.size()-dead_fold_bits+lease.age_bits()
+        << ",\"lease_age_sites_start\":" << sites_.size()
+        << ",\"lease_age_bits\":" << lease.age_bits()
+        << ",\"lease_control_coverage\":\"age exposed; busy/timer not exposed; not WHOLE coverage\""
+        << ",\"selected_history_bits_legacy\":" << selected
+        << ",\"selected_history_bits\":" << selected
+        << ",\"active_selected_history_bits\":" << selected-dead_fold_bits << ",\"words\":[";
     for (size_t w = 0; w < words_.size(); ++w) {
         if (w) out << ',';
         out << "{\"word\":" << w << ",\"name\":\"" << words_[w].id << "\",\"width\":"
-            << words_[w].width << ",\"site_ids\":[";
+            << words_[w].width << ",\"consumed\":" << ((w<21 && uses_direct(w/3+1)) ? "false" : "true")
+            << ",\"site_ids\":[";
         for (size_t i = 0; i < words_[w].sites.size(); ++i) { if (i) out << ','; out << words_[w].sites[i]; }
         out << "]}";
+    }
+    out << "],\"regions\":[";
+    unsigned region=0;
+    for(size_t first=0;first<sites_.size();) {
+        const auto &s=sites_[first];size_t end=first+1;
+        while(end<sites_.size()) {
+            const auto &t=sites_[end];
+            if(t.kind!=s.kind || t.bank!=s.bank || t.width!=s.width ||
+               (s.kind==5 && t.row!=s.row)) break;
+            ++end;
+        }
+        if(region++) out<<',';
+        out<<"{\"kind\":"<<s.kind<<",\"field\":\""<<field_name(s.kind)
+           <<"\",\"bank\":"<<s.bank<<",\"first_row\":"<<s.row
+           <<",\"width\":"<<s.width<<",\"start\":"<<first<<",\"bits\":"<<end-first
+           <<",\"consumed\":"<<((s.kind==5 && uses_direct(s.bank)) ? "false" : "true")<<'}';
+        first=end;
     }
     out << "]}\n";
 }
@@ -238,8 +324,11 @@ void NativeTAGEBase::dumpResearch() {
     observeOrigins("program_exit", true);
     frozen_ = true; exit_tick_ = gem5::curTick();
     if (injection_.scheduled()) deschedule(injection_);
+    bool lease_censored=lease_publication_.scheduled();
+    if(lease_censored) deschedule(lease_publication_);
     if (events_) events_.flush();
     if (origins_) origins_.flush();
+    if(maintenance_) maintenance_.flush();
     if (owner) owner->flushTrace();
     if (summary_path_.empty()) return;
     uint64_t fingerprint = 14695981039346656037ULL;
@@ -248,17 +337,33 @@ void NativeTAGEBase::dumpResearch() {
     for (auto value : useAltPredForNewlyAllocated) mix(fingerprint, uint8_t(value));
     std::ofstream out(summary_path_);
     if (!out) throw std::runtime_error("cannot open native summary");
-    out << "{\"method\":\"" << (direct_queries ? "D_QUERY" : "U_NATIVE")
-        << "\",\"protection\":\"" << (direct_queries ? "direct own-history folds" : "NONE") << "\","
+    const char *method=lease.enabled() ? "LEASE_REBASE" :
+        effective_direct_mask()==127 ? "D_QUERY" : effective_direct_mask() ? "HYBRID_QUERY" : "U_NATIVE";
+    out << "{\"method\":\"" << method
+        << "\",\"direct_bank_mask\":" << effective_direct_mask()
+        << ",\"protection\":\"" << (lease.enabled() ? "periodic quiescent own-history rebase" :
+            effective_direct_mask() ? "direct own-history folds" : "NONE") << "\","
         "\"target_checker_stages\":0,\"additional_lookup_hold\":" << (owner ? owner->queryLatency() : 0)
         << ",\"additional_retirement_hold\":0,"
         "\"periodic_service_clock\":false,\"tick\":" << exit_tick_
         << ",\"scheduled_events\":" << faults_.size() << ",\"applied_events\":" << next_fault_
         << ",\"applied_flips\":" << flips_ << ",\"future_events_censored\":" << faults_.size()-next_fault_
+        << ",\"declared_tape_horizon_tick\":" << declared_horizon_
+        << ",\"schedule_exhausted_before_exit\":" << (declared_horizon_ && exit_tick_>declared_horizon_ ? "true" : "false")
         << ",\"faults_frozen\":true,\"semantic_base_fingerprint\":" << fingerprint
         << ",\"fingerprint_scope\":\"active base state; not exhaustive checkpoint/RNG equality\","
         "\"origin_scope\":\"single-event raw identities; actual append/undo/rollover, no extra XOR\","
         "\"multi_event_recovery_partitioned\":false,\"raw_history_writes\":" << raw_writes;
+    out << ",\"lease_publications\":" << lease.publications
+        << ",\"lease_completion_censored_at_exit\":" << (lease_censored ? "true" : "false")
+        << ",\"same_tick_order\":\"injection before lease publication before CPU tick\""
+        << ",\"maximum_raw_appends_per_tick\":" << maximum_raw_appends_per_tick
+        << ",\"maximum_raw_restores_per_tick\":" << maximum_raw_restores_per_tick
+        << ",\"lease_drain_wait_calls\":" << lease.drain_wait_calls
+        << ",\"lease_service_wait_calls\":" << lease.service_wait_calls
+        << ",\"lease_age_at_exit\":" << lease.age()
+        << ",\"lease_busy_at_exit\":" << (lease.busy() ? "true" : "false")
+        << ",\"physical_stage_qualification\":\"NOT_ESTABLISHED_BY_THIS_CPU_MODEL\"";
     if (owner) out << ",\"lookups\":" << owner->lookups << ",\"committed_updates\":" << owner->commit_updates
         << ",\"prediction_output_forced_base\":" << (owner->force_base ? "true" : "false")
         << ",\"additional_query_latency_cycles\":" << owner->queryLatency()
@@ -270,6 +375,14 @@ void NativeTAGEBase::dumpResearch() {
         << ",\"retired_pc_identity\":" << owner->retired_pc_identity << ",\"lookup_identity\":" << owner->lookup_identity
         << ",\"missing_lookup_mapping\":" << owner->missing_lookup_mapping
         << ",\"missing_retirement_mapping\":" << owner->missing_retirement_mapping
+        << ",\"missing_bpu_mapping\":" << owner->missing_bpu_mapping
+        << ",\"missing_bpu_prediction_mapping\":" << owner->missing_bpu_prediction_mapping
+        << ",\"maximum_actual_restore_owners\":" << owner->max_inflight
+        << ",\"maximum_all_live_history_owners\":" << owner->max_live_owners
+        << ",\"all_live_history_owners_at_exit\":" << owner->liveHistoryOwners()
+        << ",\"maximum_lookups_per_tick\":" << owner->maximum_lookups_per_tick
+        << ",\"maximum_conditional_lookups_per_tick\":" << owner->maximum_conditional_lookups_per_tick
+        << ",\"lease_frontend_wait_calls\":" << owner->lease_frontend_wait_calls
         << ",\"native_branch_history_observation_frames_at_exit\":" << owner->pendingObservationFrames();
     out << ",\"RNG_observation\":\"upstream TAGE::update unchanged; observer draws none; full RNG not exported\"}\n";
 }
@@ -282,8 +395,11 @@ NativeTAGEBase &NativeTAGE::checkedCore(gem5::branch_prediction::TAGEBase *base)
 NativeTAGE::NativeTAGE(const gem5::NativeTAGEParams &p) : TAGE(p), core(checkedCore(p.tage)) {
     query_latency_ = p.query_latency; cycle_ticks_ = p.cycle_ticks;
     force_base = p.force_base;
+    restore_capacity_=p.max_restore_owners;
     if (!cycle_ticks_ || query_latency_ > 32)
         throw std::invalid_argument("invalid native query latency or clock");
+    if(!restore_capacity_ || (core.lease.enabled() && (query_latency_ || force_base)))
+        throw std::invalid_argument("invalid restore capacity or unadmitted combined lease policy");
     core.owner = this;
     observing_ = !p.commit_trace_file.empty() || core.originObservationEnabled();
     if (!p.commit_trace_file.empty()) {
@@ -291,7 +407,8 @@ NativeTAGE::NativeTAGE(const gem5::NativeTAGEParams &p) : TAGE(p), core(checkedC
         if (!trace_) throw std::runtime_error("cannot open native commit trace");
         const char *header = "branch_id,retire_tick,training_tick,pc,target,taken,conditional,tage_prediction,"
             "lookup_id,lookup_tick,source_epoch,buffer_epoch,head,raw_limb0,raw_limb1,raw_limb2,"
-            "path,nonspec_path,fold_invariant_distance,folds,indices,query_tags,provider_type,hit_bank,alternate_bank,sampling_phase\n";
+            "path,nonspec_path,fold_invariant_distance,folds,indices,query_tags,provider_type,hit_bank,alternate_bank,sampling_phase,"
+            "bpu_pred_taken,bpu_cond_pred,bpu_btb_hit,bpu_mispredicted,bpu_target_provider,bpu_predicted_target\n";
         gzwrite(trace_, header, unsigned(std::char_traits<char>::length(header)));
     }
 }
@@ -309,6 +426,15 @@ bool NativeTAGE::predict(gem5::ThreadID tid, gem5::Addr pc, bool conditional, vo
         pending_ = false;
     }
     bool predicted = TAGE::predict(tid, pc, conditional, history);
+    if(!live_.insert(history).second) throw std::logic_error("duplicate live history owner");
+    max_live_owners=std::max(max_live_owners,uint64_t(live_.size()));
+    if(live_.size()>restore_capacity_) throw std::logic_error("live history-owner capacity exceeded");
+    if(gem5::curTick()!=lookup_tick_) {
+        lookup_tick_=gem5::curTick();lookups_this_tick_=conditionals_this_tick_=0;
+    }
+    ++lookups_this_tick_;conditionals_this_tick_+=conditional;
+    maximum_lookups_per_tick=std::max(maximum_lookups_per_tick,lookups_this_tick_);
+    maximum_conditional_lookups_per_tick=std::max(maximum_conditional_lookups_per_tick,conditionals_this_tick_);
     auto &bi = *static_cast<TageBranchInfo *>(history)->tageBranchInfo;
     ++lookups; mix(lookup_identity, pc); mix(lookup_identity, predicted); mix(lookup_identity, conditional);
     if (observing_) frames_[history] = core.sample(bi, lookups);
@@ -317,6 +443,7 @@ bool NativeTAGE::predict(gem5::ThreadID tid, gem5::Addr pc, bool conditional, vo
 bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
                                     bool conditional, uint32_t &token) {
     if (tid) throw std::invalid_argument("query admission single thread");
+    if(core.lease.due()) return false;
     if (!conditional || !query_latency_) return true;
     if (!token) {
         if (pending_) throw std::logic_error("duplicate pending query owner");
@@ -334,12 +461,53 @@ bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
 void NativeTAGE::seuCancelPending(gem5::ThreadID) {
     if (pending_) { ++canceled_requests; pending_ = false; }
 }
+bool NativeTAGE::seuFrontendBlocked(gem5::ThreadID tid, bool empty) {
+    if(tid) throw std::invalid_argument("lease frontend single thread");
+    bool ready=core.lease.service(gem5::curTick(),empty && live_.empty() && !pending_,
+                                 [&] {publish_own_folds(core);});
+    if(core.lease.busy()) core.armLeasePublication();
+    if(!ready) ++lease_frontend_wait_calls;
+    return !ready;
+}
+void NativeTAGE::completeLease() {
+    if(!core.lease.busy() || !live_.empty() || pending_)
+        throw std::logic_error("autonomous lease completion is not quiescent");
+    if(!core.lease.service(gem5::curTick(),true,[&] {publish_own_folds(core);}))
+        throw std::logic_error("autonomous lease completed before ready");
+}
+void NativeTAGE::seuAuditInflight(unsigned n) {
+    max_inflight=std::max(max_inflight,uint64_t(n));
+    if(n>restore_capacity_) throw std::logic_error("actual predictor restore-owner capacity exceeded");
+    if(core.lease.busy() && n) throw std::logic_error("lease quiescence violated by live restore owner");
+}
+void NativeTAGE::branchPlaceholder(gem5::ThreadID tid,gem5::Addr pc,bool uncond,void *&history) {
+    if(core.lease.busy()) throw std::logic_error("placeholder entered quiescent worker");
+    TAGE::branchPlaceholder(tid,pc,uncond,history);
+    if(!live_.insert(history).second) throw std::logic_error("duplicate placeholder owner");
+    max_live_owners=std::max(max_live_owners,uint64_t(live_.size()));
+    if(live_.size()>restore_capacity_) throw std::logic_error("placeholder capacity exceeded");
+}
+void NativeTAGE::seuAuditPrediction(void *info,uint64_t target) {
+    if(!observing_) return;
+    auto i=frames_.find(info);
+    if(i==frames_.end()) {++missing_bpu_prediction_mapping;return;}
+    i->second.bpu_target_observed=true;i->second.bpu_predicted_target=target;
+}
 void NativeTAGE::seuAuditCommit(uint64_t, uint64_t pc, unsigned micro, bool last, bool control, void *info) {
     ++retired_ops; retired_instructions += last; retired_controls += control;
     mix(retired_pc_identity, pc); mix(retired_pc_identity, micro);
     mix(retired_pc_identity, last); mix(retired_pc_identity, control);
     if (observing_ && control && info && !retired_.count(info))
         retired_[info] = {gem5::curTick(), ++next_retired_branch_};
+}
+void NativeTAGE::seuAuditBranch(void *info,bool taken,bool conditional,bool btb,
+                              bool wrong,unsigned provider) {
+    if(!observing_ || !info) return;
+    auto i=retired_.find(info);
+    if(i==retired_.end()) {++missing_bpu_mapping;return;}
+    auto &r=i->second;
+    r.bpu_observed=true;r.pred_taken=taken;r.cond_pred=conditional;
+    r.btb_hit=btb;r.mispredicted=wrong;r.target_provider=provider;
 }
 void NativeTAGE::writeTrace(const NativeSample *sample, const Retired *retired,
         gem5::Addr pc, bool taken, bool conditional, gem5::Addr target, const Base::BranchInfo &bi) {
@@ -359,7 +527,12 @@ void NativeTAGE::writeTrace(const NativeSample *sample, const Retired *retired,
     }
     out << ',' << (conditional ? std::to_string(bi.provider) : "NOT_APPLICABLE") << ','
         << bi.hitBank << ',' << bi.altBank << ','
-        << (sample ? "AFTER_QUERY_BEFORE_SPEC_APPEND" : "NOT_OBSERVED") << '\n';
+        << (sample ? "AFTER_QUERY_BEFORE_SPEC_APPEND" : "NOT_OBSERVED");
+    if(retired && retired->bpu_observed)
+        out<<','<<retired->pred_taken<<','<<retired->cond_pred<<','<<retired->btb_hit
+           <<','<<retired->mispredicted<<','<<retired->target_provider;
+    else out<<",NOT_OBSERVED,NOT_OBSERVED,NOT_OBSERVED,NOT_OBSERVED,NOT_OBSERVED";
+    out<<','<<(sample && sample->bpu_target_observed ? std::to_string(sample->bpu_predicted_target) : "NOT_OBSERVED")<<'\n';
     auto line = out.str();
     if (gzwrite(trace_, line.data(), unsigned(line.size())) != int(line.size()))
         throw std::runtime_error("native trace write failed");
@@ -374,18 +547,21 @@ void NativeTAGE::update(gem5::ThreadID tid, gem5::Addr pc, bool taken, void *&hi
         auto frame = frames_.find(key); auto retired = retired_.find(key);
         missing_lookup_mapping += frame == frames_.end();
         missing_retirement_mapping += retired == retired_.end();
+        missing_bpu_mapping += retired==retired_.end() || !retired->second.bpu_observed;
         writeTrace(frame == frames_.end() ? nullptr : &frame->second,
                    retired == retired_.end() ? nullptr : &retired->second,
                    pc, taken, bi.condBranch, target, bi);
     }
     // Keep upstream RNG draw, stats, training, history update, and deletion order.
     TAGE::update(tid, pc, taken, history, false, inst, target);
+    if(live_.erase(key)!=1) throw std::logic_error("committed history owner was not live");
     frames_.erase(key); retired_.erase(key);
     core.observeOrigins("commit");
 }
 void NativeTAGE::squash(gem5::ThreadID tid, void *&history) {
     auto *key = history;
     TAGE::squash(tid, history);
+    if(live_.erase(key)!=1) throw std::logic_error("squashed history owner was not live");
     frames_.erase(key); retired_.erase(key);
     core.observeOrigins("squash");
 }

@@ -45,3 +45,12 @@ version output, a simulation PASS, synthesis area, placement, routed timing and
 activity-based energy are separate gates. Educational cap-table RC and local
 DRC do not establish foundry signoff. No 28 nm to 45 nm numerical PPA comparison
 is permitted.
+
+`python -m simulation.eda.implement --synthesis PASSED_B0 --site PRIVATE.json
+--output FRESH_DIR` runs the corresponding B0 physical flow with matched slow
+setup/fast hold views, technology/cell LEF, declared cap-table RC, fixed geometry,
+signal routing layers, PG and local checks. It has a virtual clock and no CTS;
+it explicitly refuses to qualify full-history timing. A completed flow still
+requires inspection of timing, DRV, DRC, connectivity, units and activity before
+any implementation claim. Default placement seed is recorded as a limitation,
+not invented. This initial helper does not measure activity power.

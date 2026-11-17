@@ -1,5 +1,11 @@
 # Native fault and recovery observations
 
+The 2026-11-16 development/evaluation producers are frozen historical outputs.
+The integrated continuation adds optional policies and observations in fresh
+producers; it does not backfill their missing observables or extend that owner
+sample. Use matching committed Python configs when reproducing an older binary
+whose SimObject parameter interface predates these additions.
+
 `simulation/gem5/configs/native_study.py` uses ordinary upstream TAGE through a
 thin subclass. It calls upstream prediction, training, RNG, history update, and
 squash operations without an additional finite controller, checker stage,
@@ -100,3 +106,39 @@ do not repeat them solely for a producer label. Zero-latency direct is a bounded
 implementation-equivalence control only. Report M0/U0 cost and MF/UF benefit
 separately, including a loss at either owner. No independent evaluation or
 environment-wide SEU benefit is implied by these development owners.
+
+## Integrated development interface
+
+New producers add `--direct-bank-mask` for static whole-bank hybrids, and
+`--lease-period K --lease-service-cycles L` for a separate quiescent rebase
+hypothesis. The latter counts actual speculative raw appends, including
+unconditional-branch history updates. It stops new admissions, waits for both
+the actual BPU deque and every live TAGE history owner to drain, then charges
+service and publishes Phi of its current own raw source. It neither repairs
+raw state nor copies reference learning. Lease/direct/delayed-query combinations
+are not admitted. Period zero and mask zero retain the ordinary native path.
+The initial service latency is a declared development assumption; neither B0
+mapping nor a C++ gate qualifies its physical source/read/undo/worker interface.
+Once started, publication is an autonomous completion event, even while fetch
+waits for memory. It is not deferred until a convenient later observer call.
+Same-tick digital order is injection, lease publication, then CPU tick. The
+lease event log records exact start/deadline/publication and empty-owner gates;
+pending completion at program exit is censored without advancing simulation.
+
+`--cycle-ticks` sets the CPU period in the default 1 ps gem5 timebase. It does
+not rescale absolute-tick fault tapes or their fixed events/second law. Header
+`horizon=` is reported as declared tape coverage, with exhaustion before exit
+explicitly flagged. Injection logs now include bit values before/after each
+atomic group. `L:AGE:b` exposes the lease age bits for directed control tests;
+busy/timer coverage remains incomplete, so the manifest does not claim WHOLE.
+Unused hybrid folds are marked unconsumed and cannot be injected as live state.
+
+Read-only BPU hooks capture final predicted direction/target, BTB status and
+actual committed misprediction status, separate from TAGE's conditional result.
+The regression reconciles those flags with committed BPU statistics. Old traces
+lacking these fields remain explicitly limited. Peak actual BPU and all-live
+history ownership, same-tick queries, raw appends and restores are recorded to
+size the physical interface rather than assuming one query/undo per cycle.
+The finite owner capacity is declared and asserted, not inferred to cover all
+possible workloads from a small sample. Exact training/RNG operations continue
+through the unchanged upstream `TAGE::update`.

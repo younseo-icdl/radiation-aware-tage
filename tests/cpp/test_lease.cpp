@@ -37,6 +37,9 @@ int main() {
         check(lease.service(9,true,publish),"normal service after integrity probe");
         QuiescentLease disabled(0,0);disabled.append(1000);
         check(disabled.service(0,false,publish) && !disabled.due(),"feature-off contract");
+        QuiescentLease overflow(1,3);overflow.append(1);rejected=false;
+        try {overflow.service(UINT64_MAX-1,true,publish);} catch(const std::overflow_error &) {rejected=true;}
+        check(rejected,"completion counter wrap cannot become free immediate service");
         std::cout<<"PASS lease drain/service publication, own faulty source, no learning/gold repair, age upset, forbidden stale-owner/append\n";
         return 0;
     } catch(const std::exception &e) {std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}

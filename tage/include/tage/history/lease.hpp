@@ -17,7 +17,9 @@ class QuiescentLease {
             throw std::invalid_argument("lease period/latency");
     }
     bool due() const { return period_ && (busy_ || age_>=period_); }
+    bool enabled() const { return period_ != 0; }
     bool busy() const { return busy_; }
+    uint64_t ready_time() const { return ready_; }
     uint32_t age() const { return age_; }
     unsigned age_bits() const {
         unsigned bits=0; for(auto value=period_;value;value>>=1) ++bits; return bits;
@@ -37,7 +39,10 @@ class QuiescentLease {
         if(busy_ && !no_restore_owners)
             throw std::logic_error("restore owner entered quiescent service");
         if(!no_restore_owners) {++drain_wait_calls;return false;}
-        if(!busy_) {busy_=true;ready_=now+latency_;}
+        if(!busy_) {
+            if(latency_>UINT64_MAX-now) throw std::overflow_error("lease completion tick overflow");
+            busy_=true;ready_=now+latency_;
+        }
         if(now<ready_) {++service_wait_calls;return false;}
         publish(); // Publish at a real charged completion boundary, from own H.
         age_=0;busy_=false;++publications;

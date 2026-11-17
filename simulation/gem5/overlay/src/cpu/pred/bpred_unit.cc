@@ -105,6 +105,7 @@ BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
 
     /** Push the record into the history buffer */
     predHist[tid].push_front(bpu_history);
+    cPred->seuAuditInflight(predHist[tid].size());
 
     DPRINTF(Branch, "[tid:%i] [sn:%llu] History entry added. "
             "predHist.size(): %i\n", tid, seqNum, predHist[tid].size());
@@ -116,6 +117,7 @@ void
 BPredUnit::insertPredictorHistory(ThreadID tid, PredictorHistory *&bpu_history)
 {
     predHist[tid].push_front(bpu_history);
+    cPred->seuAuditInflight(predHist[tid].size());
 }
 
 bool
@@ -321,6 +323,7 @@ BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
     cPred->updateHistories(tid, hist->pc, hist->uncond, hist->predTaken,
                            hist->target->instAddr(), hist->inst,
                            hist->bpHistory);
+    cPred->seuAuditPrediction(hist->bpHistory,hist->target->instAddr());
 
 
     if (iPred) {

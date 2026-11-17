@@ -15,7 +15,8 @@ from gem5.components.memory.dram_interfaces.ddr3 import DDR3_1600_8x8
 
 def create_system(args, output, conditional_predictor=None):
     system = System()
-    system.clk_domain = SrcClockDomain(clock='2GHz', voltage_domain=VoltageDomain())
+    clock = '{}ps'.format(args.cycle_ticks) if hasattr(args, 'cycle_ticks') else '2GHz'
+    system.clk_domain = SrcClockDomain(clock=clock, voltage_domain=VoltageDomain())
     system.mem_mode = 'timing'
     system.mem_ranges = [AddrRange('256MiB')]
     system.cpu = X86O3CPU(numThreads=1, decoupledFrontEnd=False)
