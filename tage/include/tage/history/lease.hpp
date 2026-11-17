@@ -50,17 +50,24 @@ class QuiescentLease {
     }
 };
 
-inline void publish_own_folds(TageAccess &core,
+inline std::array<Word,21> canonical_own_folds(TageAccess &core,
                               const std::vector<TageAccess::HistoryWord> &words,
-                              unsigned bank_mask=127) {
+                              unsigned bank_mask) {
     if(words.size()!=23) throw std::invalid_argument("plain seven-bank lease scope");
     if(bank_mask>=128) throw std::invalid_argument("lease bank mask");
-    if(!bank_mask) return;
-    auto raw=core.read_history_word(21);
     std::array<Word,21> folds{};
+    if(!bank_mask) return folds;
+    auto raw=core.read_history_word(21);
     for(unsigned w=0;w<21;++w) if((bank_mask>>(w/3))&1)
         for(unsigned age=0;age<core.fold_history_length(w);++age)
             if(raw.bit(age)) folds[w].flip(age%words[w].width);
+    return folds;
+}
+
+inline void publish_own_folds(TageAccess &core,
+                              const std::vector<TageAccess::HistoryWord> &words,
+                              unsigned bank_mask=127) {
+    const auto folds=canonical_own_folds(core,words,bank_mask);
     for(unsigned w=0;w<21;++w) if((bank_mask>>(w/3))&1) core.write_history_word(w,folds[w]);
 }
 inline void publish_own_folds(TageAccess &core) {
