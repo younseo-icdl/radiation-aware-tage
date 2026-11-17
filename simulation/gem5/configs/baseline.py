@@ -43,7 +43,7 @@ def create_system(args, output, conditional_predictor=None):
     system.cpu.createInterruptController()
     system.cpu.interrupts[0].pio = system.membus.mem_side_ports
     system.cpu.interrupts[0].int_requestor = system.membus.cpu_side_ports
-    system.cpu.interrupts[0].int_responder = system.membus.cpu_side_ports
+    system.cpu.interrupts[0].int_responder = system.membus.mem_side_ports
     system.mem_ctrl = MemCtrl(dram=DDR3_1600_8x8(range=system.mem_ranges[0]))
     system.mem_ctrl.port = system.membus.mem_side_ports
     system.system_port = system.membus.cpu_side_ports
