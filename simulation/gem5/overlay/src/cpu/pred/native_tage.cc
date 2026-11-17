@@ -23,11 +23,12 @@ template <class T> void list(std::ostream &out, const std::vector<T> &values) {
 } // namespace
 
 NativeTAGEBase::NativeTAGEBase(const gem5::NativeTAGEBaseParams &p)
-    : TageAccess(p), schedule_path_(p.schedule_file), event_path_(p.event_file),
+    : DirectAccess<TageAccess>(p), schedule_path_(p.schedule_file), event_path_(p.event_file),
       summary_path_(p.summary_file), manifest_path_(p.manifest_file),
       injection_([this] { injectNext(); }, name()+".native_xor", false,
                  gem5::Event::CPU_Tick_Pri-1) {
     if (p.numThreads != 1) throw std::invalid_argument("native observation currently supports one thread");
+    direct_queries = p.direct_queries;
     if (!p.origin_file.empty()) {
         origins_.open(p.origin_file);
         if (!origins_) throw std::runtime_error("cannot open raw origin trace");
@@ -120,6 +121,8 @@ void NativeTAGEBase::injectNext() {
         for (const auto &mark : fault.sites) {
             auto id = resolve(mark); ids.push_back(id);
             const auto &site = sites_[id];
+            if (direct_queries && site.kind == 5)
+                throw std::invalid_argument("direct has no consumed stored-fold target");
             if (site.kind == 4 && site.bank == 0)
                 physical.push_back(history_cursor()+site.row);
         }
@@ -196,7 +199,7 @@ NativeSample NativeTAGEBase::sample(const Base::BranchInfo &bi, uint64_t id) con
     s.raw = read_history_word(nHistoryTables*3); s.path = read_history_word(nHistoryTables*3+1).limb[0];
     s.nonspec_path = nonspec_path_history();
     for (unsigned w = 0; w < nHistoryTables*3; ++w) {
-        unsigned fold = read_history_word(w).limb[0], canonical = 0;
+        unsigned fold = direct_queries ? direct_word(w) : read_history_word(w).limb[0], canonical = 0;
         for (unsigned age = 0; age < histLengths[w/3+1]; ++age)
             if (s.raw.bit(age)) canonical ^= 1u << (age % words_[w].width);
         s.folds.push_back(fold);
@@ -214,7 +217,9 @@ void NativeTAGEBase::writeManifest() const {
     if (!out) throw std::runtime_error("cannot open native target manifest");
     unsigned selected = 0;
     for (const auto &word : words_) selected += word.width;
-    out << "{\"method\":\"ordinary_unprotected_TAGE\",\"fault_coordinate\":\"ticks\","
+    out << "{\"method\":\"" << (direct_queries ? "direct_query_TAGE" : "ordinary_unprotected_TAGE")
+        << "\",\"consumed_stored_folds\":" << (direct_queries ? "false" : "true")
+        << ",\"fault_coordinate\":\"ticks\","
         "\"placement\":\"logical stored fields; raw age resolves once at injection\","
         "\"physical_hardware_mapping\":\"UNKNOWN\",\"WHOLE_coverage\":false,"
         "\"excluded\":[\"head\",\"pending/checkpoint fields\",\"chooser/RNG\",\"observer storage\"],"
@@ -243,8 +248,10 @@ void NativeTAGEBase::dumpResearch() {
     for (auto value : useAltPredForNewlyAllocated) mix(fingerprint, uint8_t(value));
     std::ofstream out(summary_path_);
     if (!out) throw std::runtime_error("cannot open native summary");
-    out << "{\"method\":\"U_NATIVE\",\"protection\":\"NONE\","
-        "\"target_checker_stages\":0,\"additional_lookup_hold\":0,\"additional_retirement_hold\":0,"
+    out << "{\"method\":\"" << (direct_queries ? "D_QUERY" : "U_NATIVE")
+        << "\",\"protection\":\"" << (direct_queries ? "direct own-history folds" : "NONE") << "\","
+        "\"target_checker_stages\":0,\"additional_lookup_hold\":" << (owner ? owner->queryLatency() : 0)
+        << ",\"additional_retirement_hold\":0,"
         "\"periodic_service_clock\":false,\"tick\":" << exit_tick_
         << ",\"scheduled_events\":" << faults_.size() << ",\"applied_events\":" << next_fault_
         << ",\"applied_flips\":" << flips_ << ",\"future_events_censored\":" << faults_.size()-next_fault_
@@ -253,6 +260,10 @@ void NativeTAGEBase::dumpResearch() {
         "\"origin_scope\":\"single-event raw identities; actual append/undo/rollover, no extra XOR\","
         "\"multi_event_recovery_partitioned\":false,\"raw_history_writes\":" << raw_writes;
     if (owner) out << ",\"lookups\":" << owner->lookups << ",\"committed_updates\":" << owner->commit_updates
+        << ",\"additional_query_latency_cycles\":" << owner->queryLatency()
+        << ",\"query_wait_calls\":" << owner->query_wait_calls
+        << ",\"delayed_requests\":" << owner->delayed_requests
+        << ",\"canceled_query_requests\":" << owner->canceled_requests
         << ",\"conditional_updates\":" << owner->conditional_updates << ",\"retired_ops\":" << owner->retired_ops
         << ",\"retired_instructions\":" << owner->retired_instructions << ",\"retired_controls\":" << owner->retired_controls
         << ",\"retired_pc_identity\":" << owner->retired_pc_identity << ",\"lookup_identity\":" << owner->lookup_identity
@@ -268,6 +279,9 @@ NativeTAGEBase &NativeTAGE::checkedCore(gem5::branch_prediction::TAGEBase *base)
     return *value;
 }
 NativeTAGE::NativeTAGE(const gem5::NativeTAGEParams &p) : TAGE(p), core(checkedCore(p.tage)) {
+    query_latency_ = p.query_latency; cycle_ticks_ = p.cycle_ticks;
+    if (!cycle_ticks_ || query_latency_ > 32)
+        throw std::invalid_argument("invalid native query latency or clock");
     core.owner = this;
     observing_ = !p.commit_trace_file.empty() || core.originObservationEnabled();
     if (!p.commit_trace_file.empty()) {
@@ -287,11 +301,36 @@ void NativeTAGE::flushTrace() {
     }
 }
 bool NativeTAGE::predict(gem5::ThreadID tid, gem5::Addr pc, bool conditional, void *&history) {
+    if (conditional && query_latency_) {
+        if (!pending_ || pending_pc_ != pc || gem5::curTick() < ready_tick_)
+            throw std::logic_error("delayed direct query consumed before readiness");
+        pending_ = false;
+    }
     bool predicted = TAGE::predict(tid, pc, conditional, history);
     auto &bi = *static_cast<TageBranchInfo *>(history)->tageBranchInfo;
     ++lookups; mix(lookup_identity, pc); mix(lookup_identity, predicted); mix(lookup_identity, conditional);
     if (observing_) frames_[history] = core.sample(bi, lookups);
     return predicted;
+}
+bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
+                                    bool conditional, uint32_t &token) {
+    if (tid) throw std::invalid_argument("query admission single thread");
+    if (!conditional || !query_latency_) return true;
+    if (!token) {
+        if (pending_) throw std::logic_error("duplicate pending query owner");
+        pending_ = true; pending_pc_ = pc;
+        if (!++next_token_) ++next_token_;
+        token = pending_token_ = next_token_;
+        ready_tick_ = gem5::curTick()+query_latency_*cycle_ticks_;
+        ++delayed_requests;
+    }
+    if (!pending_ || token != pending_token_ || pending_pc_ != pc)
+        throw std::logic_error("query ownership mismatch");
+    if (gem5::curTick() < ready_tick_) { ++query_wait_calls; return false; }
+    return true;
+}
+void NativeTAGE::seuCancelPending(gem5::ThreadID) {
+    if (pending_) { ++canceled_requests; pending_ = false; }
 }
 void NativeTAGE::seuAuditCommit(uint64_t, uint64_t pc, unsigned micro, bool last, bool control, void *info) {
     ++retired_ops; retired_instructions += last; retired_controls += control;

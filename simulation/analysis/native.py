@@ -106,6 +106,9 @@ def summarize(clean, fault):
             'origin_scope': 'raw provenance, including observed live restorable heads; not semantic shadow distance',
             'physical_cell_overwrite_time': None, 'path_origin_recovery': 'NOT_OBSERVED',
             'learning_full_state_recovery': 'NOT_OBSERVED_IN_CPU_TRACE',
+            'prediction_scope': 'TAGE conditional direction; final BPU direction/target overrides are not exported',
+            'final_BPU_prediction_recovery': 'NOT_OBSERVED',
+            'timing_rule_scope': 'exact CPU retirement times with conservative TAGE-direction-difference exclusion; not a complete final-BPU recovery certificate',
             'fold_reference_scope': 'only equal raw/path/nonspec snapshots at matched architectural queries; other samples NA_ALIGNMENT',
             'timing': windows}
 

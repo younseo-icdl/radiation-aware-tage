@@ -20,6 +20,9 @@ def main():
     parser.add_argument('--input', type=Path)
     parser.add_argument('--schedule', type=Path)
     parser.add_argument('--diagnostics', action='store_true')
+    parser.add_argument('--direct', action='store_true', help='Direct own-history query folds')
+    parser.add_argument('--query-latency', type=int, default=0,
+                        help='Additional conditional-query CPU cycles, explicitly modeled')
     parser.add_argument('--max-ticks', type=int, default=2000000000000)
     parser.add_argument('--seed', type=int, default=548)
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -32,14 +35,18 @@ def main():
         parser.error('schedule does not exist')
     if args.max_ticks <= 0:
         parser.error('max-ticks must be positive')
+    if not 0 <= args.query_latency <= 32:
+        parser.error('query-latency must be 0..32')
     output = Path(m5.options.outdir).resolve()
     base = NativeTAGEBase(minHist=5, maxHist=130, takenOnlyHistory=False,
+        direct_queries=args.direct,
         speculativeHistUpdate=True,
         schedule_file=str(args.schedule.resolve()) if args.schedule else '',
         event_file=str(output/'events.csv'), summary_file=str(output/'native.json'),
         manifest_file=str(output/'logical_manifest.json'),
         origin_file=str(output/'raw_origins.csv') if args.diagnostics else '')
     predictor = NativeTAGE(tage=base,
+        query_latency=args.query_latency, cycle_ticks=500,
         commit_trace_file=str(output/'committed.csv.gz') if args.diagnostics else '')
     system = create_system(args, output, predictor)
     root = Root(full_system=False, system=system)

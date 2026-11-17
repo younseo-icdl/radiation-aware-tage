@@ -13,6 +13,7 @@ class NativeTAGEBase(TAGEBase):
     summary_file = Param.String('', 'Architectural-exit observations')
     manifest_file = Param.String('', 'Supported logical targets; not a whole-state certificate')
     origin_file = Param.String('', 'Original raw-bit provenance under append/undo/rollover')
+    direct_queries = Param.Bool(False, 'Derive consumed folds directly from current raw history')
     cxx_exports = [PyBindMethod('dumpResearch')]
 
 
@@ -22,3 +23,5 @@ class NativeTAGE(TAGE):
     cxx_header = 'cpu/pred/native_tage.hh'
     tage = NativeTAGEBase()
     commit_trace_file = Param.String('', 'Gzip committed branch times and consumed source snapshots')
+    query_latency = Param.Unsigned(0, 'Additional conditional-query latency, in CPU cycles')
+    cycle_ticks = Param.Unsigned(500, 'CPU clock period in simulator ticks')

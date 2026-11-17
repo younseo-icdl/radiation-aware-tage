@@ -66,3 +66,37 @@ positive/negative cancellation or prediction differences. A constant retained
 cumulative time gap is allowed. Reference-fold comparison is available only at
 equal raw/path/nonspec source snapshots; missing alignment remains explicit.
 Full learning-state recovery is not exported by this CPU trace.
+Prediction differences and harmful/helpful labels refer to TAGE's conditional
+direction, before final BPU target/BTB overrides. They are not automatically CPU
+redirects. Exact retirement time remains measured independently. The timing
+rule conservatively excludes TAGE-direction differences and does not certify
+the unobserved final BPU direction/target milestone.
+
+## One admitted direct-query candidate
+
+The initial native screen found a 15.72% qsort runtime penalty at the declared
+R0 owner, versus approximately 0.155% at R64. This motivates one candidate rather
+than a broad design/rate sweep: `--direct --query-latency 1`. Direct queries use
+the current raw history and original path/hash functions, with no oracle copy,
+table clearing, or stored-fold repair. Raw writes, training order, allocation,
+and speculation retain upstream behavior. Dead rolling-fold software fields are
+retained only for upstream bookkeeping; they do not supply direct query hashes
+or represent required direct hardware storage. Stored-fold injections are N/A
+for this candidate. The common comparison environment is raw-history-only.
+
+An additional one-cycle conditional-query wait is charged before the actual
+query, with one pending request, explicit token ownership and squash cancellation.
+No data is computed from a future source snapshot: source is read when the query
+is consumed. The admission interface can start the next request after consumption;
+its single outstanding request is explicit rather than a claimed multi-request
+pipeline. There is no added raw-update or retirement stage, periodic checker,
+protected gold copy, or post-exit service. Physical latency, energy, fanout,
+checkpoint/control protection, and area are UNKNOWN. One cycle is a declared
+architectural modeling assumption, not a measured 45 nm timing result.
+
+Admit three qsort cells: M0 and MF at each of the already declared R0/R64 ticks.
+Use the existing same-geometry U0/UF cells after focused native-path regression;
+do not repeat them solely for a producer label. Zero-latency direct is a bounded
+implementation-equivalence control only. Report M0/U0 cost and MF/UF benefit
+separately, including a loss at either owner. No independent evaluation or
+environment-wide SEU benefit is implied by these development owners.

@@ -4,6 +4,7 @@
 #include "params/NativeTAGEBase.hh"
 #include "sim/eventq.hh"
 #include "tage/predictor/tage_access.hpp"
+#include "tage/history/direct_access.hpp"
 #include <fstream>
 #include <map>
 #include <set>
@@ -22,7 +23,7 @@ struct NativeSample {
 
 // No finite-source controller, codec, periodic service clock, or extra
 // retirement/lookup delay is inserted into the ordinary TAGE path.
-class NativeTAGEBase : public TageAccess {
+class NativeTAGEBase : public DirectAccess<TageAccess> {
     struct Fault {
         gem5::Tick tick;
         std::vector<std::string> sites;
@@ -70,6 +71,11 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     std::unordered_map<void *, Retired> retired_;
     gzFile trace_ = nullptr;
     bool observing_ = false;
+    unsigned query_latency_ = 0;
+    gem5::Tick cycle_ticks_ = 500, ready_tick_ = 0;
+    gem5::Addr pending_pc_ = 0;
+    uint32_t next_token_ = 0, pending_token_ = 0;
+    bool pending_ = false;
     uint64_t next_retired_branch_ = 0;
     void writeTrace(const NativeSample *, const Retired *, gem5::Addr, bool, bool,
                     gem5::Addr, const Base::BranchInfo &);
@@ -81,6 +87,8 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     uint64_t retired_ops = 0, retired_instructions = 0, retired_controls = 0;
     uint64_t retired_pc_identity = 14695981039346656037ULL, lookup_identity = 14695981039346656037ULL;
     uint64_t missing_lookup_mapping = 0, missing_retirement_mapping = 0;
+    uint64_t query_wait_calls = 0, delayed_requests = 0, canceled_requests = 0;
+    unsigned queryLatency() const { return query_latency_; }
     explicit NativeTAGE(const gem5::NativeTAGEParams &);
     ~NativeTAGE() override;
     void update(gem5::ThreadID, gem5::Addr, bool, void *&, bool,
@@ -91,6 +99,9 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     unsigned restorableOriginCount() const;
     void flushTrace();
     size_t pendingObservationFrames() const { return frames_.size(); }
+    bool seuPredictionRequest(gem5::ThreadID, gem5::Addr, bool, uint32_t &) override;
+    void seuCancelPending(gem5::ThreadID) override;
+    bool seuPipelineDrained() const override { return !pending_; }
 
   protected:
     bool predict(gem5::ThreadID, gem5::Addr, bool, void *&) override;
