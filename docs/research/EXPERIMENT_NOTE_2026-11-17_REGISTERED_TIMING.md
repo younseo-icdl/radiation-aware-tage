@@ -71,3 +71,37 @@ For lease, separately check the publication edge and admission control.
 Use a shared clock supported by both methods and preserve absolute
 SOURCE ticks. The held-out workload and seed lock remains sealed while
 physical and causal gates are pending.
+
+## Placement and committed operand check
+
+About 24 minutes into the first physical batch, both primary producers
+were still live in pre-CTS placement optimization. The latest observed
+GigaOpt WNS snapshots were -5.584 ns for recurrent and -5.188 ns for
+lease4096 under the 500 ps reference. Reported optimizer densities were
+97.67% and 88.09%. These values describe the optimizer's placement
+metric. The requested final metric divides routed cell area by actual
+die area, so both remain pending until post-route reports are available.
+
+To measure how often the prefix dependency appears in retained CPU
+evidence, scanned the three clean native committed traces. Selected
+adjacent conditional records with consecutive increasing lookup IDs
+and equal lookup ticks. Compared source epochs, full raw windows and
+speculative path values from the pre-append snapshots. Lookup IDs
+increased strictly within each conditional stream. The raw limbs were
+compared as exact decimal strings in the final aggregate, avoiding the
+floating-point conversion risk in the first analysis script.
+
+| Program | Conditional records | Same-tick consecutive conditional pairs | Changed epoch and raw | Changed path |
+|---|---:|---:|---:|---:|
+| qsort | 6,842,112 | 1,071,903 | 1,071,903 | 958,596 |
+| dijkstra | 9,117,873 | 864,052 | 864,052 | 864,019 |
+| SHA-1 | 791,758 | 1,328 | 1,328 | 226 |
+
+Evidence and final aggregation script:
+`work/b1a-dependent-query-audit-20261117-r2/`. The first fresh attempt
+is preserved separately. This is a committed sample and excludes
+speculative queries that were later squashed. On every qualifying pair
+the second query saw a different raw window, reinforcing the need to
+close the prediction-to-append feedback path or explicitly schedule
+the dependent query across edges. A two-port count alone cannot justify
+a common no-stall CPU clock. No new CPU experiments were run.
