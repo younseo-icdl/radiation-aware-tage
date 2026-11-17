@@ -1,8 +1,8 @@
-"""Unprotected native TAGE, explicit bit flips, and read-only recovery traces.
+"""Native TAGE and explicitly costed direct-query comparisons.
 
-No common finite controller or assumed protection latency is added. This
-configuration supplies UF and actual branch-time observations; it is not a
-pristine certification campaign or a physical timing qualification.
+There is no common finite controller. The default native path has no added
+latency; --query-latency explicitly charges a conditional-query admission wait.
+This is not a pristine certification campaign or physical timing qualification.
 """
 import argparse
 import json
@@ -63,7 +63,9 @@ def main():
     (output/'termination.json').write_text(json.dumps({
         'status': 'PASS' if success else 'FAIL', 'program_exit_tick': m5.curTick(),
         'exit_cause': event.getCause(), 'exit_code': event.getCode(),
-        'additional_transport': 'NOT_INSTANTIATED', 'post_exit_advance_ticks': 0,
+        'finite_source_transport': 'NOT_INSTANTIATED',
+        'conditional_query_admission_latency_cycles': args.query_latency,
+        'post_exit_advance_ticks': 0,
         'native_branch_history_may_remain_at_architectural_exit': True,
         'performance_scope': 'program completion, no observer/drain time added',
     }, indent=2)+'\n')

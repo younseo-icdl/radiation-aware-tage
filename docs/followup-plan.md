@@ -19,7 +19,7 @@ The current 21-cell clean matrix is a separate producer. Its instrumented native
 ## Resource and producer rules
 
 - One maintained checkout: `/home/youns/radiation-aware-tage`. Old workspace paths are compatibility symlinks. Private data and outputs remain linked from external storage.
-- At most 16 active simulator/build jobs. Twelve existing finite clean retries are retained; at most four additional build or CPU jobs may overlap them. Recompute admission as jobs finish.
+- At most 16 active simulator/build jobs. The previous clean retries are complete; recompute admission for each new build or bounded batch.
 - Long CPU runs use 20–30 minute observation intervals with interruptible waiting. Do independent audit/implementation first; do not poll unchanged runs every minute.
 - Preserve existing producer binaries, source copies, configs, schedules, outputs, and failures. Prepare fresh build and output trees. Do not edit Python configs/observers still used by running experiments.
 - Generated locks, inventories, historical text, campaign coordinators, and raw logs stay outside Git. Maintained reusable tools, tests, and English documentation are committed and pushed.
@@ -60,6 +60,35 @@ Initial timing windows are 1024 committed conditional branches, three full windo
 
 ## Deliverables and next batch
 
+Current execution status: the 21-cell clean matrix, 12-case detached causal
+pilot, 9-cell native raw-fault screen, and 3-cell costed direct development
+comparison are complete. The direct candidate charges one additional
+conditional-query cycle. Development qsort benefit is +11.1377% at R0 and
+-2.7603% at R64; clean cost is +2.9199%. Both signs are retained. See the focused
+reports in `docs/results/`; no population superiority follows from two owners.
+
+The four-cell E5 base-output/minimal-base control and one frozen eight-owner
+evaluation of the same direct candidate (16 paired UF/MF executions) are now
+complete. All twenty cells passed; the evaluation mean benefit is -1.2654%
+with exploratory 95% owner-bootstrap interval [-2.8035%, +0.9211%]. Superiority
+is not established. No new sample draw or latency change follows this result.
+The owner population is uniform raw age 0..129 and uniform integer
+ticks between 10% and 80% of existing qsort U0 completion. Owner seed is
+2026111607, bootstrap seed 2026111608, 10,000 owner resamples and a 95% percentile
+interval for mean paired percent benefit. Exactly eight pairs are admitted;
+there is no extension until a positive result. Owners are independent event
+scenarios on one workload, not independent workloads or physical events.
+Superiority requires all correctness gates and a lower interval endpoint above
+zero; a valid-subset result after failure is conditional on success. No rate,
+lifetime, method, or input Cartesian grid is admitted.
+
 Private E0 artifacts: `BASELINE_AUTHENTICITY.json`, `ENVIRONMENT_MANIFEST.json`, `REUSE_AUDIT.csv`, and an explicit case/admission ledger. Subsequent E1–E3 outputs follow the handoff's fault semantics, state/exposure, recovery timeline/windows and causal query/suffix/interactions schemas. E4 records U0/UF/M0/MF and necessary costs, with `UNKNOWN_MISSING_FAULT_BASELINE` until UF is valid.
 
-The source/reuse inventory already exists. Stop further historical certification work. Existing long clean runs continue independently. Next implement the minimum unprotected-native fault path and causal recovery observations needed for a small, explicitly costed UF/MF pilot. Validate newly changed behavior with focused deterministic regressions, reuse completed evidence for questions already answered, and declare the exact pilot cells before execution. No broad fault campaign, nine-control re-authentication batch, or new RTL/EDA work is admitted.
+The bounded follow-up batch is complete. See `docs/results/decision-2026-11-16.md`
+for the decision and explicit observation limits. Keep the negative/uncertain
+population result, the conditional winning owners, and the base-control loss.
+Do not launch further historical certification, a broad fault campaign, a new
+candidate, or RTL/EDA work solely to obtain a positive result. Full CPU
+learning/RNG-state and final BPU per-query recovery remain unobserved; physical
+timing/energy/area remain UNKNOWN. Rate/lifetime and independent-input expansion
+are deferred rather than counted as executed evidence.
