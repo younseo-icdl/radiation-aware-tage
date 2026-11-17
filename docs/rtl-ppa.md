@@ -89,3 +89,31 @@ Private evidence is under `work/b1a-state-gate-20261117-r{2,3,4}/`,
 `work/b1a-synthesis-20261117-r1/`. The first state gate launcher had a
 missing output path and did not start Xcelium. Later gates retain separate
 logs and inputs.
+
+## Port activity on the routed hash
+
+`python -m simulation.eda.hash_activity` exports the PC, path, raw and stored
+fold operands from a fixed slice of a committed conditional trace. The VCD
+uses a uniform declared query interval. `python -m simulation.eda.power`
+restores the routed checkpoint in a fresh directory and records the activity
+file hash, scope, interval, tool log and report. Check name matches, coverage,
+units and operating point before comparing the numbers. This workflow estimates
+combinational hash energy from port activity and tool-propagated internal
+switching. Workload task energy requires actual speculation, idle, append,
+undo, checkpoint and publication activity.
+
+The first matched activity comparison used 20,000 native qsort query operands
+after skipping 10,000 conditional queries, at a uniform 1.2 ns/query. All three
+blocks consumed the identical VCD. Innovus matched 378 of 378 supplied input
+bits for each design at 0.9 V. Energy per query is reported total mW times
+1.2 ns. Values include reported internal, switching and leakage power.
+
+| B0 variant | Port annotation / design nets | Total mW | pJ per driven query |
+|---|---:|---:|---:|
+| Recurrent | 378/1307 | 1.29518 | 1.55422 |
+| Hybrid 0x05 | 378/1232 | 1.22926 | 1.47512 |
+| Full direct | 378/2305 | 2.43833 | 2.92600 |
+
+Evidence is in `work/b0-activity-20261117-r1/`. The 1.2 ns interval is a
+comparison stimulus. The prior 0.5 ns setup violations and the unresolved
+registered history timing still govern physical qualification.
