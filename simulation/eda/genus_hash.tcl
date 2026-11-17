@@ -7,7 +7,8 @@ proc run_hash_synthesis {} {
     set_db syn_opt_effort medium
     read_libs $library_file
     read_hdl -sv inputs/tage_history_hash.sv
-    elaborate tage_history_hash -parameters [list DIRECT_BANK_MASK=$direct_mask]
+    # The installed Genus interface takes positional parameter expressions.
+    elaborate tage_history_hash -parameters [list $direct_mask]
     create_clock -name reference_virtual -period $clock_period_ns
     set_clock_uncertainty $clock_uncertainty_ns [get_clocks reference_virtual]
     set_input_delay $input_delay_ns -clock reference_virtual [all_inputs]
