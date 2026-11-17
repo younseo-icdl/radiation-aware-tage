@@ -60,6 +60,9 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     std::set<uint64_t> originLabels(int head) const;
     void observeOrigins(const char *reason, bool force = false);
     bool originObservationEnabled() const { return origins_.is_open(); }
+    bool basePrediction(gem5::Addr pc, const Base::BranchInfo &bi) const {
+        return getBimodePred(pc, const_cast<Base::BranchInfo *>(&bi));
+    }
     NativeSample sample(const Base::BranchInfo &, uint64_t lookup_id) const;
 };
 
@@ -89,6 +92,7 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     uint64_t missing_lookup_mapping = 0, missing_retirement_mapping = 0;
     uint64_t query_wait_calls = 0, delayed_requests = 0, canceled_requests = 0;
     unsigned queryLatency() const { return query_latency_; }
+    bool force_base = false;
     explicit NativeTAGE(const gem5::NativeTAGEParams &);
     ~NativeTAGE() override;
     void update(gem5::ThreadID, gem5::Addr, bool, void *&, bool,

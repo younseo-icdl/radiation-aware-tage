@@ -1,5 +1,5 @@
 """Ordinary unprotected TAGE with external XOR and read-only observations."""
-from m5.objects.BranchPredictor import TAGE, TAGEBase
+from m5.objects.BranchPredictor import TAGE, TAGEBase, ConditionalPredictor
 from m5.params import Param
 from m5.util.pybind import PyBindMethod
 
@@ -25,3 +25,16 @@ class NativeTAGE(TAGE):
     commit_trace_file = Param.String('', 'Gzip committed branch times and consumed source snapshots')
     query_latency = Param.Unsigned(0, 'Additional conditional-query latency, in CPU cycles')
     cycle_ticks = Param.Unsigned(500, 'CPU clock period in simulator ticks')
+    force_base = Param.Bool(False, 'Diagnostic: force base output while retaining TAGE internals')
+
+
+class BimodalMin(ConditionalPredictor):
+    type = 'BimodalMin'
+    cxx_class = 'bp::BimodalMin'
+    cxx_header = 'cpu/pred/bimodal_min.hh'
+    log_size = Param.Unsigned(13, 'PC-indexed prediction table log2 entries')
+    hysteresis_ratio = Param.Unsigned(2, 'Log2 prediction/hysteresis sharing ratio')
+    summary_file = Param.String('', 'Actual program-exit summary')
+    fault_tick = Param.Tick(0, 'Single forced base-counter upset; zero disables')
+    fault_site = Param.Unsigned(0, 'Prediction bits then shared hysteresis bits')
+    cxx_exports = [PyBindMethod('dumpResearch')]

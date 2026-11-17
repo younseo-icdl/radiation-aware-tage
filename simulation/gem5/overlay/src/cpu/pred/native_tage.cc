@@ -260,6 +260,7 @@ void NativeTAGEBase::dumpResearch() {
         "\"origin_scope\":\"single-event raw identities; actual append/undo/rollover, no extra XOR\","
         "\"multi_event_recovery_partitioned\":false,\"raw_history_writes\":" << raw_writes;
     if (owner) out << ",\"lookups\":" << owner->lookups << ",\"committed_updates\":" << owner->commit_updates
+        << ",\"prediction_output_forced_base\":" << (owner->force_base ? "true" : "false")
         << ",\"additional_query_latency_cycles\":" << owner->queryLatency()
         << ",\"query_wait_calls\":" << owner->query_wait_calls
         << ",\"delayed_requests\":" << owner->delayed_requests
@@ -280,6 +281,7 @@ NativeTAGEBase &NativeTAGE::checkedCore(gem5::branch_prediction::TAGEBase *base)
 }
 NativeTAGE::NativeTAGE(const gem5::NativeTAGEParams &p) : TAGE(p), core(checkedCore(p.tage)) {
     query_latency_ = p.query_latency; cycle_ticks_ = p.cycle_ticks;
+    force_base = p.force_base;
     if (!cycle_ticks_ || query_latency_ > 32)
         throw std::invalid_argument("invalid native query latency or clock");
     core.owner = this;
@@ -310,7 +312,7 @@ bool NativeTAGE::predict(gem5::ThreadID tid, gem5::Addr pc, bool conditional, vo
     auto &bi = *static_cast<TageBranchInfo *>(history)->tageBranchInfo;
     ++lookups; mix(lookup_identity, pc); mix(lookup_identity, predicted); mix(lookup_identity, conditional);
     if (observing_) frames_[history] = core.sample(bi, lookups);
-    return predicted;
+    return conditional && force_base ? core.basePrediction(pc, bi) : predicted;
 }
 bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
                                     bool conditional, uint32_t &token) {

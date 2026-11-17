@@ -20,6 +20,7 @@ def main():
     p.add_argument('--binary', type=Path, default=ROOT/'build/checksum')
     p.add_argument('--native-reference', type=Path,
                    help='ordinary native checksum output from the finite gate')
+    p.add_argument('--direct', action='store_true', help='Also test direct-query cost and cancellation')
     args = p.parse_args()
     if args.output.exists():
         p.error('output exists; choose a fresh directory')
@@ -31,10 +32,17 @@ def main():
     future.write_text('# time_unit=ticks\n999999999999 R0\n')
     invalid = args.output/'duplicate.events'
     invalid.write_text('# time_unit=ticks\n500001 R0;R0\n')
+    single = args.output/'single.events'
+    single.write_text('# time_unit=ticks\n500001 R17\n')
     cases = [('light', []), ('trace', ['--diagnostics']),
              ('fault', ['--diagnostics', '--schedule', str(faults)]),
              ('censored', ['--diagnostics', '--schedule', str(future)]),
              ('duplicate', ['--schedule', str(invalid)])]
+    if args.direct:
+        cases += [('direct0', ['--direct', '--diagnostics']),
+                  ('direct1', ['--direct', '--diagnostics', '--query-latency', '1']),
+                  ('direct-fault', ['--direct', '--diagnostics', '--query-latency', '1',
+                                    '--schedule', str(single)])]
 
     def run(item):
         name, extra = item
@@ -61,7 +69,8 @@ def main():
             row['native'] = state
             assert state['missing_lookup_mapping'] == state['missing_retirement_mapping'] == 0
             assert state['faults_frozen']
-            assert state['target_checker_stages'] == state['additional_lookup_hold'] == 0
+            assert state['target_checker_stages'] == 0
+            assert state['additional_lookup_hold'] == int(name in ('direct1', 'direct-fault'))
             assert state['additional_retirement_hold'] == 0
             assert state['periodic_service_clock'] is False
             if name == 'fault':
@@ -70,6 +79,8 @@ def main():
                     events = list(csv.DictReader(f))
                 assert [int(e['requested_tick']) for e in events] == [500001, 7000001, 13000001]
                 assert all(e['requested_tick'] == e['applied_tick'] for e in events)
+            elif name == 'direct-fault':
+                assert state['applied_events'] == state['applied_flips'] == 1
             else:
                 assert state['applied_events'] == 0
             assert state['future_events_censored'] == int(name == 'censored')
@@ -82,6 +93,8 @@ def main():
                         assert int(x['branch_id']) == count
                         assert int(x['retire_tick']) <= int(x['training_tick'])
                         assert x['sampling_phase'] == 'AFTER_QUERY_BEFORE_SPEC_APPEND'
+                        if name.startswith('direct') and x['conditional'] == '1':
+                            assert x['fold_invariant_distance'] == '0'
                 assert count == state['committed_updates'] == state['retired_controls']
                 row['trace_rows'] = count
             row['status'] = 'PASS'
@@ -100,6 +113,15 @@ def main():
         for name in ('trace', 'censored'):
             checks.append({'check': name+' transparency', 'status':
                 'PASS' if all(states[name][f] == states['light'][f] for f in fields) else 'FAIL'})
+        if args.direct:
+            checks.append({'check': 'direct0 clean semantic and stream equivalence', 'status':
+                'PASS' if all(states['direct0'][f] == states['light'][f] for f in fields) else 'FAIL'})
+            checks.append({'check': 'direct1 actual charged query waits', 'status':
+                'PASS' if states['direct1']['tick'] > states['light']['tick']
+                and states['direct1']['query_wait_calls'] > 0
+                and states['direct1']['delayed_requests'] > 0
+                and states['direct1']['retired_pc_identity'] == states['light']['retired_pc_identity']
+                else 'FAIL'})
         if args.native_reference:
             stats = dict(line.split()[:2] for line in
                          (args.native_reference/'stats.txt').read_text().splitlines()

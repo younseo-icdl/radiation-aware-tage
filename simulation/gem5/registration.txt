@@ -1,5 +1,6 @@
 
 SimObject('FiniteTAGE.py', sim_objects=['FiniteTAGEBase', 'FiniteTAGE'])
 Source('finite_tage.cc')
-SimObject('NativeTAGE.py', sim_objects=['NativeTAGEBase', 'NativeTAGE'])
+SimObject('NativeTAGE.py', sim_objects=['NativeTAGEBase', 'NativeTAGE', 'BimodalMin'])
 Source('native_tage.cc')
+Source('bimodal_min.cc')
