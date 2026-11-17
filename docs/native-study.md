@@ -44,3 +44,25 @@ future-event censoring on the bounded checksum, valid trace termination and
 joins, and the existing finite checksum regression. These are tests of new code,
 not a new historical authenticity campaign. No MF speedup can be claimed from
 UF data alone; protection costs must be charged in a later matched comparison.
+
+The reusable bounded test is `tests/gem5/native.py --tree TREE --output FRESH`
+(run with the project Python). Optionally pass `--native-reference` pointing to
+the ordinary-native checksum cell from the finite gate. The first local attempt
+found an incorrect interrupt responder connection in the shared CPU factory;
+that attempt is retained, the connection was corrected to the memory-side port,
+and all subsequent native and finite checks passed.
+
+Analyze one matched CPU pair with:
+
+```sh
+.venv/bin/python -m simulation.analysis.native --clean U0_DIR --fault UF_DIR --output FRESH_ANALYSIS
+```
+
+The reader streams complete gzip traces, rejects architectural branch-sequence
+divergence, checks retirement identities and output, and uses actual retirement
+ticks at every conditional branch. The fixed rule is three consecutive full
+1024-conditional windows with zero incremental excess time and no finer
+positive/negative cancellation or prediction differences. A constant retained
+cumulative time gap is allowed. Reference-fold comparison is available only at
+equal raw/path/nonspec source snapshots; missing alignment remains explicit.
+Full learning-state recovery is not exported by this CPU trace.

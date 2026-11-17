@@ -96,18 +96,21 @@ def timing_windows(checkpoints, window_size=1024, required_windows=3, epsilon=0)
     """
     if window_size <= 0 or required_windows <= 0 or epsilon < 0:
         raise ValueError('invalid recovery window rule')
-    points = list(checkpoints)
-    if len(points) < 2:
-        return {'recovery_status': 'INSUFFICIENT_OBSERVATION', 'windows': []}
-    for point in points:
+    def validate(point):
         if not all(key in point for key in ('branch_id', 'fault_time', 'clean_time')):
             raise ValueError('paired exact-time checkpoints are required')
         if not all(isfinite(point[key]) for key in ('branch_id', 'fault_time', 'clean_time')):
             raise ValueError('checkpoint values must be finite')
         if point.get('alignment_status', 'ALIGNED') != 'ALIGNED':
             raise ValueError('unaligned checkpoints cannot supply paired timing')
+        return point
+    points = iter(checkpoints)
+    first = next(points, None)
+    if first is None:
+        return {'recovery_status': 'INSUFFICIENT_OBSERVATION', 'windows': []}
+    validate(first)
     rows, segments = [], []
-    start = previous = points[0]
+    start = previous = first
 
     def append_window(point, full):
         excess = sum(delta for delta, _ in segments)
@@ -127,7 +130,8 @@ def timing_windows(checkpoints, window_size=1024, required_windows=3, epsilon=0)
                      'helpful_count': sum(p.get('helpful', 0) for _, p in segments),
                      'prediction_differences': sum(p.get('prediction_differences', 0) for _, p in segments)})
 
-    for point in points[1:]:
+    for point in points:
+        validate(point)
         if point['branch_id'] <= previous['branch_id']:
             raise ValueError('checkpoint branch IDs must strictly increase')
         fault = point['fault_time'] - previous['fault_time']
@@ -144,6 +148,8 @@ def timing_windows(checkpoints, window_size=1024, required_windows=3, epsilon=0)
         append_window(point, full)
         start, segments = point, []
     trailing_incomplete = bool(segments)
+    if not rows and not segments:
+        return {'recovery_status': 'INSUFFICIENT_OBSERVATION', 'windows': []}
     if segments:
         append_window(previous, False)
     eligible = []
