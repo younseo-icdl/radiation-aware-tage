@@ -98,6 +98,13 @@ integrated lease test again. The first attempts produced no mapped timing
 or area comparison. The follow-up synthesis compares recurrent, hybrid 0x05
 and lease4096 under the same site constraints using this revised write logic.
 
+At 20 minutes the second batch was still optimizing an arithmetic region in
+all three designs. A third RTL revision expresses the undo rotation as
+conditional fixed rotations selected by the count bits. Modulo arithmetic
+now uses elaboration constants. The production 30,000-operation and lease
+gates passed on this revision. The first mapping trial uses the recurrent
+baseline to see whether this change resolves the synthesis runtime issue.
+
 ## Port activity on the routed hash
 
 `python -m simulation.eda.hash_activity` exports the PC, path, raw and stored

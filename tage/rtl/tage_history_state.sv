@@ -95,9 +95,19 @@ module tage_history_state #(
             wire [W-1:0] old_phi=canonical(before_raw,L,W);
             wire [W-1:0] new_phi=canonical(undone_raw,L,W);
             wire [W-1:0] residual=folds[F+:W]^old_phi;
-            wire [9:0] shift=undo_count_i%W;
-            wire [W-1:0] rotated=(residual>>shift)|(residual<<(W-shift));
-            assign undone_folds[F+:W]=undo_count_i==0?folds[F+:W]:(new_phi^rotated);
+            // Rotate by each set count bit. Modular reduction happens at
+            // elaboration, so the implementation contains no divider.
+            wire [W-1:0] rotate [0:10];
+            assign rotate[0]=residual;
+            for(genvar step=0;step<10;step=step+1) begin: rotation
+                localparam integer SHIFT=(1<<step)%W;
+                if(SHIFT==0)
+                    assign rotate[step+1]=rotate[step];
+                else
+                    assign rotate[step+1]=undo_count_i[step] ?
+                        {rotate[step][SHIFT-1:0],rotate[step][W-1:SHIFT]} : rotate[step];
+            end
+            assign undone_folds[F+:W]=undo_count_i==0?folds[F+:W]:(new_phi^rotate[10]);
             assign canonical_folds[F+:W]=PUBLISH_BANK_MASK[b] ? old_phi : folds[F+:W];
         end
     end
