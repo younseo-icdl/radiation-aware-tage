@@ -53,12 +53,12 @@ statistics but lacks per-PC fault traces.
 
 Prioritize shortening or simplifying lease service and the drain path. In the
 existing qsort controls, frequent lease64 was slower than faulted native on
-one owner despite full-bank reconstruction. The bank-selective lease kernel
-already passes functional gates. To justify using it, compare equal service
-budgets, measure actual read and write work, and use per-PC fault-added misses
-and retirement timing to pick a static mask on development evidence. A mask
-based only on clean provider frequency misses the distinction between a
-frequently used bank and a fault-sensitive one.
+one owner despite full-bank reconstruction. Keep full-bank lease4096 as the
+primary candidate so service requires no workload label or vulnerability
+estimate. The bank-selective kernel can support a fixed round-robin comparison
+if its real read, write and drain work can be measured under a common budget.
+Use per-PC fault-added misses and retirement timing to explain behavior after
+the run. The deployed policy and held-out evaluation do not use these profiles.
 
 The smallest diagnostic extension is a bounded final-BPU trace around
 predeclared events. Record harmful and helpful outcomes by PC and provider
@@ -70,3 +70,6 @@ fresh independent owners for the final runtime evaluation.
 See `source-development-2026-11-17.md` and `native-screen-2026-11-16.md` for
 the two distinct study cohorts. Raw PC aggregates are preserved privately at
 `work/qsort-pc-reuse-20261117-r1/`. This analysis used zero new CPU runs.
+See `../research/EXPERIMENT_NOTE_2026-11-17_QSORT.md` for the paired
+provider, harm/help and raw-origin follow-up and the workload-independent
+evaluation rule.

@@ -1,5 +1,12 @@
 # First maintenance refinement: static bank-selective canonical publication
 
+The full-bank lease is the primary workload-independent policy. The mask
+is an implementation primitive and the existing profile mask is a development
+control. Workload names, PC profiles from evaluation, injection metadata and
+clean reference state cannot drive maintenance. A fixed round-robin schedule
+is an optional comparison that gives every bank service. Compare at matched
+service cost and report each bank's maximum time between publications.
+
 Question: can the already validated quiescent worker limit canonical work to
 selected banks without touching the normal recurrent lookup or silently repairing
 unselected state? This is a lease-family refinement, not a third CPU candidate.

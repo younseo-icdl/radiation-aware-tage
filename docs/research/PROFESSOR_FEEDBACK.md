@@ -35,9 +35,13 @@ blocking during drain/service; it must not be renamed a nonblocking checker.
 Its normal lookup has no mandatory added serial query stage, but publication
 still causes real front-end stops and can alter training visibility.
 
-Next specification refinement: reuse the worker for a static bank-selective
-rebase, with a clear bank mask and resource budget. Do not silently switch the
-frozen lease4096 results to that design. Ahead preparation remains a cheap
+Keep full-bank lease4096 as the first workload-independent development
+candidate. Existing selective masks remain fixed development controls.
+Any selective maintenance refinement must use a workload-independent schedule
+or an online policy using available hardware state, with its selection cost
+and added exposure measured. A round-robin schedule across all banks is an
+equal-budget control. Do not choose a bank mask after seeing evaluation data.
+Ahead preparation remains a cheap
 dependency/resource study until known operand, epoch and rollback contracts
 justify replacing one of the two families. No third full candidate is admitted.
 

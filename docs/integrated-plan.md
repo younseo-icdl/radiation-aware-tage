@@ -1,5 +1,12 @@
 # Integrated continuation, authorized 2026-11-17
 
+The final predictor must run the same policy on an unknown workload. Freeze
+hardware, masks, periods, initial state and any online decision rule before
+opening held-out workload/input results or fault tapes. The deployed policy
+receives ordinary hardware state only. Workload identities, evaluation PC
+profiles, injected bank/age and clean-reference state are excluded. Report
+held-out workloads separately from new fault seeds on familiar inputs.
+
 The professor-meeting feedback adopted later on 2026-11-17 refines priorities;
 see `research/PROFESSOR_FEEDBACK.md`. Structure/production propagation/literature
 gates now precede the next expensive batch. Completed clean/SOURCE/PPA-component
