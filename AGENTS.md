@@ -10,4 +10,4 @@
 - Use fresh build/output directories for independent producers. Do not overwrite files used by running experiments.
 - Keep private benchmark distributions, course materials, papers, credentials, raw session logs, license files, and PDK/library data outside this public repository.
 - Commit and push completed code/document changes to the configured remote. Preserve shared history; never force-push.
-- Current implementation scope is C++ and gem5. RTL, Cadence, SPICE, and TCAD are outside this stage.
+- Current scope includes C++, gem5, and matched history-subsystem RTL/Cadence synthesis, place-and-route, STA, and activity-based power/energy, explicitly authorized on 2026-11-17. Full-CPU RTL, SPICE, TCAD, and device-level radiation calibration remain outside this stage. Keep PDK/library/license data private and integrate at most two new candidates fully at a time.
