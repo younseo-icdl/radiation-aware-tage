@@ -26,6 +26,19 @@ append counts and publication edges. Check owner and operation ordering.
 Run the native and finite checksum gates on the new producer before
 admitting workload activity. These gates are pending while it builds.
 
+`simulation.analysis.history_activity` now checks the ordered capture.
+It tracks append owners, stack-ordered undo and correction, release,
+service start and exact publication. It counts port demand and reports
+operations that cannot be grouped into the current undo-first RTL edge.
+A same-tick publication plus normal work is a scheduling question in
+this grouping. It does not by itself show an incorrect CPU trace.
+Three focused Python tests passed for correction, interleaving and
+service-boundary rejection. The real capture gate uses a 40,000,000 tick
+exclusive window on the checksum with and without full-bank lease4096.
+Private build and gate producers are `work/gem5-activity-build-20261117-r1/`
+and `work/gem5-activity-gate-20261117-r1/`. Workload tracing remains gated
+on the bounded checks. The observer functions are inactive by default.
+
 ## Use in power comparison
 
 A later replay step must allocate bounded physical owner slots and check
