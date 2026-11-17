@@ -65,6 +65,7 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     void startup() override;
     void dumpResearch();
     void armLeasePublication();
+    void publishLeaseFolds() { publish_own_folds(*this,words_); }
     void updateGHist(gem5::ThreadID, uint64_t, uint8_t) override;
     void updateHistories(gem5::ThreadID, gem5::Addr, bool, bool, gem5::Addr,
                          const gem5::StaticInstPtr &, Base::BranchInfo *) override;

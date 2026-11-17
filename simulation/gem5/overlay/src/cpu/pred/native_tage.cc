@@ -464,7 +464,7 @@ void NativeTAGE::seuCancelPending(gem5::ThreadID) {
 bool NativeTAGE::seuFrontendBlocked(gem5::ThreadID tid, bool empty) {
     if(tid) throw std::invalid_argument("lease frontend single thread");
     bool ready=core.lease.service(gem5::curTick(),empty && live_.empty() && !pending_,
-                                 [&] {publish_own_folds(core);});
+                                 [&] {core.publishLeaseFolds();});
     if(core.lease.busy()) core.armLeasePublication();
     if(!ready) ++lease_frontend_wait_calls;
     return !ready;
@@ -472,7 +472,7 @@ bool NativeTAGE::seuFrontendBlocked(gem5::ThreadID tid, bool empty) {
 void NativeTAGE::completeLease() {
     if(!core.lease.busy() || !live_.empty() || pending_)
         throw std::logic_error("autonomous lease completion is not quiescent");
-    if(!core.lease.service(gem5::curTick(),true,[&] {publish_own_folds(core);}))
+    if(!core.lease.service(gem5::curTick(),true,[&] {core.publishLeaseFolds();}))
         throw std::logic_error("autonomous lease completed before ready");
 }
 void NativeTAGE::seuAuditInflight(unsigned n) {

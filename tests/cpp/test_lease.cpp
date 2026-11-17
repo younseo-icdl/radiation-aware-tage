@@ -40,6 +40,14 @@ int main() {
         QuiescentLease overflow(1,3);overflow.append(1);rejected=false;
         try {overflow.service(UINT64_MAX-1,true,publish);} catch(const std::overflow_error &) {rejected=true;}
         check(rejected,"completion counter wrap cannot become free immediate service");
+        TageState cached,reference;cached.load(core.save());reference.load(core.save());
+        auto geometry=cached.history_words();
+        for(unsigned i=0;i<16;++i) {
+            auto source=cached.read_history_word(21);source.flip((i*7)%130);
+            cached.write_history_word(21,source);reference.write_history_word(21,source);
+            publish_own_folds(cached,geometry);publish_own_folds(reference);
+            check(cached.equal(reference),"cached geometry cannot cache source or change state");
+        }
         std::cout<<"PASS lease drain/service publication, own faulty source, no learning/gold repair, age upset, forbidden stale-owner/append\n";
         return 0;
     } catch(const std::exception &e) {std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}
