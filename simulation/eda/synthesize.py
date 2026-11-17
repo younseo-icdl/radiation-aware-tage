@@ -1,13 +1,18 @@
-"""Run matched B0 hash synthesis using a private site JSON and fresh output."""
+"""Map a TAGE hash or history datapath using private site constraints."""
 import argparse
 import json
-import os
 from pathlib import Path
 import shlex
 import shutil
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
+BLOCKS = {
+    'hash': ('B0_COMBINATIONAL_HASH_ONLY', 'genus_hash.tcl',
+             'PASS_B0_HASH_SYNTHESIS_NOT_FULL_HISTORY_PPA'),
+    'state': ('B1A_HISTORY_DATAPATH', 'genus_state.tcl',
+              'PASS_B1A_STATE_SYNTHESIS'),
+}
 
 
 def tcl_word(value):
@@ -38,6 +43,10 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--site', type=Path, required=True, help='private JSON with library_file and common constraints')
     p.add_argument('--direct-mask', type=lambda s:int(s, 0), required=True)
+    p.add_argument('--block', choices=BLOCKS, default='hash')
+    p.add_argument('--publish-mask', type=lambda s: int(s, 0), default=0)
+    p.add_argument('--lease-period', type=int, default=0)
+    p.add_argument('--lease-service-cycles', type=int, default=2)
     p.add_argument('--cpus', type=int, default=4)
     p.add_argument('--timeout', type=float, default=1200)
     p.add_argument('--output', type=Path, required=True)
@@ -46,8 +55,18 @@ def main():
         p.error('output exists; choose a fresh producer directory')
     try:
         values = site_values(json.loads(a.site.read_text()), a.direct_mask, a.cpus)
-        if not a.timeout > 0:
-            raise ValueError('positive host timeout required')
+        if not 0 < a.timeout < float('inf'):
+            raise ValueError('finite positive host timeout required')
+        if not 0 <= a.publish_mask < 128 or (a.block == 'hash' and a.publish_mask):
+            raise ValueError('publication mask must be 0..127 and applies to the state block')
+        if a.block == 'state':
+            values['publish_mask'] = a.publish_mask
+            values['lease_period'] = a.lease_period
+            values['lease_service_cycles'] = a.lease_service_cycles
+        if (not 0 <= a.lease_period <= 65535 or
+                not 1 <= a.lease_service_cycles <= 65535 or
+                (a.lease_period and (a.block != 'state' or not a.publish_mask))):
+            raise ValueError('an enabled lease requires a state block and a nonzero publication mask')
     except (ValueError, OSError, KeyError) as error:
         p.error(str(error))
     out = a.output.resolve()
@@ -55,23 +74,29 @@ def main():
     (out/'flow').mkdir()
     (out/'reports').mkdir()
     shutil.copy2(ROOT/'tage/rtl/tage_history_hash.sv', out/'inputs/tage_history_hash.sv')
-    shutil.copy2(Path(__file__).with_name('genus_hash.tcl'), out/'flow/genus_hash.tcl')
+    scope, script, marker = BLOCKS[a.block]
+    if a.block == 'state':
+        shutil.copy2(ROOT/'tage/rtl/tage_history_state.sv', out/'inputs/tage_history_state.sv')
+        shutil.copy2(ROOT/'tage/rtl/tage_history_lease.sv', out/'inputs/tage_history_lease.sv')
+    shutil.copy2(Path(__file__).with_name(script), out/'flow'/script)
     (out/'site.tcl').write_text(''.join('set {} {}\n'.format(k, tcl_word(v)) for k,v in values.items()))
-    metadata = {'scope': 'B0_COMBINATIONAL_HASH_ONLY', 'full_history_stage_qualified': False,
+    metadata = {'scope': scope, 'full_history_stage_qualified': False,
                 'constraints': values, 'private_site': str(a.site.resolve()),
                 'source_commit': subprocess.check_output(['git','rev-parse','HEAD'], cwd=ROOT,text=True).strip(),
                 'source_dirty': bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),
                 'status': 'RUNNING', 'physical_PPA': 'NOT_MEASURED_SYNTHESIS_ONLY'}
     (out/'PRODUCER.json').write_text(json.dumps(metadata, indent=2)+'\n')
-    command = ['genus','-no_gui','-files','flow/genus_hash.tcl','-log','genus.log']
+    command = ['genus','-no_gui','-files','flow/'+script,'-log','genus.log']
     # csh supplies the user's configured Cadence environment; all paths are quoted.
     launch = ['timeout','-k','10',str(a.timeout), 'csh','-c','exec '+shlex.join(command)]
     with (out/'console.log').open('x') as log:
         result = subprocess.run(launch, cwd=out, stdout=log, stderr=subprocess.STDOUT)
     text = (out/'console.log').read_text(errors='replace')
-    valid = result.returncode == 0 and 'PASS_B0_HASH_SYNTHESIS_NOT_FULL_HISTORY_PPA' in text
-    valid = valid and all((out/x).is_file() and (out/x).stat().st_size>0
-                         for x in ['mapped.v','mapped.sdc','TOP.txt','reports/area.rpt','reports/timing.rpt'])
+    valid = result.returncode == 0 and marker in text
+    artifacts = ['mapped.v','mapped.sdc','TOP.txt','reports/area.rpt','reports/timing.rpt']
+    if a.block == 'state':
+        artifacts.append('reports/query_timing.rpt')
+    valid = valid and all((out/x).is_file() and (out/x).stat().st_size>0 for x in artifacts)
     metadata.update(status='PASS' if valid else 'FAIL', returncode=result.returncode)
     (out/'PRODUCER.json').write_text(json.dumps(metadata, indent=2)+'\n')
     print(json.dumps({'output': str(out), 'status': metadata['status'], 'scope': metadata['scope']}))

@@ -3,8 +3,8 @@
 Canonical checkout: `/home/youns/radiation-aware-tage`, branch
 `codex/rhel8-continuation`. Use GCC Toolset13 and project `.venv`.
 The integrated research goal remains active; full PPA and independent evaluation
-are unfinished. No simulator/build/Cadence producer belonging to this study is
-currently running. Keep the unrelated course Innovus session untouched.
+are unfinished. Inspect the private producer status files and processes for
+current progress.
 
 Completed new feedback work: state/bank audit, seven primary-source cards with
 access limits, production fold-causality command and sweep, hand trace/PNG/PDF,
@@ -21,13 +21,13 @@ is private. Fresh outputs only. Normal verification:
 make test -j 4 CXX=/opt/rh/gcc-toolset-13/root/usr/bin/g++ PYTHON=.venv/bin/python
 ```
 
-Next work: read `MAINTENANCE_SPEC.md`, retain original full-bank lease4096 SOURCE
-results, then finish B1a production vectors and protocol test before synthesis.
-Draft files are preserved privately under `B1_DRAFT/` with original intended
-paths and exact qualification limits in `STATUS.txt`. Its C++ vector generator
-compiled but was not executed; RTL is unelaborated/unqualified. Reintroduce only
-after review against the revised operand/owner/controller boundary. Do not use
-it as a PPA result or launch a large physical batch before its correctness gate.
+The registered history datapath and lease controller passed their Xcelium gates.
+The original private draft is retained under `B1_DRAFT/`. The first Genus batch
+uses the shared GPDK45 constraints to measure recurrent, hybrid05, an externally
+scheduled rebase control and the internal lease4096 controller. See `../rtl-ppa.md`
+for exact scope and private producer paths. Inspect each synthesis producer
+status and timing report before routing. Owner allocation and same-cycle
+predictor feedback still require qualification before CPU backannotation.
 
 The CPU producer stays1a314be; new analysis/default-compatible publication helper
 does not retroactively change that binary. Native16 and finite14 gates passed on

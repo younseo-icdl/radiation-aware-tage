@@ -54,3 +54,38 @@ it explicitly refuses to qualify full-history timing. A completed flow still
 requires inspection of timing, DRV, DRC, connectivity, units and activity before
 any implementation claim. Default placement seed is recorded as a limitation,
 not invented. This initial helper does not measure activity power.
+
+The registered history datapath adds a 1,024-bit raw ring, current path and
+fold registers, three append lanes, a 512-entry path checkpoint store, a
+bulk inverse for up to 512 undos, and two query lanes. The alignment network
+shares logic across contiguous ages. It reads current live raw for both
+windows when restoring the fold residual. Distinct owner IDs and valid
+already available query prefixes enter the interface. Owner allocation and
+predictor-table feedback remain part of the unresolved CPU timing contract.
+The checkpoint store uses library flops unless an equivalent multiport
+implementation is characterized. Direct-bank fold logic can be removed by
+synthesis since it does not drive the selected bank's hash.
+
+Two Xcelium datapath gates checked 30,000 operations against production C++
+for recurrent, full direct and mask 0x05 hashes. The later gate also forced
+raw ring wrap, checked a 512-owner undo and compared both query results and
+post-edge state. The integrated lease gate checks saturation, drain with
+live owners, exact two-edge service and selective rebase of dirty folds with
+operation enable low. Directed fault injection exists only in the testbench.
+
+Use `--block state --direct-mask MASK --publish-mask MASK` on the synthesis
+command. A zero publication mask removes maintenance. A positive
+`--lease-period` enables the internal stop and countdown controller. A
+positive publication mask with zero period exposes externally scheduled
+publication for the datapath cost control. Use the common site JSON and an
+identical physical floorplan across variants. The registered route flow
+requests CTS and records clock and query timing reports. Field names
+`B1A_HISTORY_DATAPATH` and `FLOW_COMPLETE_CHECK_REPORTS` identify the report
+boundary and completion of the tool flow. Qualifying same-tick feedback
+requires operand arrival and provider timing in addition to these reports.
+
+Private evidence is under `work/b1a-state-gate-20261117-r{2,3,4}/`,
+`work/b1-lease-gate-20261117-r{1,2}/` and
+`work/b1a-synthesis-20261117-r1/`. The first state gate launcher had a
+missing output path and did not start Xcelium. Later gates retain separate
+logs and inputs.

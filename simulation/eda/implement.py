@@ -1,4 +1,4 @@
-"""Implement a frozen B0 mapped hash with the private matched physical site."""
+"""Implement a frozen mapped TAGE block using a private physical site."""
 import argparse
 import json
 from pathlib import Path
@@ -43,10 +43,13 @@ def main():
         p.error('output exists; choose a fresh implementation producer')
     try:
         parent=json.loads((a.synthesis/'PRODUCER.json').read_text())
-        if parent['status']!='PASS' or parent['scope']!='B0_COMBINATIONAL_HASH_ONLY':
-            raise ValueError('a passed B0 synthesis producer is required')
+        if parent['status']!='PASS' or parent['scope'] not in {
+            'B0_COMBINATIONAL_HASH_ONLY', 'B1A_HISTORY_DATAPATH'
+        }:
+            raise ValueError('a passed TAGE synthesis producer is required')
         top=(a.synthesis/'TOP.txt').read_text().strip()
         values=physical_values(json.loads(a.site.read_text()),top,a.cpus)
+        values['registered'] = int(parent['scope'] == 'B1A_HISTORY_DATAPATH')
         if not 0<a.timeout<float('inf'):
             raise ValueError('finite positive host timeout required')
     except (ValueError, OSError, KeyError) as error:
@@ -61,12 +64,13 @@ def main():
     with (out/'site.tcl').open('x') as f:
         for key,value in values.items():
             f.write('set {} {}\n'.format(key, '[list '+value+']' if key=='lef_files' else tcl_word(value)))
-    metadata={'scope':'B0_COMBINATIONAL_HASH_ONLY','source_synthesis':str(a.synthesis.resolve()),
+    metadata={'scope':parent['scope'],'source_synthesis':str(a.synthesis.resolve()),
               'source_parent':parent,'physical_site':str(a.site.resolve()),'constraints':values,
               'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
               'source_dirty':bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),
               'status':'RUNNING','signoff':'NOT_FOUNDRY_SIGNOFF','full_history_stage_qualified':False,
-              'CTS':'NOT_APPLICABLE_VIRTUAL_CLOCK','activity_power':'NOT_MEASURED',
+              'CTS':'REQUESTED' if values['registered'] else 'NOT_APPLICABLE_VIRTUAL_CLOCK',
+              'activity_power':'NOT_MEASURED',
               'placement_seed':'TOOL_DEFAULT_NOT_YET_INDEPENDENT_SEED_STUDY'}
     (out/'PRODUCER.json').write_text(json.dumps(metadata,indent=2)+'\n')
     cmd=['innovus','-stylus','-no_gui','-files','flow/innovus_hash.tcl','-log','innovus.log']
@@ -74,10 +78,15 @@ def main():
         done=subprocess.run(['timeout','-k','10',str(a.timeout),'csh','-c','exec '+shlex.join(cmd)],
                             cwd=out,stdout=log,stderr=subprocess.STDOUT)
     text=(out/'console.log').read_text(errors='replace')
-    valid=done.returncode==0 and 'PASS_B0_ROUTED_HASH_NOT_FULL_HISTORY_OR_SIGNOFF' in text
+    marker = 'PASS_B1A_ROUTED_STATE' if values['registered'] else 'PASS_B0_ROUTED_HASH_NOT_FULL_HISTORY_OR_SIGNOFF'
+    valid=done.returncode==0 and marker in text
     valid=valid and all((out/f).is_file() and (out/f).stat().st_size for f in
                        ['outputs/postroute.v','reports/setup_path.rpt','reports/hold_path.rpt',
                         'reports/area.rpt','reports/internal_drc.rpt','reports/connectivity.rpt'])
+    if values['registered']:
+        valid = valid and all((out/f).is_file() and (out/f).stat().st_size for f in
+                              ['reports/clock_trees.rpt','reports/query_setup.rpt'])
+        metadata['CTS'] = 'FLOW_COMPLETE_CHECK_REPORTS' if valid else 'CHECK_PARTIAL_REPORTS'
     metadata.update(status='FLOW_COMPLETE_CHECK_REPORTS' if valid else 'FAIL',returncode=done.returncode)
     (out/'PRODUCER.json').write_text(json.dumps(metadata,indent=2)+'\n')
     print(json.dumps({'output':str(out),'status':metadata['status']}))

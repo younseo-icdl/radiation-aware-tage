@@ -1,4 +1,4 @@
-# B0 virtual-clock block: no CTS and no complete history-subsystem claim.
+# Use CTS for the registered history datapath and a virtual reference for B0.
 proc implement_hash {} {
     source site.tcl
     set_multi_cpu_usage -local_cpu $cpus
@@ -21,8 +21,15 @@ proc implement_hash {} {
     place_opt_design
     add_tieoffs -lib_cell {TIEHI TIELO} -prefix TIE
     place_detail
-    # This is a virtual timing reference, not a real registered clock endpoint.
-    puts "NO_CTS_B0_VIRTUAL_CLOCK"
+    if {$registered} {
+        set_db cts_buffer_cells {CLKBUFX2 CLKBUFX4 CLKBUFX8}
+        set_db cts_inverter_cells {CLKINVX1 CLKINVX2 CLKINVX4}
+        create_clock_tree_spec
+        clock_opt_design
+        report_clock_trees -out_file reports/clock_trees.rpt
+    } else {
+        puts "NO_CTS_B0_VIRTUAL_CLOCK"
+    }
     route_design
     set_db timing_analysis_type ocv
     opt_design -post_route -drv -report_dir reports -report_prefix drv
@@ -36,13 +43,20 @@ proc implement_hash {} {
     time_design -post_route -hold -report_dir reports -report_prefix hold
     report_timing > reports/setup_path.rpt
     report_timing -early > reports/hold_path.rpt
+    if {$registered} {
+        report_timing -to [get_ports {query_index_o* query_tag_o*}] > reports/query_setup.rpt
+    }
     report_area -detail -out_file reports/area.rpt
     check_drc -out_file reports/internal_drc.rpt
     check_connectivity -type all -out_file reports/connectivity.rpt
     check_connectivity -type special -out_file reports/pg_connectivity.rpt
     write_netlist outputs/postroute.v
     write_db outputs/routed.inn
-    puts "PASS_B0_ROUTED_HASH_NOT_FULL_HISTORY_OR_SIGNOFF"
+    if {$registered} {
+        puts "PASS_B1A_ROUTED_STATE"
+    } else {
+        puts "PASS_B0_ROUTED_HASH_NOT_FULL_HISTORY_OR_SIGNOFF"
+    }
 }
 if {[catch {implement_hash} problem]} {
     puts stderr "FAILED_B0_ROUTED_HASH: $problem"
