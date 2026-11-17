@@ -1,0 +1,22 @@
+state,production_symbol,logical_payload_bits,lookup_use,write_or_restore,lifetime,injection_scope
+active_direction,TAGEBase::ThreadHistory::globalHist,130,fold tap or direct query,updateGHist and restoreHistState,last130 appends plus undo,R0..R129 SOURCE
+raw_retention,TAGEBase::ThreadHistory::globalHist,2097152 used software bit slots,live rollback can reenter,append and rollover copy,buffer and live heads,WHOLE physical mapping incomplete
+raw_head,TAGEBase::ThreadHistory::ptGhist,software int,align taps and source,append undo rollover,continuous,not complete WHOLE
+speculative_path,TAGEBase::ThreadHistory::pathHist,16,gindex path hash,calcNewPathHist and BranchInfo restore,speculation window,W22:0..W22:15 directed logical targets
+nonspeculative_path,TAGEBase::ThreadHistory::nonSpecPathHist,16,separate interface state,non speculative update,committed context,outside Sstar346
+index_folds,TAGEBase::ThreadHistory::computeIndices,63,gindex,updateGHist inverse restore or lease,until changed or repaired,F logical words; hybrid unconsumed fields excluded
+tag_folds,TAGEBase::ThreadHistory::computeTags,137,gtag,updateGHist inverse restore or lease,until changed or repaired,F logical words; hybrid unconsumed fields excluded
+base_prediction,TAGEBase::btablePrediction,8192,PC-only bindex,baseUpdate,learned table entry,logical learned table hook
+base_hysteresis,TAGEBase::btableHysteresis,2048,base update decision,baseUpdate,shared four prediction entries,logical learned table hook
+tagged_payload,TAGEBase::gtable,54784,counter tag usefulness,condBranchUpdate allocation aging,learned table entries,logical learned table hook
+alternate_chooser,TAGEBase::useAltPredForNewlyAllocated,4,alternate selection,training,learned context,WHOLE incomplete
+aging,TAGEBase::tCounter,64 software bits,periodic usefulness aging,training,continuous,WHOLE incomplete
+learning_rng,TAGE::update random draw,implementation specific,allocation randomization,unmodified upstream update,continuous,not exported as full CPU state
+owner_path,TAGEBase::BranchInfo::pathHist,16 per owner,undo path restore,recordHistState,live owner up to declared512,WHOLE mapping incomplete
+unused_fold_snapshots,TAGEBase::BranchInfo::ci ct0 ct1,200 per owner software snapshot,not consumed by pinned restore,recordHistState,owner lifetime,do not charge unused fields as required hardware
+owner_metadata,NativeTAGE::live_ and BPU history deque,implementation specific,admission and actual restore ownership,lookup commit squash,finite declared512,WHOLE incomplete
+btb,SimpleBTB,4096 entries with16-bit tags and target metadata,final target prediction,BPU update,shared BPU,not SOURCE protected or full WHOLE
+ras,ReturnAddrStack,16 entries,return target,BPU push pop restore,shared BPU,not SOURCE protected or full WHOLE
+indirect,SimpleIndirectPredictor,256sets x2ways plus metadata,indirect target,shared BPU update,shared BPU,not SOURCE protected or full WHOLE
+lease_age,QuiescentLease::age_,period dependent,maintenance due,append and publish,between publications,L:AGE directed targets
+lease_busy_timer,QuiescentLease::busy_ ready_,implementation dependent,service control,autonomous publication,service interval,WHOLE incomplete

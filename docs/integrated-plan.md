@@ -1,5 +1,10 @@
 # Integrated continuation, authorized 2026-11-17
 
+The professor-meeting feedback adopted later on 2026-11-17 refines priorities;
+see `research/PROFESSOR_FEEDBACK.md`. Structure/production propagation/literature
+gates now precede the next expensive batch. Completed clean/SOURCE/PPA-component
+evidence remains valid within its original model, with no historical reruns.
+
 The user adopted the integrated 20261116 handoff and explicitly expanded scope
 to history-subsystem RTL/Cadence/PPA on 2026-11-17. This supersedes the prior
 implementation-stage exclusion, not the completed study's measured results.

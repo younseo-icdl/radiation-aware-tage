@@ -12,6 +12,8 @@ $(BUILD)/tage-trace-screen: simulation/cpp/trace_screen.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) $< -lz -o $@
 $(BUILD)/tage-rtl-vectors: simulation/cpp/rtl_vectors.cpp $(BACKEND) $(HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< $(BACKEND) -o $@
+$(BUILD)/tage-fold-causality: simulation/cpp/fold_causality.cpp $(BACKEND) $(HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< $(BACKEND) -o $@
 $(BUILD)/tage-causal: simulation/cpp/causal.cpp $(BACKEND) $(HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< $(BACKEND) -o $@
 $(BUILD) $(BUILD)/tests:
@@ -25,7 +27,7 @@ $(BUILD)/tests/%: tests/cpp/%.cpp $(BACKEND) $(HEADERS) | $(BUILD)/tests
 cpp-test: $(TESTS)
 	@set -e; for t in $(TESTS); do echo "Running $$t"; "$$t"; done
 PYTHON ?= python3
-python-test: $(BUILD)/tage-sim $(BUILD)/tage-causal $(BUILD)/tage-trace-screen
+python-test: $(BUILD)/tage-sim $(BUILD)/tage-causal $(BUILD)/tage-trace-screen $(BUILD)/tage-fold-causality
 	$(PYTHON) -m unittest discover -s tests/python -v
 test: cpp-test python-test
 smoke: all

@@ -48,6 +48,33 @@ int main() {
             publish_own_folds(cached,geometry);publish_own_folds(reference);
             check(cached.equal(reference),"cached geometry cannot cache source or change state");
         }
+        auto canonical=cached.save();
+        for(unsigned mask:{0u,3u,5u,96u,127u}) {
+            cached.load(canonical);
+            for(unsigned w=0;w<21;++w) {
+                auto value=cached.read_history_word(w);value.flip(0);
+                cached.write_history_word(w,value);
+            }
+            auto dirty_folds=cached.save().folded;
+            reference.load(cached.save());
+            for(unsigned w=0;w<21;++w) if((mask>>(w/3))&1) {
+                Word expected;expected.limb[0]=canonical.folded[w];
+                reference.write_history_word(w,expected);
+            }
+            publish_own_folds(cached,geometry,mask);
+            auto result=cached.save();
+            check(cached.equal(reference),"masked publication preserves complete remaining predictor state");
+            for(unsigned w=0;w<21;++w)
+                check(result.folded[w]==(((mask>>(w/3))&1)?canonical.folded[w]:dirty_folds[w]),
+                      "masked publication changes exactly selected bank folds");
+            check(result.global==canonical.global && result.path==canonical.path &&
+                  result.pred==canonical.pred && result.hyst==canonical.hyst &&
+                  result.alt==canonical.alt && result.aging==canonical.aging,
+                  "bank publication must leave source/path/learning untouched");
+        }
+        rejected=false;
+        try {publish_own_folds(cached,geometry,128);} catch(const std::invalid_argument &) {rejected=true;}
+        check(rejected,"unknown bank mask rejected");
         std::cout<<"PASS lease drain/service publication, own faulty source, no learning/gold repair, age upset, forbidden stale-owner/append\n";
         return 0;
     } catch(const std::exception &e) {std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}

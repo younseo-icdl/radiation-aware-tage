@@ -1,0 +1,8 @@
+id,venue,predictor,fault,state,primary_read_status,locator,latency_use,comparator_limit
+TAGE2006,JILP2006,TAGE,none,base and tagged organization,fresh primary PDF figure checked,Fig1 PDFp6,organization only,not radiation
+BADGR2016,ICCD2016,L-TAGE,speculative wrong history,raw folds checkpoint,fresh primary PDF relevant sections,II-V Fig2 Fig3 PDFp2-3,single-cycle history requirements and real storage cost,not particle SEU
+PHT2003,ICCD2003,gshare and global PHT,single-bit PHT error,encoded counters,fresh primary PDF sections2-4,Tables1-2,permits same-cycle circuitry assumption,not TAGE fold propagation
+PVF2012,MICRO2012,gshare RAS indirect cache,permanent stuck-at,array cells,primary cached PDF text; local TLS failure,section3.1 Table2 PDFp2 and7,ETV/PVF runtime model,not transient events per second
+LV2018,ICCD2018,Tournament and L-TAGE,undervolting long-duration stuck-at,predictor arrays,primary cached text; direct404,III.A-C IV TableI Fig4,unchanged frequency and modeled energy,not raw one-time XOR
+LV2019,ISPASS2019,Bi-mode Tournament L-TAGE Perceptron BTB,undervolting permanent maps,array rows ECC cache BRT,primary cached PDF text; direct404,V.C-D PDFp8,retire detection and correction on next access,not canonical-fold memo cache
+AHEAD2025,ISCA2025,modified TAGE,none,secondary tags queue fallback,fresh primary PDF relevant sections,4-6 Fig5 Table2,operand availability late prediction and queue protocol,not SEU correction
