@@ -123,6 +123,25 @@ out-of-range result triggers a fresh floorplan using the measured cell
 area. Every attempt is retained. The new plan under
 `work/b1a-route-20261117-r5/` supersedes the unstarted low-density route plan.
 
+All three fourth-batch Genus runs produced mapped netlists, constraints and
+area/query timing reports. The wrapper records were left at RUNNING after
+the tools exited. Status was recovered from the exact synthesis completion
+marker, trailing normal-exit record and validated artifact sets. Original
+metadata is preserved and the wrapper exit code is unavailable.
+
+| Variant | Mapped cell area (µm²) | Worst setup slack at 500 ps (ps) |
+|---|---:|---:|
+| Recurrent | 185,562.172 | -3,737 |
+| Lease4096 | 163,232.479 | -3,895 |
+| Hybrid05 | 183,450.100 | -3,706 |
+
+The reported worst path starts at a head register and reaches a query tag
+output in each design. This establishes a setup violation in the current
+mapped datapaths under the common 500 ps constraints. The area differences
+reflect independent mapping and remain provisional until physical checks.
+The matched route and STA must track this common path before any clock
+period or query/undo timing is backannotated.
+
 ## Port activity on the routed hash
 
 `python -m simulation.eda.hash_activity` exports the PC, path, raw and stored
