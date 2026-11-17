@@ -20,6 +20,8 @@ def main():
     parser.add_argument('--input', type=Path)
     parser.add_argument('--schedule', type=Path)
     parser.add_argument('--diagnostics', action='store_true')
+    parser.add_argument('--activity-end-tick', type=int, default=0,
+                        help='Capture clean history operations before this absolute tick')
     parser.add_argument('--direct', action='store_true', help='Direct own-history query folds')
     parser.add_argument('--direct-bank-mask', type=lambda s:int(s,0), default=0)
     parser.add_argument('--lease-period', type=int, default=0,
@@ -41,6 +43,8 @@ def main():
         parser.error('binary or input does not exist')
     if args.schedule and not args.schedule.is_file():
         parser.error('schedule does not exist')
+    if args.activity_end_tick < 0 or (args.activity_end_tick and (args.schedule or args.initialize_only)):
+        parser.error('history activity capture requires a positive bound and an executed clean run')
     if args.max_ticks <= 0:
         parser.error('max-ticks must be positive')
     if not 0 <= args.query_latency <= 32:
@@ -51,6 +55,8 @@ def main():
     if args.lease_period and (args.direct or args.direct_bank_mask or args.query_latency):
         parser.error('combined lease/direct/delayed policies are not admitted')
     output = Path(m5.options.outdir).resolve()
+    activity = dict(history_activity_file=str(output/'history_activity.csv'),
+                    history_activity_end_tick=args.activity_end_tick) if args.activity_end_tick else {}
     base = NativeTAGEBase(minHist=5, maxHist=130, takenOnlyHistory=False,
         direct_queries=args.direct,
         direct_bank_mask=args.direct_bank_mask, lease_period=args.lease_period,
@@ -60,7 +66,7 @@ def main():
         schedule_file=str(args.schedule.resolve()) if args.schedule else '',
         event_file=str(output/'events.csv'), summary_file=str(output/'native.json'),
         manifest_file=str(output/'logical_manifest.json'),
-        origin_file=str(output/'raw_origins.csv') if args.diagnostics else '')
+        origin_file=str(output/'raw_origins.csv') if args.diagnostics else '', **activity)
     predictor = NativeTAGE(tage=base,
         query_latency=args.query_latency, cycle_ticks=args.cycle_ticks,
         max_restore_owners=args.max_restore_owners,

@@ -53,6 +53,14 @@ NativeTAGEBase::NativeTAGEBase(const gem5::NativeTAGEBaseParams &p)
         origins_ << "callback_ordinal,tick,raw_history_writes,conditional_history_writes,"
             "active_origin_bits,restorable_origin_bits,head,buffer_epoch,reason\n";
     }
+    if (!p.history_activity_file.empty()) {
+        if (!p.history_activity_end_tick || !schedule_path_.empty())
+            throw std::invalid_argument("history activity requires a bounded clean run");
+        activity_end_=p.history_activity_end_tick;
+        activity_.open(p.history_activity_file);
+        if (!activity_) throw std::runtime_error("cannot open history activity trace");
+        activity_ << "# capture_end_tick=" << activity_end_ << "\ntick,operation,owner,value,auxiliary\n";
+    }
 }
 NativeTAGEBase::~NativeTAGEBase() {
     if (injection_.scheduled()) deschedule(injection_);
@@ -62,8 +70,24 @@ void NativeTAGEBase::armLeasePublication() {
     if(frozen_ || !lease.busy() || lease_publication_.scheduled()) return;
     if(lease.ready_time()<=gem5::curTick()) throw std::logic_error("lease publication was not armed on time");
     schedule(lease_publication_,lease.ready_time());
+    historyActivity("service_start",0,lease.ready_time(),lease.age());
     if(maintenance_) maintenance_<<"start,"<<gem5::curTick()<<','<<lease.age()<<','
         <<(owner ? owner->liveHistoryOwners() : 0)<<','<<lease.ready_time()<<'\n';
+}
+bool NativeTAGEBase::activityOpen() const {
+    return activity_.is_open() && !frozen_ && gem5::curTick()<activity_end_;
+}
+void NativeTAGEBase::historyActivity(const char *op, uint64_t id, uint64_t value, uint64_t auxiliary) {
+    if (!activityOpen()) return;
+    activity_ << gem5::curTick()<<','<<op<<','<<id<<','<<value<<','<<auxiliary<<'\n';
+    if (!activity_) throw std::runtime_error("history activity trace write failed");
+}
+void NativeTAGEBase::activityRelease(const Base::BranchInfo *bi) {
+    if (!activityOpen()) return;
+    auto prior=activity_owners_.find(bi);
+    if(prior==activity_owners_.end()) return; // A placeholder need not have appended.
+    historyActivity("release",prior->second,0,0);
+    activity_owners_.erase(prior);
 }
 void NativeTAGEBase::init() {
     Base::init();
@@ -222,6 +246,13 @@ void NativeTAGEBase::updateGHist(gem5::ThreadID tid, uint64_t bits, uint8_t n) {
         ++buffer_epoch;
     }
     Base::updateGHist(tid, bits, n);
+    if (n && activityOpen()) {
+        if (!activity_append_context_ || n!=1)
+            throw std::logic_error("history activity requires a single-bit append owner");
+        auto [entry, inserted]=activity_owners_.try_emplace(activity_append_context_,activity_next_owner_+1);
+        activity_next_owner_+=inserted;
+        historyActivity("append",entry->second,bits&1,threadHistory[tid].pathHist&1);
+    }
     if (n) {
         int head = threadHistory[tid].ptGhist;
         for (unsigned i = 0; i < n; ++i) raw_origins_.erase(head+i);
@@ -235,7 +266,9 @@ void NativeTAGEBase::updateHistories(gem5::ThreadID tid, gem5::Addr pc, bool spe
         bool taken, gem5::Addr target, const gem5::StaticInstPtr &inst, Base::BranchInfo *bi) {
     bool previous = conditional_context_;
     conditional_context_ = bi->condBranch;
+    if(activityOpen()) activity_append_context_=bi;
     Base::updateHistories(tid, pc, speculative, taken, target, inst, bi);
+    activity_append_context_=nullptr;
     conditional_context_ = previous;
     ++source_epoch;
     observeOrigins("history_callback");
@@ -244,6 +277,11 @@ void NativeTAGEBase::restoreHistState(gem5::ThreadID tid, Base::BranchInfo *bi) 
     if(gem5::curTick()!=restore_tick_) {restore_tick_=gem5::curTick();restores_this_tick_=0;}
     if(bi->modified) restores_this_tick_+=bi->nGhist;
     maximum_raw_restores_per_tick=std::max(maximum_raw_restores_per_tick,restores_this_tick_);
+    if (activityOpen() && bi->modified && bi->nGhist) {
+        auto prior=activity_owners_.find(bi);
+        if (prior==activity_owners_.end()) throw std::logic_error("history undo activity missing owner");
+        historyActivity("undo",prior->second,bi->nGhist,0);
+    }
     Base::restoreHistState(tid, bi);
     ++source_epoch;
     observeOrigins("restore");
@@ -329,6 +367,10 @@ void NativeTAGEBase::dumpResearch() {
     if (events_) events_.flush();
     if (origins_) origins_.flush();
     if(maintenance_) maintenance_.flush();
+    if(activity_.is_open()) {
+        activity_.flush();
+        if(!activity_) throw std::runtime_error("history activity flush failed");
+    }
     if (owner) owner->flushTrace();
     if (summary_path_.empty()) return;
     uint64_t fingerprint = 14695981039346656037ULL;
@@ -436,6 +478,7 @@ bool NativeTAGE::predict(gem5::ThreadID tid, gem5::Addr pc, bool conditional, vo
     maximum_lookups_per_tick=std::max(maximum_lookups_per_tick,lookups_this_tick_);
     maximum_conditional_lookups_per_tick=std::max(maximum_conditional_lookups_per_tick,conditionals_this_tick_);
     auto &bi = *static_cast<TageBranchInfo *>(history)->tageBranchInfo;
+    if(conditional) core.activityQuery(pc);
     ++lookups; mix(lookup_identity, pc); mix(lookup_identity, predicted); mix(lookup_identity, conditional);
     if (observing_) frames_[history] = core.sample(bi, lookups);
     return conditional && force_base ? core.basePrediction(pc, bi) : predicted;
@@ -553,6 +596,7 @@ void NativeTAGE::update(gem5::ThreadID tid, gem5::Addr pc, bool taken, void *&hi
                    pc, taken, bi.condBranch, target, bi);
     }
     // Keep upstream RNG draw, stats, training, history update, and deletion order.
+    core.activityRelease(&bi);
     TAGE::update(tid, pc, taken, history, false, inst, target);
     if(live_.erase(key)!=1) throw std::logic_error("committed history owner was not live");
     frames_.erase(key); retired_.erase(key);
@@ -560,7 +604,9 @@ void NativeTAGE::update(gem5::ThreadID tid, gem5::Addr pc, bool taken, void *&hi
 }
 void NativeTAGE::squash(gem5::ThreadID tid, void *&history) {
     auto *key = history;
+    auto *bi = static_cast<TageBranchInfo *>(history)->tageBranchInfo;
     TAGE::squash(tid, history);
+    core.activityRelease(bi);
     if(live_.erase(key)!=1) throw std::logic_error("squashed history owner was not live");
     frames_.erase(key); retired_.erase(key);
     core.observeOrigins("squash");

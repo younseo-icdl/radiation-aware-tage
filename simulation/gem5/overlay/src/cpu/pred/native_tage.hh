@@ -38,6 +38,11 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     std::string schedule_path_, event_path_, summary_path_, manifest_path_;
     std::ofstream events_, origins_;
     std::ofstream maintenance_;
+    std::ofstream activity_;
+    gem5::Tick activity_end_=0;
+    std::unordered_map<const Base::BranchInfo *, uint64_t> activity_owners_;
+    const Base::BranchInfo *activity_append_context_=nullptr;
+    uint64_t activity_next_owner_=0;
     std::map<int, std::set<uint64_t>> raw_origins_;
     size_t next_fault_ = 0;
     uint64_t flips_ = 0, origin_id_ = 0, observation_ordinal_ = 0;
@@ -53,6 +58,8 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     void injectNext();
     size_t resolve(const std::string &) const;
     void writeManifest() const;
+    bool activityOpen() const;
+    void historyActivity(const char *op, uint64_t owner, uint64_t value, uint64_t auxiliary);
 
   public:
     QuiescentLease lease;
@@ -65,7 +72,12 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     void startup() override;
     void dumpResearch();
     void armLeasePublication();
-    void publishLeaseFolds() { publish_own_folds(*this,words_); }
+    void publishLeaseFolds() {
+        publish_own_folds(*this,words_);
+        historyActivity("publish",0,0,0);
+    }
+    void activityQuery(gem5::Addr pc) { historyActivity("query",0,pc,0); }
+    void activityRelease(const Base::BranchInfo *bi);
     void updateGHist(gem5::ThreadID, uint64_t, uint8_t) override;
     void updateHistories(gem5::ThreadID, gem5::Addr, bool, bool, gem5::Addr,
                          const gem5::StaticInstPtr &, Base::BranchInfo *) override;

@@ -18,6 +18,8 @@ class NativeTAGEBase(TAGEBase):
     lease_period = Param.Unsigned(0, 'Actual speculative raw appends between quiescent rebases; zero disables')
     lease_latency_ticks = Param.Tick(1000, 'Charged quiescent canonical service time, not measured PPA')
     lease_log_file = Param.String('', 'Actual autonomous lease start/publish event trace')
+    history_activity_file = Param.String('', 'Optional ordered history operations for activity replay')
+    history_activity_end_tick = Param.Tick(0, 'Exclusive end tick of the activity capture')
     cxx_exports = [PyBindMethod('dumpResearch')]
 
 
