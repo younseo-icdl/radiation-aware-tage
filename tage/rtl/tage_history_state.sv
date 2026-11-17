@@ -130,18 +130,42 @@ module tage_history_state #(
             .raw_i(prefix_raw[prefix]),.fold_i(prefix_fold[prefix]),
             .index_o(query_index_o[q*63+:63]),.tag_o(query_tag_o[q*72+:72]));
     end
-    always @(posedge clk_i) begin: clocked
-        integer a;
-        if(reset_i) begin raw_mem<=0;head<=0;folds<=0;path<=0;end
+    // Decode each write address once. Explicit per-row enables avoid inferring
+    // a full vector merge for every update to the three indexed write ports.
+    wire [2:0] write_lane;
+    wire [9:0] write_address [0:2];
+    for(genvar a=0;a<3;a=a+1) begin: write_port
+        assign write_lane[a]=enable_i && !reset_i && !(PUBLISH_BANK_MASK!=0 && publish_now)
+            && a<append_count_i;
+        assign write_address[a]=undone_head-(a+1);
+    end
+    for(genvar row=0;row<1024;row=row+1) begin: raw_row
+        wire [2:0] selected;
+        for(genvar a=0;a<3;a=a+1) begin: lane
+            assign selected[a]=write_lane[a] && write_address[a]==row;
+        end
+        always @(posedge clk_i)
+            if(reset_i) raw_mem[row]<=0;
+            else if(|selected) raw_mem[row]<=|(selected & append_bits_i);
+    end
+    for(genvar row=0;row<512;row=row+1) begin: checkpoint_row
+        wire [2:0] selected;
+        for(genvar a=0;a<3;a=a+1) begin: lane
+            assign selected[a]=write_lane[a] && append_owner_i[a*9+:9]==row;
+        end
+        always @(posedge clk_i)
+            if(|selected) path_checkpoint[row]<=
+                ({16{selected[0]}} & prefix_path[0]) |
+                ({16{selected[1]}} & prefix_path[1]) |
+                ({16{selected[2]}} & prefix_path[2]);
+    end
+    always @(posedge clk_i) begin
+        if(reset_i) begin head<=0;folds<=0;path<=0;end
         else if(PUBLISH_BANK_MASK!=0 && publish_now) folds<=canonical_folds;
         else if(enable_i) begin
             head<=undone_head-append_count_i;
             folds<=prefix_fold[append_count_i];
             path<=prefix_path[append_count_i];
-            for(a=0;a<3;a=a+1) if(a<append_count_i) begin
-                raw_mem[(undone_head-a-1)&1023]<=append_bits_i[a];
-                path_checkpoint[append_owner_i[a*9+:9]]<=prefix_path[a];
-            end
         end
     end
 `ifdef TAGE_STATE_DEBUG

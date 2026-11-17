@@ -90,6 +90,14 @@ Private evidence is under `work/b1a-state-gate-20261117-r{2,3,4}/`,
 missing output path and did not start Xcelium. Later gates retain separate
 logs and inputs.
 
+All four first registered synthesis attempts reached the 1,200 s timeout in
+mux optimization. Their partial logs are retained. The next revision decodes
+write addresses into explicit row enables for the raw ring and path checkpoint
+store. Xcelium passed all 30,000 production-reference operations and the
+integrated lease test again. The first attempts produced no mapped timing
+or area comparison. The follow-up synthesis compares recurrent, hybrid 0x05
+and lease4096 under the same site constraints using this revised write logic.
+
 ## Port activity on the routed hash
 
 `python -m simulation.eda.hash_activity` exports the PC, path, raw and stored
