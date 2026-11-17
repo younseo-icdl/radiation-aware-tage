@@ -42,7 +42,7 @@ oracle, or an independent evaluation; bank selection freezes before fault result
 
 | Family | Current evidence and disposition |
 |---|---|
-| Lease/rebase | A reusable quiescent protocol waits for actual restore owners, charges service, and publishes Phi of current own raw. Unit gates cover damaged raw, unchanged learning, age upset and forbidden owner reentry. CPU drain and physical cost remain unmeasured. |
+| Lease/rebase | A reusable quiescent protocol waits for actual restore owners, charges service, and publishes Phi of current own raw. Unit/CPU gates cover damaged raw, unchanged learning, age upset and forbidden owner reentry. Measured clean drain cost is below; complete physical cost remains unmeasured. |
 | Bank-selective hybrid | Exact mixed hashes pass C++/RTL endpoint checks. Profile mask and simple static controls are shortlisted; no CPU/physical gain is inferred. |
 | Maintenance manager | Park until an ordinary lease worker and equal-operation fixed/round-robin comparator exist. It would estimate service utility, not particle arrival. |
 | Fold memo/cache | Park the full cache integration pending a cost case stronger than the measured content locality and storage lower bound. No free key comparison or silent-flip detector is assumed. |
@@ -101,3 +101,68 @@ interface; it failed and was preserved. The positional parameter expression
 passed in a fresh producer. Raw artifacts are `work/b0-hash-*-20261117-r*/`, with
 the private comparison in `B0_SYNTHESIS_RESULTS.json`. Matched routing and then
 the actual B1 storage/read/update/undo/control interface remain separate gates.
+
+## Matched B0 route
+
+All five designs completed the same local place/route flow using slow setup and
+fast hold views, fixed floorplan, educational cap-table RC, and virtual clock.
+There is no CTS in this combinational boundary. Reports show zero local DRC and
+clean signal/special-net connectivity; none meets the 500 ps setup target.
+
+| Variant | Routed cell area | Data path, ns | Setup slack, ns | Fast hold slack, ns |
+|---|---:|---:|---:|---:|
+| Recurrent | 2250.360 | 0.551 | -0.176 | +0.137 |
+| Full direct | 4452.840 | 0.991 | -0.616 | +0.075 |
+| Profile hybrid | 2146.734 | 0.585 | -0.210 | +0.079 |
+| Shortest-two control | 2061.234 | 0.585 | -0.210 | +0.079 |
+| Longest-two control | 4480.884 | 0.974 | -0.599 | +0.139 |
+
+Cell areas include mapped buffering/inversion, not raw storage, undo, controller
+or a full predictor. Different post-route optimization means the hybrid's lower
+cell area is not a full-subsystem saving. No activity-based energy is available.
+The route evidence is `work/b0-route-{recurrent,direct,profile,short,long}-20261117-r1/`.
+Do not backannotate a zero-latency recurrent block or charge only direct for a
+failed physical target. Source/read/port/restore delay is still absent from B0.
+
+## Clean CPU controls and actual interface demand
+
+Nine new runs completed, with exact expected stdout, architectural retirement
+identity and complete BPU joins. Native and hybrid use the same 500 ps CPU grid
+with no physically qualified hash delay (C0). Lease additionally pays actual
+admission stop/owner drain and an assumed two-cycle publication service.
+
+| Program | Native cycles | Lease64 cycles | Lease64 vs native | Hybrid05 cycles |
+|---|---:|---:|---:|---:|
+| qsort | 34,485,063 | 37,878,057 | +9.8390% | 34,485,063 |
+| dijkstra | 40,991,213 | 43,067,795 | +5.0659% | 40,991,213 |
+| SHA-1 | 5,905,076 | 6,093,489 | +3.1907% | 5,905,076 |
+
+Hybrid05 has exactly the native clean stream and cycles under this C0 model;
+this is not a physical M0 cost result. Lease timing can change predictor training
+visibility and accuracy, so its measured total cost is not a pure stall penalty.
+Raw logs, stats, native summaries and full native traces are retained under
+`work/integrated-clean-20261117-r1/`.
+
+Native qsort/dijkstra/SHA-1 respectively observed peak live restore-owner counts
+46/46/42, conditional queries per tick 2/2/2, raw appends per tick 3/2/3, and raw
+undos per tick 45/45/29. The declared CPU owner capacity remains 512; observed
+46 is not a universal bound. A one-query/one-undo physical design would not
+implement this CPU contract. Unused software fold snapshots must not be charged
+as consumed checkpoint state: the pinned restore uses an algebraic inverse.
+
+`tage/history/bulk_restore.hpp` establishes the identity
+`F_after = Phi(H_after) XOR ROTR(F_before XOR Phi(H_before), n mod width)`
+for up to 512 undos. Both windows must come from the current live raw ring.
+63,000 comparisons against the pinned sequential restore cover all counts
+0..512, circular wrap and arbitrarily inconsistent raw/fold state. This retains
+fold residuals and raw-upset effects; replacing restore with canonical rebuilding
+would silently repair the recurrent baseline. The kernel is not integrated into
+CPU timing and gives no free read alignment, restoration port or latency.
+
+Before observing SOURCE fault outcomes, a lower-frequency lease4096 control was
+declared because lease64's clean cost is substantial. The development batch has
+three new lease4096 clean runs and 24 SOURCE fault runs: three programs, two
+frozen development owners, and native/lease4096/hybrid05, plus qsort controls
+lease64/hybrid03/hybrid60. Three bounded atomic-K2 gates passed first. Fixed
+2000/s exposure is unchanged; this is development, not independent evaluation.
+See the private `work/integrated-source-dev-20261117-r1/SOURCE_DEV_PLAN.json`.

@@ -63,6 +63,48 @@ class NativeAnalysisTests(unittest.TestCase):
             self.assertEqual(result['timing']['recovery_status'], 'RIGHT_CENSORED')
             self.assertTrue(result['timing']['windows'][0]['net_zero_within_window'])
 
+    def test_actual_bpu_flags_override_tage_proxy_and_include_unconditional(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self.fixture(root)
+            for name in ('clean', 'fault'):
+                path = root/name/'committed.csv.gz'
+                with gzip.open(path, 'rt') as f:
+                    reader = csv.DictReader(f)
+                    fields = reader.fieldnames + ['bpu_pred_taken', 'bpu_mispredicted', 'bpu_predicted_target']
+                    rows = list(reader)
+                for row in rows:
+                    row.update(bpu_pred_taken='1', bpu_mispredicted='0', bpu_predicted_target='8')
+                    if row['branch_id'] == '250':
+                        row['conditional'] = '0'
+                        if name == 'fault':
+                            row.update(bpu_mispredicted='1', bpu_predicted_target='12')
+                    if row['branch_id'] == '251' and name == 'fault':
+                        row['tage_prediction'] = '0'  # Overridden by final BPU.
+                    if row['branch_id'] == '252' and name == 'fault':
+                        row.update(bpu_mispredicted='1', bpu_predicted_target='16')
+                with gzip.open(path, 'wt', newline='') as f:
+                    writer = csv.DictWriter(f, fieldnames=fields)
+                    writer.writeheader()
+                    writer.writerows(rows)
+            result = summarize(root/'clean', root/'fault')
+            self.assertEqual(result['counts']['harmful'], 1)
+            final = result['final_BPU_prediction_recovery']
+            self.assertEqual(final['counts']['harmful'], 2)
+            self.assertEqual(final['series']['target_address_difference']['last_nonzero'], 252)
+
+    def test_partial_bpu_schema_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self.fixture(root)
+            path = root/'fault/committed.csv.gz'
+            with gzip.open(path, 'rt') as f:
+                text = f.read()
+            with gzip.open(path, 'wt') as f:
+                f.write(text.replace('branch_id,', 'bpu_pred_taken,branch_id,', 1))
+            with self.assertRaisesRegex(ValueError, 'malformed|partial'):
+                summarize(root/'clean', root/'fault')
+
 
 if __name__ == '__main__':
     unittest.main()

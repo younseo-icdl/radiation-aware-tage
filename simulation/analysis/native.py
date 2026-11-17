@@ -36,8 +36,15 @@ def summarize(clean, fault):
     coordinates = {}
     identity = ('branch_id', 'pc', 'target', 'taken', 'conditional')
     source = ('raw_limb0', 'raw_limb1', 'raw_limb2', 'path', 'nonspec_path')
+    bpu_fields = ('bpu_pred_taken', 'bpu_mispredicted', 'bpu_predicted_target')
+    bpu_mode = None
+    bpu_metrics = {name: RecoverySeries() for name in
+                   ('direction_difference', 'target_address_difference',
+                    'misprediction_difference', 'harmful', 'helpful')}
+    bpu_counts = {'post_event_branches': 0, 'harmful': 0, 'helpful': 0}
 
     def checkpoints():
+        nonlocal bpu_mode
         conditional_id = 0
         for left, right in zip_longest(trace(clean), trace(fault)):
             if left is None or right is None or any(left[k] != right[k] for k in identity):
@@ -45,6 +52,34 @@ def summarize(clean, fault):
             counts['paired_branches'] += 1
             if int(left['branch_id']) != counts['paired_branches']:
                 raise ValueError('nonconsecutive branch identity')
+            present = [key in row for row in (left, right) for key in bpu_fields]
+            if any(present) and not all(present):
+                raise ValueError('partial/mixed final BPU schema')
+            observed = all(present)
+            if bpu_mode is not None and bpu_mode != observed:
+                raise ValueError('final BPU schema changed within trace')
+            bpu_mode = observed
+            final_values = None
+            if observed:
+                if any(s.get('missing_bpu_mapping', 0) or
+                       s.get('missing_bpu_prediction_mapping', 0) for s in (u0, uf)):
+                    raise ValueError('missing final BPU joins')
+                for row in (left, right):
+                    if row['bpu_pred_taken'] not in ('0', '1') or row['bpu_mispredicted'] not in ('0', '1'):
+                        raise ValueError('invalid final BPU boolean')
+                    int(row['bpu_predicted_target'])
+                lm, rm = int(left['bpu_mispredicted']), int(right['bpu_mispredicted'])
+                final_values = {
+                    'direction_difference': int(left['bpu_pred_taken'] != right['bpu_pred_taken']),
+                    'target_address_difference': int(left['bpu_predicted_target'] != right['bpu_predicted_target']),
+                    'misprediction_difference': int(lm != rm),
+                    'harmful': int(not lm and rm), 'helpful': int(lm and not rm)}
+                if int(right['lookup_tick']) >= event_tick:
+                    bpu_counts['post_event_branches'] += 1
+                    for key, value in final_values.items():
+                        bpu_metrics[key].observe(int(right['branch_id']), value)
+                    for key in ('harmful', 'helpful'):
+                        bpu_counts[key] += final_values[key]
             if left['conditional'] != '1':
                 continue
             conditional_id += 1
@@ -53,6 +88,11 @@ def summarize(clean, fault):
             lp, rp, taken = (int(x) for x in
                             (left['tage_prediction'], right['tage_prediction'], right['taken']))
             harmful, helpful = int(lp == taken and rp != taken), int(lp != taken and rp == taken)
+            if final_values is not None:
+                harmful, helpful = final_values['harmful'], final_values['helpful']
+            prediction_difference = int(lp != rp) if final_values is None else int(
+                final_values['direction_difference'] or final_values['target_address_difference'] or
+                final_values['misprediction_difference'])
             if post:
                 counts['post_event_conditionals'] += 1
                 same_source = all(left[k] == right[k] for k in source)
@@ -79,7 +119,7 @@ def summarize(clean, fault):
             if int(right['retire_tick']) >= event_tick and int(left['retire_tick']) >= event_tick:
                 yield {'branch_id': conditional_id, 'fault_time': int(right['retire_tick']),
                        'clean_time': int(left['retire_tick']), 'harmful': harmful,
-                       'helpful': helpful, 'prediction_differences': int(lp != rp)}
+                       'helpful': helpful, 'prediction_differences': prediction_difference}
 
     windows = timing_windows(checkpoints())
     origins = {name: RecoverySeries() for name in ('active_raw_origin', 'live_raw_origin')}
@@ -106,9 +146,16 @@ def summarize(clean, fault):
             'origin_scope': 'raw provenance, including observed live restorable heads; not semantic shadow distance',
             'physical_cell_overwrite_time': None, 'path_origin_recovery': 'NOT_OBSERVED',
             'learning_full_state_recovery': 'NOT_OBSERVED_IN_CPU_TRACE',
-            'prediction_scope': 'TAGE conditional direction; final BPU direction/target overrides are not exported',
-            'final_BPU_prediction_recovery': 'NOT_OBSERVED',
-            'timing_rule_scope': 'exact CPU retirement times with conservative TAGE-direction-difference exclusion; not a complete final-BPU recovery certificate',
+            'prediction_scope': ('original final BPU direction/target address and actual BPU misprediction flags; all committed branches'
+                                 if bpu_mode else 'legacy TAGE conditional direction proxy; final BPU not exported'),
+            'conditional_harmful_helpful_scope': 'actual final BPU flags' if bpu_mode else 'legacy TAGE direction proxy',
+            'final_BPU_prediction_recovery': ({'counts': bpu_counts,
+                'coordinate': 'architectural branch_id; post-event lookup ticks',
+                'series': {k: v.summary() for k, v in bpu_metrics.items()},
+                'limitation': 'target instruction address only, not full micro-PC or full learned/RNG state'}
+                if bpu_mode else 'NOT_OBSERVED'),
+            'timing_rule_scope': ('exact CPU retirement windows over conditional branches, excluding final-BPU differences there; unconditional BPU differences reported separately'
+                                  if bpu_mode else 'exact CPU retirement times with conservative TAGE-direction-difference exclusion; not a complete final-BPU recovery certificate'),
             'fold_reference_scope': 'only equal raw/path/nonspec snapshots at matched architectural queries; other samples NA_ALIGNMENT',
             'timing': windows}
 

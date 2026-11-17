@@ -142,3 +142,14 @@ size the physical interface rather than assuming one query/undo per cycle.
 The finite owner capacity is declared and asserted, not inferred to cover all
 possible workloads from a small sample. Exact training/RNG operations continue
 through the unchanged upstream `TAGE::update`.
+
+The paired single-event reader `simulation.analysis.native` uses exported actual
+BPU misprediction flags for harmful/helpful labels when the complete new schema
+is available. It reports original final direction/target-address differences
+over all matched committed branches, including unconditional branches. Its
+timing windows still sample conditional retirement coordinates; unconditional
+BPU differences are reported separately. Target instruction address is not the
+full micro-PC state. Legacy traces retain an explicitly labeled TAGE-direction
+proxy; mixed/partial BPU fields and missing BPU joins are rejected. None of these
+observations certifies full learned-state/RNG recovery. Multi-event SOURCE task
+comparisons do not use this single-event recovery reader.
