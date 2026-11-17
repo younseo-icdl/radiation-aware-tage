@@ -2,10 +2,18 @@ from pathlib import Path
 import tempfile
 import unittest
 from simulation.eda.synthesize import site_values, tcl_word
-from simulation.eda.implement import physical_values
+from simulation.eda.implement import die_utilization, physical_values
 
 
 class EdaConfigTests(unittest.TestCase):
+    def test_utilization_uses_die_bounds_and_excludes_physical_only_area(self):
+        report = ('Hinst Name Module Name Inst Count Total Area Buffer Inverter '
+                  'Combinational Flop Latch Clock Gate Macro Physical\n'
+                  'top  100  7500  0 0 7000 0 0 0 0 500\n')
+        values = die_utilization('5 10 105 110', report, 'top')
+        self.assertEqual(values['die_utilization_percent'], 70)
+        self.assertEqual(values['die_area_um2'], 10000)
+
     def test_private_site_validation_and_safe_word(self):
         with tempfile.TemporaryDirectory() as d:
             lib=Path(d)/'example model.lib';lib.write_text('test fixture only')

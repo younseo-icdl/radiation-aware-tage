@@ -77,8 +77,8 @@ Use `--block state --direct-mask MASK --publish-mask MASK` on the synthesis
 command. A zero publication mask removes maintenance. A positive
 `--lease-period` enables the internal stop and countdown controller. A
 positive publication mask with zero period exposes externally scheduled
-publication for the datapath cost control. Use the common site JSON and an
-identical physical floorplan across variants. The registered route flow
+publication for the datapath cost control. Use common PDK site constraints.
+The registered route flow
 requests CTS and records clock and query timing reports. Field names
 `B1A_HISTORY_DATAPATH` and `FLOW_COMPLETE_CHECK_REPORTS` identify the report
 boundary and completion of the tool flow. Qualifying same-tick feedback
@@ -111,6 +111,17 @@ The fourth batch maps recurrent, Hybrid05 and lease4096 with a common
 7,200 s limit and three Genus CPUs per case. It uses the same RTL revision
 and site constraints as the third pilot. Private producers and the plan
 are under `work/b1a-synthesis-20261117-r4/`.
+
+The next registered route batch targets 65–75% total die utilization, with
+70% nominal. The metric is the post-route top-level cell area excluding
+physical-only cells divided by the entire actual die area, including core
+margins. The flow records the actual Innovus die bounding box and detailed
+cell area. The batch uses a common die size when all mapped cell areas
+fit the window and records per-design die sizes if a common size is
+infeasible. Placement, CTS and routing can change the numerator. An
+out-of-range result triggers a fresh floorplan using the measured cell
+area. Every attempt is retained. The new plan under
+`work/b1a-route-20261117-r5/` supersedes the unstarted low-density route plan.
 
 ## Port activity on the routed hash
 

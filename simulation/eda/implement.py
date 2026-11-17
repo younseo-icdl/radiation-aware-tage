@@ -9,6 +9,23 @@ import subprocess
 from .synthesize import ROOT, tcl_word
 
 
+def die_utilization(bbox_text, area_text, top):
+    x0, y0, x1, y1 = map(float, bbox_text.split())
+    rows = [row.split() for row in area_text.splitlines() if row.split()[:1] == [top]]
+    if len(rows) != 1 or 'Physical' not in area_text or x1 <= x0 or y1 <= y0:
+        raise ValueError('missing die bounds or detailed top-level area')
+    # Last columns are instance count, total area and eight area categories.
+    total = float(rows[0][-9])
+    physical_only = float(rows[0][-1])
+    if not 0 <= physical_only < total:
+        raise ValueError('invalid detailed area numbers')
+    die_area = (x1-x0)*(y1-y0)
+    return {'die_bbox_um': [x0, y0, x1, y1], 'die_area_um2': die_area,
+            'placed_cell_area_um2': total-physical_only,
+            'physical_only_area_um2': physical_only,
+            'die_utilization_percent': 100*(total-physical_only)/die_area}
+
+
 def physical_values(config, top, cpus):
     if not re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]*', top) or not 1 <= cpus <= 16:
         raise ValueError('invalid top or CPU count')
@@ -82,11 +99,19 @@ def main():
     valid=done.returncode==0 and marker in text
     valid=valid and all((out/f).is_file() and (out/f).stat().st_size for f in
                        ['outputs/postroute.v','reports/setup_path.rpt','reports/hold_path.rpt',
-                        'reports/area.rpt','reports/internal_drc.rpt','reports/connectivity.rpt'])
+                        'reports/area.rpt','reports/die_bbox_um.txt',
+                        'reports/internal_drc.rpt','reports/connectivity.rpt'])
     if values['registered']:
         valid = valid and all((out/f).is_file() and (out/f).stat().st_size for f in
                               ['reports/clock_trees.rpt','reports/query_setup.rpt'])
         metadata['CTS'] = 'FLOW_COMPLETE_CHECK_REPORTS' if valid else 'CHECK_PARTIAL_REPORTS'
+    if valid:
+        try:
+            metadata.update(die_utilization((out/'reports/die_bbox_um.txt').read_text(),
+                                            (out/'reports/area.rpt').read_text(), top))
+        except ValueError as error:
+            metadata['die_utilization_error'] = str(error)
+            valid = False
     metadata.update(status='FLOW_COMPLETE_CHECK_REPORTS' if valid else 'FAIL',returncode=done.returncode)
     (out/'PRODUCER.json').write_text(json.dumps(metadata,indent=2)+'\n')
     print(json.dumps({'output':str(out),'status':metadata['status']}))

@@ -47,6 +47,9 @@ proc implement_hash {} {
         report_timing -to [get_ports {query_index_o* query_tag_o*}] > reports/query_setup.rpt
     }
     report_area -detail -out_file reports/area.rpt
+    set die_bounds [open reports/die_bbox_um.txt w]
+    puts $die_bounds [join [concat {*}[get_db current_design .bbox]] " "]
+    close $die_bounds
     check_drc -out_file reports/internal_drc.rpt
     check_connectivity -type all -out_file reports/connectivity.rpt
     check_connectivity -type special -out_file reports/pg_connectivity.rpt
