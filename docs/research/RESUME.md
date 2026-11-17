@@ -6,6 +6,12 @@ The integrated research goal remains active; full PPA and independent evaluation
 are unfinished. Inspect the private producer status files and processes for
 current progress.
 
+See `EXPERIMENT_NOTE_2026-11-17_REGISTERED_TIMING.md` for the current
+registered placement batch, STA summary command and CPU dependency gate.
+Add an English experiment note for each meaningful implementation or
+validation step. Record the question, frozen contract, commands and
+producer paths, result or failure, and the next decision.
+
 Completed new feedback work: state/bank audit, seven primary-source cards with
 access limits, production fold-causality command and sweep, hand trace/PNG/PDF,
 bank-select publication kernel/unit gates, claim ledger and revised specification.

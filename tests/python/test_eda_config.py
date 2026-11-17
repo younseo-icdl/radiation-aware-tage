@@ -3,9 +3,20 @@ import tempfile
 import unittest
 from simulation.eda.synthesize import site_values, tcl_word
 from simulation.eda.implement import die_utilization, physical_values
+from simulation.eda.history_timing import worst_path
 
 
 class EdaConfigTests(unittest.TestCase):
+    def test_registered_sta_units_and_corner(self):
+        report = ('Path 1: VIOLATED (-0.176 ns) Late Output Delay Assertion\n'
+                  ' View: slowview\n Startpoint: (R) head_reg/CK\n'
+                  ' Endpoint: (F) query_tag_o[0]\n')
+        self.assertEqual(worst_path(report, 'slowview', 'Late')['slack_ps'], '-176.000')
+        with self.assertRaises(ValueError):
+            worst_path(report, 'fastview', 'Late')
+        with self.assertRaises(ValueError):
+            worst_path(report, 'slowview', 'Early')
+
     def test_utilization_uses_die_bounds_and_excludes_physical_only_area(self):
         report = ('Hinst Name Module Name Inst Count Total Area Buffer Inverter '
                   'Combinational Flop Latch Clock Gate Macro Physical\n'
