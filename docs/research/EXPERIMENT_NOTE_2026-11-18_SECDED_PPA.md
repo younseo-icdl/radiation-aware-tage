@@ -48,3 +48,9 @@ only at a common qualified period and on identical input edges.
 Track zero-delay gate activity and annotation coverage separately
 from extracted timing. Raw logs and independent producers are
 under `work/history-secded-ppa-20261118-r1/`.
+
+The standalone C++ suite and 70 Python checks passed. The
+existing checksum-qualified gem5 executable also passed all 14
+finite checksum cases. Its P_ECC case validates the software
+model. The Xcelium test and trace replay establish the separate
+RTL and do not change the gem5 integration.
