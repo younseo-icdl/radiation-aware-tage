@@ -9,6 +9,7 @@ import shutil
 import subprocess
 
 from .synthesize import tcl_word
+from .implement import retime_history_sdc
 
 
 def worst_path(text, view, analysis):
@@ -79,26 +80,35 @@ def main():
     for name in ('recurrent', 'lease', 'output'):
         parser.add_argument('--'+name, required=True, type=Path)
     parser.add_argument('--audit-no-undo', action='store_true')
+    parser.add_argument('--recheck-period-ps', type=int,
+                        help='Recheck both routed checkpoints at a specified common clock')
     args = parser.parse_args()
     try:
+        if args.recheck_period_ps is not None and args.recheck_period_ps <= 0:
+            raise ValueError('recheck clock period must be positive')
         summary = matched_summary(args.recurrent, args.lease)
         with args.output.open('x') as out:
             json.dump(summary, out, indent=2)
             out.write('\n')
-        if args.audit_no_undo:
+        if args.audit_no_undo or args.recheck_period_ps is not None:
             for name, route in (('recurrent', args.recurrent), ('lease4096', args.lease)):
                 outdir = args.output.with_suffix('').with_name(args.output.stem+'-'+name)
-                audit_no_undo(route, outdir)
+                audit_no_undo(route, outdir, args.recheck_period_ps)
     except (ValueError, OSError, KeyError) as error:
         parser.error(str(error))
 
 
-def audit_no_undo(route, output):
+def audit_no_undo(route, output, period_ps=None):
     checkpoint = (route/'outputs/routed.inn').resolve(strict=True)
     output.mkdir()
     (output/'reports').mkdir()
     shutil.copy2(Path(__file__).with_name('innovus_history_modes.tcl'), output/'flow.tcl')
-    (output/'site.tcl').write_text('set checkpoint '+tcl_word(checkpoint)+'\n')
+    (output/'site.tcl').write_text('set checkpoint '+tcl_word(checkpoint)+'\n'
+                                 f'set retimed {int(period_ps is not None)}\n')
+    if period_ps is not None:
+        (output/'inputs').mkdir()
+        original = (route/'inputs/mapped.sdc').read_text()
+        (output/'inputs/recheck.sdc').write_text(retime_history_sdc(original, Decimal(period_ps)/1000))
     cmd = ['innovus', '-stylus', '-no_gui', '-files', 'flow.tcl', '-log', 'innovus.log']
     log = output/'console.log'
     with log.open('x') as stream:
@@ -109,6 +119,10 @@ def audit_no_undo(route, output):
         raise ValueError(f'query mode audit failed; reports retained in {output}')
     result = {mode: worst_path((output/'reports'/f'query_{mode}.rpt').read_text(), 'slowview', 'Late')
               for mode in ('unrestricted', 'no_undo')}
+    if period_ps is not None:
+        result['rechecked_period_ps'] = period_ps
+        result['setup'] = worst_path((output/'reports/rechecked_setup.rpt').read_text(), 'slowview', 'Late')
+        result['hold'] = worst_path((output/'reports/rechecked_hold.rpt').read_text(), 'fastview', 'Early')
     result['scope'] = 'query with all undo bits constrained to zero; remaining operands external'
     (output/'MODE_TIMING.json').write_text(json.dumps(result, indent=2)+'\n')
 

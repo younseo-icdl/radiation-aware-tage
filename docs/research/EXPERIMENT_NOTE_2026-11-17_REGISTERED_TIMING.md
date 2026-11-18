@@ -145,3 +145,21 @@ The revised batch has its own terminal density watcher for the
 matched timing and no-undo path analysis. The physical result is
 pending. The online observer producer and the directed publication
 phase check are documented in the separate history activity note.
+
+## Checkpoint STA at a common period
+
+At the next observation the 6.5 ns primary flows had both passed
+clock tree synthesis and entered routing. Lease4096 reached RC
+extraction and post-route optimization with an intermediate setup
+slack of -0.47 ns. Final reports remained pending.
+
+The timing tool now accepts `--recheck-period-ps` for a fresh
+checkpoint session. It retains the extracted network and replaces
+the functional MMMC constraints with a private SDC copy whose only
+edit is the clock period and waveform. The session records setup,
+hold and unrestricted/no-undo query paths. This prepares a
+fixed-placement STA recheck if the final common starting target
+needs adjustment. It does not reoptimize the layout. Negative
+hold or unresolved operand feedback continues to prevent CPU
+qualification. Focused parsing and SDC preservation tests passed.
+The actual checkpoint recheck depends on completed routed files.
