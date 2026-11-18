@@ -50,11 +50,25 @@ and event counts are retained in `../results/source-development-2026-11-17.md`.
 These results do not establish a PPA-qualified or population-wide winner. The
 earlier forced-event negative study stays separate and complete.
 
-**What remains and which experiment changes a decision?** Finish physical
-source/read/update/undo/controller correctness and cost, including actual two
-conditional queries/tick, three appends/tick, up to 45 observed undos/tick, and
-declared 512-owner capacity. B0 route fails 500 ps for all five designs and has no
-activity-energy result. Use the prototype's honest drain cost as comparator
-before adding a nonblocking protocol. Backannotate common constraints for native
-and candidates; then freeze independent owners/statistics. Do not expand rates,
-seeds or candidate families to obtain a win. No further CPU batch is running.
+**What does the matched layout establish?** The registered history blocks
+completed routing at 72.11% and 68.46% die utilization on the same GPDK45 die.
+They passed an 8.100 ns postroute recheck with setup/hold slack of +179/+74 ps
+for recurrent and +10/+68 ps for lease. Clock, raw ring, path checkpoints,
+folds and the lease controller are in scope. The lease layout used 5.06%
+less placed cell area. The full 80,001-edge clean checksum replay directly
+annotated all routed nets and flop outputs at the same clock, including five
+lease publications. The zero-delay switching estimate was 4.438 versus
+3.920 mW, or 11.68% less history-window energy. Gate-delay glitches and
+whole-task energy remain outside this measurement. See
+`EXPERIMENT_NOTE_2026-11-17_REGISTERED_TIMING.md`.
+
+**What remains and which experiment changes a decision?** Match the
+predictor-row, direction, speculative append and restore-owner timing boundaries
+before backannotating a common frequency and issue schedule. The qsort replay
+shows substantial same-tick query–append ordering. A common conditional issue
+interval is implemented and checksum-tested. An issued prediction still needs
+to reach the same-edge history append, and its path has a measured external
+deadline around 4.7–4.8 ns at the current 8.1 ns block clock. The held-out
+Basicmath, Patricia and CRC32 set is locked. Its 54 runs begin after the
+timed CPU contract and bounded checks pass. See the provider note and
+`HELDOUT_LEASE4096_LOCK.md`.

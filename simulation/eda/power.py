@@ -53,7 +53,9 @@ def main():
     (out/'site.tcl').write_text(script)
     if sdc is not None:
         (out/'activity.sdc').write_text(sdc)
-    shutil.copy2(vcd, out/'activity.vcd')
+    # Keep an independent snapshot without duplicating large waves on reflink filesystems.
+    subprocess.run(['cp', '--reflink=auto', '--preserve=timestamps', '--',
+                    str(vcd), str(out/'activity.vcd')], check=True)
     with (out/'activity.vcd').open('rb') as stream:
         digest = hashlib.file_digest(stream, 'sha256').hexdigest()
     record = dict(route=str(route), block_scope=parent['scope'], vcd=str(vcd),

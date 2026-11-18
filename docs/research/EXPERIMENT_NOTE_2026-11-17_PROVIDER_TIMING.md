@@ -115,3 +115,25 @@ from the issued query to its speculative append. It must also cover
 earlier nonconditional appends, table-row arrival, and redirect timing.
 The ordering reports from existing captures are in
 `work/history-order-audit-20261117-r1/`. This audit launched no workloads.
+
+## Timing boundary for the staged contract
+
+The matched routed history blocks pass at 8.100 ns. The no-undo setup
+reports put the latest head-to-query boundary close to 7 ns into the
+cycle. With 50 ps input delay, the no-undo append direction must be
+available by about 4.73 ns for recurrent and 4.82 ns for lease. Those
+are conservative interface budgets. Because the worst paths may
+refer to different bits and lanes, the figures do not yield an exact
+composed timing path. They motivate registering the index/tag boundary
+before reading the rows and applying the speculative append.
+
+A staged CPU contract must keep one request identity with its sampled
+indices, survive frontend backpressure, and cancel on an intervening
+redirect before changing history. Training may occur while the request
+waits. Row read and same-cycle training order must be defined and tested.
+The append uses the direction accepted by the BPU after target handling.
+Any lease request must drain or cancel pending work before publication.
+Directed tests must exercise each ordering, including a fault between
+hash capture and row consumption. Those checks and composed STA carry
+more information than an arbitrary issue restriction on the held-out
+suite. No held-out outcome was opened for this timing decision.

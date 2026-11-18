@@ -280,3 +280,105 @@ measures the append-direction input to history-register and query
 output paths with no undo. This determines the budget for a producer
 that supplies speculative append operands. Its reports are under
 `work/history-append-boundary-20261117-r1/`.
+
+### 8.100 ns matched recheck
+
+The frozen pair passed the unrestricted postroute STA recheck with
+CPPR enabled for setup and hold, slow setup and fast hold views.
+
+| Variant | Setup WNS | Hold WNS | No-undo query WNS | No-undo append direction to state slack | No-undo append direction to query slack |
+|---|---:|---:|---:|---:|---:|
+| Recurrent | +179 ps | +74 ps | +1,068 ps | +4,677 ps | +5,382 ps |
+| Lease4096 | +10 ps | +68 ps | +1,488 ps | +4,771 ps | +5,494 ps |
+
+Lease's limiting setup path is `restore_owner_i[2]` to a checkpoint
+register. The recurrent limiting path is undo count to a query tag.
+The no-undo direction input can arrive approximately 4.73 ns or
+4.82 ns after the active launch reference, including the original 50 ps
+input delay in the reported slack budget. That is an external deadline
+for maintaining a same-edge append. The latest no-undo head-to-query
+paths and separately mapped table components cannot be declared to
+meet this deadline by combining unrelated WNS reports. The full
+feedback path still requires a concrete wiring and staging contract.
+
+### First matched history power estimate
+
+Both RTL replays passed at 8.100 ns using the retained 80,001-edge
+checksum captures. Lease published five times. Innovus imported the
+matched 648,008.1 ns window at slowview and 0.9 V and reported an
+effective `history_clk` period of 8.100 ns. All 127 primary input bits
+were directly annotated per design. None of the flop outputs were
+directly annotated, so internal power depends on tool propagation and
+the 0.2 default sequential activity. Recurrent's TIELO cell type
+lacked an internal-power table. The estimates are scoped to this
+history datapath and trace window.
+
+| Variant | Internal (mW) | Switching (mW) | Leakage (mW) | Total (mW) | Window energy (µJ) | Direct net coverage |
+|---|---:|---:|---:|---:|---:|---:|
+| Recurrent | 4.584 | 3.674 | 0.00530 | 8.263 | 5.354 | 398/107,651 |
+| Lease4096 | 4.440 | 3.154 | 0.00491 | 7.599 | 4.924 | 398/95,245 |
+
+The estimated trace-window reduction is 8.03%. These are clean prefix
+component results. The windows do not give energy to program exit or
+include the predictor arrays and frontend.
+STA and original power reports are under
+`work/history-matched-recheck-power-20261117-r1/`.
+
+Started a second, directly annotated activity measurement on the
+frozen routed netlists. The same replay bench compares routed query
+indices, tags and admission to RTL before each checked edge. The
+matched 16,001-edge slice includes the first lease publication and
+limits wave storage. Zero-delay simulation captures functional
+switching and excludes routed glitches. Extracted RC and the same
+slow power library remain in the power estimator. Its data is under
+`work/history-routed-activity-power-20261117-r1/`.
+
+The first two routed replays encountered unknown query bits after a
+one-edge synchronous reset. The single-edge RTL reference had already
+reached its known state. The second attempt retained readable netlist
+signals and preserved the library's delayed signals with `-ntcnotchks`.
+Its VCD localized unknowns to four recurrent and one lease fold bits
+after reset. The same gate-level models passed with four reset edges,
+without forcing initial state or suppressing comparisons. The power
+window starts after those four reset periods. Attempts 2 and 3 are
+retained under `work/history-routed-activity-power-20261117-r2/` and
+`work/history-routed-activity-power-20261117-r3/`. A repeat of the
+one-edge 80,001-edge RTL lease replay also passed with five publications.
+
+The 16,001-edge routed pair completed with one checked lease
+publication. All 127 primary input bits, all flop outputs and all
+reported nets were directly annotated. The matched 129,608.1 ns window
+gave the following zero-delay functional switching estimate.
+
+| Variant | Internal (mW) | Switching (mW) | Leakage (mW) | Total (mW) | Window energy (µJ) | Direct net coverage |
+|---|---:|---:|---:|---:|---:|---:|
+| Recurrent | 2.823 | 1.492 | 0.00518 | 4.320 | 0.5600 | 107,651/107,651 |
+| Lease4096 | 2.690 | 1.150 | 0.00478 | 3.845 | 0.4984 | 95,245/95,245 |
+
+Lease's estimated energy is 11.00% lower in this slice. The annotation
+and capture windows differ from the first power flow, so this percentage
+does not isolate the effect of propagated versus direct activity. A
+fresh pair replays the existing full 80,001-edge capture to match the
+first flow's event sequence and include all five publications. The
+private output is `work/history-routed-activity-power-20261117-r4/`.
+
+The full routed replay passed all 80,001 edges in each arm, including
+five lease publications and the per-edge comparison of RTL and routed
+query and admission outputs. Innovus confirmed full primary-input,
+flop-output and net annotation for both layouts. The 8.100 ns period,
+slowview/0.9 V and 648,008.1 ns post-reset window match the first flow's
+period, view and capture duration.
+
+| Variant | Internal (mW) | Switching (mW) | Leakage (mW) | Total (mW) | Window energy (µJ) | Direct net coverage |
+|---|---:|---:|---:|---:|---:|---:|
+| Recurrent | 2.862 | 1.571 | 0.00518 | 4.438 | 2.8759 | 107,651/107,651 |
+| Lease4096 | 2.716 | 1.198 | 0.00478 | 3.920 | 2.5399 | 95,245/95,245 |
+
+Lease has 11.68% lower estimated history-window energy, with the
+largest contribution coming from a 23.72% decrease in the switching
+component. The directly annotated estimate has lower absolute power
+than the port-propagation estimate for both arms. The routed cell
+models used zero delay, so dynamic hazards from unequal path delays
+remain outside this estimate. These figures apply to this clean
+checksum history-block window at the shared period. End-to-end power,
+task energy and faulted program runtime need separate evidence.
