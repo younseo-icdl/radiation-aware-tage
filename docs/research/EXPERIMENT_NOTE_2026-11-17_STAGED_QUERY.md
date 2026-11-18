@@ -932,3 +932,50 @@ owner-bootstrap summaries and checked the matched physical
 reports, clock and full activity annotation. The fixed WHOLE
 laws remain separately tested. The receipt is
 `work/heldout-glibc-followup-20261118-r1/FINAL_AUDIT.json`.
+
+## SECDED component cost follow-up
+
+The original registered GPDK45 comparison measured unprotected
+recurrent and lease history blocks. It did not place and route
+a matched ECC block. The follow-up mapped five combinational
+reference circuits with Genus under the same GPDK45 slow
+standard-cell library, 13.850 ns virtual clock, 50 ps input and
+output delays, 50 ps input transition, and 0.01 pF output load.
+The final mapping uses balanced XOR expressions for both methods.
+The shortened extended Hamming code follows the repo's per-word
+SECDED position, parity and correction conventions. The scope
+includes separate fold-only and all-S* references. The lease
+reference directly computes the production canonical XOR folds
+from a logical raw130 input.
+
+| Combinational reference | Mapped cell area (µm²) | Slow-view worst data path (ns) |
+|---|---:|---:|
+| Lease canonical fold XOR output | 1,171.350 | 1.807 |
+| ECC 200 fold bits, encode | 917.244 | 0.929 |
+| ECC 200 fold bits, detect and correct | 2,787.984 | 1.900 |
+| ECC all 346 S* bits, encode | 1,719.234 | 2.489 |
+| ECC all 346 S* bits, detect and correct | 4,272.264 | 3.436 |
+
+The 21 fold words require 106 SECDED check bits. The raw130
+and path16 words bring S* to 121 check bits. Xcelium passed
+a clean vector, all 346 payload and 121 check-bit single flips
+on that vector, and a representative same-word double error.
+All five Genus maps passed. Raw logs, RTL and preliminary
+associative-expression maps are retained privately under
+`work/gpdk45-ecc-logic-cost-20261118-r{1,2}/`.
+
+Both ECC decoders expose corrected data, corrected check bits,
+and per-word correctable and uncorrectable statuses. The mapped
+delay starts at already-read operands. The references exclude
+storage, raw-ring alignment, ports, restore ownership,
+scheduling, ECC repair writeback control, clock tree and routed
+wire effects. Separate encoder and decoder numbers describe
+distinct paths. The production lease RTL can share canonical
+logic with restore, so the standalone lease figure is not
+incremental placed area. These results establish a component
+gate-count and delay comparison only. The ECC reference also
+offers immediate single-bit correction for the data passed to
+it, including errors in a protected raw word, which the lease
+does not provide. Whole history-block ECC area, clock and
+activity-based energy remain unmeasured. There was no new
+workload campaign and no TMR physical estimate.
