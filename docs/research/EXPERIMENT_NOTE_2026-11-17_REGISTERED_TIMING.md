@@ -260,3 +260,23 @@ the rechecked period and the same clock is applied to the restored
 power checkpoint. This remains a bounded registered-history result
 with port-level activity. Coordination evidence is
 `work/history-matched-recheck-power-20261117-r1/`.
+
+### Density-qualified matched layout
+
+Attempt 2 completed CTS and routing on a shared 299,427.840 µm² die.
+Both layouts passed internal DRC, signal connectivity and supply
+connectivity checks. Lease placed cell area is 5.06% below recurrent
+area in this specific pair. The original 7.4 ns timing is retained.
+
+| Variant | Placed area (µm²) | Die utilization | Original setup WNS | Original hold WNS |
+|---|---:|---:|---:|---:|
+| Recurrent | 215,916.570 | 72.110% | -0.624 ns | -0.009 ns |
+| Lease4096 | 204,988.302 | 68.460% | -0.434 ns | -0.010 ns |
+
+The matched detailed-layout setup lower bound is 8.024 ns. Both
+frozen checkpoints are being rechecked at 8.100 ns under the shared
+CPPR policy. An independent slow-view audit at the same period
+measures the append-direction input to history-register and query
+output paths with no undo. This determines the budget for a producer
+that supplies speculative append operands. Its reports are under
+`work/history-append-boundary-20261117-r1/`.
