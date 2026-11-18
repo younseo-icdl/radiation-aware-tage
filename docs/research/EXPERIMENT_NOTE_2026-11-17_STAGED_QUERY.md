@@ -783,3 +783,12 @@ provides a route for compatibility validation. It is a functional
 probe with newly linked executables. No staged O3 comparison or
 fault run has used those binaries. Artifacts and probe logs are
 under `work/heldout-libc-compat-probe-20261118-r1/`.
+
+All 16 faulted CRC32 cases completed. The mean benefit was
+-0.048674% across eight comparable SOURCE pairs, with exploratory
+95% owner-bootstrap interval [-0.049202%, -0.048091%].
+The lease reduced mean incremental fault runtime from +0.038004%
+to +0.0000468%. Its +0.086650% clean cost exceeded that saving.
+The separate results note records every pair, coverage, costs,
+and the unresolved exact stdout failures for Basicmath and Patricia.
+See [the held-out report](../results/source-heldout-2026-11-18.md).
