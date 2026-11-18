@@ -22,6 +22,8 @@ def main():
                    help='ordinary native checksum output from the finite gate')
     p.add_argument('--direct', action='store_true', help='Also test direct-query cost and cancellation')
     p.add_argument('--integrated', action='store_true', help='Also test hybrid/lease, actual BPU observations, and tape coverage')
+    p.add_argument('--query-interval', action='store_true',
+                   help='Exercise matched conditional-query pacing and observe issued queries')
     args = p.parse_args()
     if args.output.exists():
         p.error('output exists; choose a fresh directory')
@@ -61,9 +63,22 @@ def main():
                   ('lease',lease), ('lease-fault',lease+['--schedule',str(faults)]),
                   ('lease-age',lease+['--schedule',str(age)]),
                   ('short-tape',['--diagnostics','--schedule',str(short_tape)])]
+    intervals = {}
+    if args.query_interval:
+        for model in ('native', 'lease4096'):
+            mode = ['--lease-period', '4096'] if model == 'lease4096' else []
+            for cycles in (0, 2, 4):
+                name = f'interval-{model}-{cycles}'
+                intervals[name] = (model, cycles)
+                pace = ['--query-ii-cycles', str(cycles)] if cycles else []
+                cases.append((name, mode + pace + ['--activity-end-tick', '40000000']))
+            name = f'interval-{model}-4-fault'
+            intervals[name] = (model, 4)
+            cases.append((name, mode + ['--query-ii-cycles', '4', '--schedule', str(faults)]))
 
     def run(item):
         name, extra = item
+        interval_fault = name in intervals and name.endswith('-fault')
         out = args.output/name
         cmd = [sys.executable, str(ROOT/'tools/gem5.py'), 'run',
                '--tree', str(args.tree.resolve()), '--config',
@@ -96,7 +111,7 @@ def main():
             assert state['additional_lookup_hold'] == int(name in ('direct1', 'direct-fault'))
             assert state['additional_retirement_hold'] == 0
             assert state['periodic_service_clock'] is False
-            if name in ('fault','lease-fault'):
+            if name in ('fault','lease-fault') or interval_fault:
                 assert state['applied_events'] == state['applied_flips'] == 3
                 with (out/'events.csv').open() as f:
                     events = list(csv.DictReader(f))
@@ -107,6 +122,21 @@ def main():
             else:
                 assert state['applied_events'] == 0
             assert state['future_events_censored'] == int(name == 'censored')
+            if name in intervals:
+                model, cycles = intervals[name]
+                assert state.get('conditional_query_interval_cycles', 0) == cycles
+                assert (state.get('query_interval_wait_calls', 0) > 0) == (cycles == 4)
+                if interval_fault:
+                    assert (state['lease_publications'] > 0) == (model == 'lease4096')
+                else:
+                    with (out/'history_activity.csv').open() as f:
+                        assert next(f).strip() == '# capture_end_tick=40000000'
+                        activity = list(csv.DictReader(f))
+                    queries = [int(x['tick']) for x in activity if x['operation'] == 'query']
+                    gap = min(b-a for a, b in zip(queries, queries[1:]))
+                    row['minimum_conditional_query_gap_ticks'] = gap
+                    assert gap >= 500 * cycles
+                    assert any(x['operation'] == 'publish' for x in activity) == (model == 'lease4096')
             if args.integrated:
                 with (out/'events.csv').open() as f:
                     for event in csv.DictReader(f):
@@ -131,7 +161,7 @@ def main():
                                 publications+=1;pending=None
                     assert publications==state['lease_publications']
                     assert (pending is not None)==state['lease_completion_censored_at_exit']
-            if name != 'light':
+            if name != 'light' and name not in intervals:
                 with gzip.open(out/'committed.csv.gz', 'rt') as f:
                     count = 0; bpu_misses = 0
                     for x in csv.DictReader(f):
@@ -181,6 +211,15 @@ def main():
         if args.integrated:
             checks.append({'check':'hybrid clean exact stream/state/time equivalence','status':
                 'PASS' if all(states['hybrid'][f]==states['light'][f] for f in fields) else 'FAIL'})
+        if args.query_interval:
+            for model in ('native', 'lease4096'):
+                disabled = states[f'interval-{model}-0']
+                low = states[f'interval-{model}-2']
+                high = states[f'interval-{model}-4']
+                checks.append({'check': f'{model} matched query interval', 'status': 'PASS'
+                    if all(low[f] == disabled[f] for f in fields)
+                    and high['tick'] > disabled['tick']
+                    and high['retired_pc_identity'] == disabled['retired_pc_identity'] else 'FAIL'})
         if args.native_reference:
             stats = dict(line.split()[:2] for line in
                          (args.native_reference/'stats.txt').read_text().splitlines()

@@ -217,3 +217,28 @@ was preserved as a separate diagnostic. STA and bounded activity
 power watchers now target the revised batch. The power watcher only
 runs after the density gate and nonnegative routed timing at the
 chosen shared clock.
+
+### First 7.4 ns routing attempt
+
+Both variants completed routing on a common 279,301.672 µm² die.
+
+| Variant | Placed area (µm²) | Die utilization | Setup WNS | Hold WNS | Violating hold paths |
+|---|---:|---:|---:|---:|---:|
+| Recurrent | 215,870.058 | 77.289% | -0.688 ns | -0.008 ns | 60 |
+| Lease4096 | 203,197.248 | 72.752% | -0.471 ns | -0.012 ns | 122 |
+
+Recurrent utilization exceeded the required range. Its limiting setup
+path ran from a head register to a query index. The lease limiting setup
+path ran from `undo_count_i` to a query tag. The limiting hold endpoint
+in each variant was a checkpoint flop reached from its own Q through
+combinational feedback. The VCD-derived power and CPU backannotation
+gates remain closed. Original routed checkpoints and reports are in
+`work/b1a-route-20261117-r7/attempt1/`. A fresh common 547.114 µm die
+attempt is running under `attempt2/`.
+
+An isolated setup/hold diagnostic restores the first lease checkpoint
+at 8.2 ns, records the restored common-path pessimism removal (CPPR)
+setting, compares both-edge CPPR, and attempts incremental hold repair
+with the same +30 ps target. This run diagnoses the origin of the
+remaining short paths before touching a density-accepted checkpoint.
+Its output is `work/history-hold-repair-20261117-r1/`.

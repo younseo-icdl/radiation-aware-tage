@@ -62,11 +62,36 @@ restriction independently of lookup result latency. An issued slot
 remains charged if a squash follows. The default preserves existing
 callers. Added interval and wait counters appear only when enabled.
 
-This is a scheduling mechanism for a potential measured common
-contract. The test below uses a two-cycle interval to exercise the
-gate, rather than selecting the held-out policy or asserting a
-two-cycle measured path. The test will verify adjacent conditional
-query gaps, observability of stalls, exact checksum stdout, lease
-publication and original disabled behavior. New producer and gate
-outputs are `work/gem5-query-ii-build-20261117-r1/` and
-`work/gem5-query-ii-gate-20261117-r1/`.
+The pinned gem5 producer built successfully. The first checksum gate
+expected an active stall with a two-cycle interval. Both workloads in
+that gate were the same checksum program. Both arms naturally issued
+queries at least three cycles apart. The assertion failed while
+all four simulations returned the reference stdout. The fresh retry
+kept two cycles as a non-binding control and added a four-cycle positive
+control. Default-disabled output, native counters, termination record
+and activity trace were byte-identical to the prior activity producer
+for each corresponding model.
+
+| Mode | Minimum interval, control | Minimum interval, four-cycle test | Wait calls, four-cycle test | Lease publications within capture |
+|---|---:|---:|---:|---:|
+| Recurrent | 3 cycles | 4 cycles | 8,619 | 0 |
+| Lease4096 | 3 cycles | 4 cycles | 8,638 | 5 |
+
+The positive control changed completion by 7,500 ticks (15 cycles) in
+each arm of this checksum test. All six runs returned identical expected
+stdout. The native regression passed 16 scenarios and five cross-checks.
+The finite regression passed all nine clean cases and five injection
+cases, including the existing counter, recovery and drain assertions.
+The maintained native regression now offers `--query-interval`. It
+passed 24 scenarios and seven cross-checks, including both arms with
+four-cycle pacing and three deterministic injections. Each injection
+applied at its original requested tick and checksum stdout matched.
+The maintained gate evidence is
+`work/gem5-query-ii-maintained-gate-20261117-r2/audit.json`.
+Producers and original failed
+assertion evidence are `work/gem5-query-ii-build-20261117-r1/`,
+`work/gem5-query-ii-gate-20261117-r1/` and
+`work/gem5-query-ii-gate-20261117-r2/`. The checksum controls exercise
+the scheduling mechanism at the existing 500 ps simulation setting.
+The held-out issue interval still requires a measured implementation
+contract.
