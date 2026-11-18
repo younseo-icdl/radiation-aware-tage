@@ -12,6 +12,8 @@ $(BUILD)/tage-trace-screen: simulation/cpp/trace_screen.cpp | $(BUILD)
 	$(CXX) $(CXXFLAGS) $< -lz -o $@
 $(BUILD)/tage-rtl-vectors: simulation/cpp/rtl_vectors.cpp $(BACKEND) $(HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< $(BACKEND) -o $@
+$(BUILD)/tage-provider-vectors: simulation/cpp/provider_vectors.cpp $(BACKEND) $(HEADERS)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< $(BACKEND) -o $@
 $(BUILD)/tage-state-vectors: simulation/cpp/state_vectors.cpp $(BACKEND) $(HEADERS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $< $(BACKEND) -o $@
 $(BUILD)/tage-fold-causality: simulation/cpp/fold_causality.cpp $(BACKEND) $(HEADERS)
