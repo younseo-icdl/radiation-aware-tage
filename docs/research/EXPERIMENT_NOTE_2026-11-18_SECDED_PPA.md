@@ -129,3 +129,63 @@ specifies identical concrete all-one simulation initialization
 before the existing synchronous reset. Its outputs will be
 admitted only if reset and the same clean trace pass. The original
 failed wave and log remain available.
+
+## Final matched routed comparison
+
+The successful Xcelium setup used `-xminitialize 1
+-delay_udp_xminitialize` so the library's UDP-based D flops
+started with concrete states before the normal reset. The
+earlier `-initreg1` setting did not initialize those UDPs.
+The ECC directed reset replay passed for both initial zero and
+initial one. The all-one VCD showed all 1,024 raw storage
+outputs high before the first reset edge and low after it.
+The common power window starts after the four reset edges.
+Both complete routed replays then passed all 80,001 edges,
+14,519 responses, and the single cancellation. The lease arm
+published four times. The full gate waveforms and reports are
+under `work/history-secded-ppa-20261118-r3/activity-reset-qualified-{ecc,lease4096}/`.
+
+The final pair used the same 317,498.436 µm² die, 14.900 ns
+common clock, and identical clean input trace at the slow
+0.9 V power view. Every flop output and net was annotated
+in both arms. ECC had 9,758/9,758 annotated flop outputs and
+93,330/93,330 annotated nets. Lease had 9,652/9,652 annotated
+flop outputs and 90,833/90,833 annotated nets.
+
+| Routed metric | Lease4096 | SECDED |
+|---|---:|---:|
+| Placed cell area (µm²) | 223,445.016 | 233,071.290 |
+| Die utilization | 70.377% | 73.409% |
+| Setup slack at 13.850 ns (ps) | +426 | -988 |
+| Setup slack at 14.900 ns (ps) | +1,085 | +65 |
+| Hold slack at 14.900 ns (ps) | +16 | +5 |
+| Internal power (mW) | 1.370236 | 1.348331 |
+| Switching power (mW) | 0.623886 | 0.475565 |
+| Leakage power (mW) | 0.005293 | 0.005508 |
+| Total power (mW) | 1.999415 | 1.829405 |
+| Common-window energy (µJ) | 2.383347 | 2.180691 |
+
+ECC cost 4.31% more placed cell area. Its raw check-bit write
+path missed the prior shared clock, while 14.900 ns closed
+both checkpoints. This establishes the verified shared period
+for the power experiment, with no minimum-period sweep. On
+this clean trace, ECC used 8.50% less power and window energy.
+The largest measured component difference was lower estimated
+switching power. The matched gate results show that component
+gate counts alone do not predict routed activity power.
+
+The signal activity trace uses zero cell delay with extracted
+RC for power. It covers the integrated clean history path,
+including active ECC read/check and re-encoding. The directed
+RTL gate exercises faulted repair writeback. The clean power
+window does not measure the energy of an injected repair
+episode or of external CPU recovery. Both arm energies refer
+to the same input edges including lease-generated idle gaps,
+not maximum throughput or whole-CPU energy. The original
+automatic-ungrouping ECC map hit its three-hour host limit.
+The qualified 16-core hierarchical pair provides the reported
+matched comparison. No TMR PPA producer was run.
+
+Machine-readable closure and power figures are
+`TIMING_13850.json`, `TIMING_CLOSED.json`, and
+`PPA_RESULT.json` in the final producer directory.
