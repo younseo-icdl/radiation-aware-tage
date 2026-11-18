@@ -719,3 +719,25 @@ clean references again. The faulted phase remains gated on
 the clean references. This is simulator compatibility work.
 The workload binaries, protection policy and matched timing
 constraints remain fixed.
+
+Both original CRC32 clean cases passed exact stdout, retirement
+and delivery validation. They retired 507,879,258 instructions
+per arm and made no indirect conditional queries. The recurrent
+case took 428,544,397 cycles and lease took 428,915,731 cycles
+(+0.08665%). This is a clean observation on the original simulator
+build. It is archived separately from any comparison made with
+the compatibility build.
+
+The second x87 build passed the duplication probe and matched
+all printed limbs in the bounded numerical probe. It still failed
+the arithmetic and full format gates. A reused-slot test identified
+the same narrow-copy defect for constants and m32 loads. With 8.0
+previously in the slot, `FLDZ`, `FLD1`, and an m32 load of 1.5
+each returned 8.0. These paths also inherit a four-byte data size
+at the generic move. The third build makes all x87 floating stack
+copies full-width while leaving the memory operand widths intact.
+Its admission gate checks reused-slot loads, register duplication,
+arithmetic and comparison, formatted output, locked workload
+hashes, and the exact timed checksum. Logs are under
+`work/gem5-heldout-x87-build-20261118-r{2,3}/` and
+`work/heldout-admission-20261118-r8/`.
