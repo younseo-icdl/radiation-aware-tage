@@ -554,3 +554,11 @@ fresh physical producer is in CTS under
 Extracted read, write hold, DRC, connectivity and die utilization
 are pending. The flat synthesis was still using CPU time and is
 retained as an independent producer.
+
+The banked placement completed CTS and reached post-route hold
+optimization. Its initial optimization snapshot reported 69,632
+violating paths and -290 ps WNS. These are intermediate tool
+figures, before final extracted CPPR recheck. Both the final
+hold constraints and final die utilization remain required.
+The flat synthesis has since entered four-way partitioning.
+The admission controller has not opened the workload inputs.
