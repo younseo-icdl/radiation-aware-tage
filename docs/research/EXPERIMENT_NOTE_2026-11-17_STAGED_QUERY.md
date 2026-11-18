@@ -670,3 +670,26 @@ the current target budget. The 8,578 ps physical reference is
 therefore being evaluated against both history arms before any
 held-out run. See `work/history-btb-early-hold-route-20261118-r1/`
 and `work/history-target-budget-20261118-r4/`.
+
+The 8,578 ps BTB reference gives a 9,582 ps composed input arrival,
+including 904 ps for the upstream address and 100 ps for the
+separate layout boundary. The matched GPDK45 history STA passed at
+13,850 ps. Recurrent/lease setup slack was +1,286/+189 ps, hold
+slack +22/+3 ps, and target arrival slack +1,613/+330 ps. The
+existing 80,001-edge directly annotated power replay uses this same
+clock. The exact timed gem5 binary and frozen configuration passed
+all 21 checksum cases and 11 cross-checks. Timing and checksum
+evidence is under `work/history-target-budget-20261118-r4/` and
+`work/heldout-admission-20261118-r5/`.
+
+The held-out gate then opened the six clean references. Both arms
+of Basicmath and Patricia aborted at the same musl `fmt_fp` store
+past the mapped stack. Logs show unimplemented gem5 x87 `FSUBR` or
+`FCOMIP`. Disassembly identifies the store in the common floating
+point formatting loop. This is a shared clean execution failure.
+The precise cause of the loop overflow remains under test. No
+fault tape or runtime comparison has been admitted. A fresh gem5
+build under `work/gem5-heldout-x87-build-20261118-r1/` tests the
+missing decode paths using the existing gem5 x87 arithmetic and
+compare model. The pinned workload files, original outputs and
+SOURCE settings are preserved.
