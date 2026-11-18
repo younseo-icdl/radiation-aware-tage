@@ -639,3 +639,13 @@ It requires completed CTS, extracted timing, final DRC and
 connectivity, accepted die utilization, and a matched target-arrival
 recheck. A single controller under `work/heldout-admission-20261118-r5/`
 chooses the first fully qualified timing producer.
+
+The third banked layout passed the 65–75% die utilization gate
+at 71.868%. Placed cell area was 1,172,859.588 µm² on a
+1,631,955.144 µm² die. Internal DRC, signal connectivity, and
+supply connectivity passed. The unrestricted flow reports showed
++4,365 ps setup and -309 ps hold slack. The independent restored
+CPPR recheck measured -148 ps hold and found negative slack on
+nine of 30 write/control inputs. The fallback is repairing that
+checkpoint in its own directory, `work/history-target-budget-20261118-r3/btb/`.
+The area, timing, and checks on the repaired checkpoint are pending.
