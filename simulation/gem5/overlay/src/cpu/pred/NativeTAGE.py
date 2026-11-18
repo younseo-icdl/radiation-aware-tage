@@ -33,6 +33,7 @@ class NativeTAGE(TAGE):
     query_ii_cycles = Param.Unsigned(0, 'Optional minimum interval between issued conditional queries')
     query_pipeline = Param.Bool(False, 'Register conditional query indices and tags before row selection')
     single_training_port = Param.Bool(False, 'Admit at most one conditional branch training per cycle')
+    row_activity_file = Param.String('', 'Bounded returned-row and target input activity for staged queries')
     cycle_ticks = Param.Unsigned(500, 'CPU clock period in simulator ticks')
     force_base = Param.Bool(False, 'Diagnostic: force base output while retaining TAGE internals')
     max_restore_owners = Param.Unsigned(512, 'Declared finite history-owner capacity, asserted and measured')

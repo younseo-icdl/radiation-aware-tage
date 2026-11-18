@@ -14,7 +14,7 @@ uint64_t integer(const std::string &text) {
     return value;
 }
 void mix(uint64_t &hash, uint64_t value) { hash = (hash ^ value) * 1099511628211ULL; }
-template <class T> void list(std::ostream &out, const std::vector<T> &values) {
+template <class Range> void list(std::ostream &out, const Range &values) {
     for (size_t i = 0; i < values.size(); ++i) {
         if (i) out << ';';
         out << values[i];
@@ -100,6 +100,18 @@ NativeQueryOperands NativeTAGEBase::captureOperands(gem5::ThreadID tid, gem5::Ad
         operands.tags[bank]=gtag(tid,pc,bank);
     }
     return operands;
+}
+NativeReturnedRows NativeTAGEBase::captureRows(gem5::Addr pc, const NativeQueryOperands &operands) const {
+    NativeReturnedRows rows;
+    rows.bimodal=btablePrediction[bindex(pc)];
+    rows.prefer_longest=useAltPredForNewlyAllocated.at(0)<0;
+    for (unsigned bank=1; bank<=nHistoryTables; ++bank) {
+        const auto &entry=gtable[bank][operands.indices[bank]];
+        rows.tags[bank-1]=entry.tag;
+        rows.counters[bank-1]=unsigned(entry.ctr)&7;
+        rows.bank_mask|=unsigned(noSkip[bank])<<(bank-1);
+    }
+    return rows;
 }
 void NativeTAGEBase::calculateIndicesAndTags(gem5::ThreadID tid, gem5::Addr pc, Base::BranchInfo *bi) {
     if (!staged_operands_) {
@@ -517,6 +529,15 @@ NativeTAGE::NativeTAGE(const gem5::NativeTAGEParams &p)
     if (query_pipeline_ && (query_latency_ || query_ii_cycles_ || force_base ||
                             core.effective_direct_mask() || observing_))
         throw std::invalid_argument("staged hashing requires matched recurrent operands and stage-aware observation");
+    if (!p.row_activity_file.empty()) {
+        if (!query_pipeline_ || !core.capturingActivity())
+            throw std::invalid_argument("returned-row capture requires bounded staged history activity");
+        row_activity_.open(p.row_activity_file);
+        if (!row_activity_)
+            throw std::runtime_error("cannot open returned-row activity trace");
+        row_activity_ << "tick,token,pc,indices,query_tags,row_tags,counters,bank_mask,"
+                         "bimodal,prefer_longest,target_valid,direction\n";
+    }
     if (!p.commit_trace_file.empty()) {
         trace_ = gzopen(p.commit_trace_file.c_str(), "wb1");
         if (!trace_) throw std::runtime_error("cannot open native commit trace");
@@ -560,6 +581,13 @@ void NativeTAGE::latchQueryHash() {
     }
 }
 void NativeTAGE::flushTrace() {
+    if (row_activity_.is_open()) {
+        if (row_observation_.history)
+            throw std::logic_error("returned-row observation still awaiting its BPU callback");
+        row_activity_.flush();
+        if (!row_activity_)
+            throw std::runtime_error("returned-row activity trace flush failed");
+    }
     if (trace_) {
         int result = gzclose(trace_); trace_ = nullptr;
         if (result != Z_OK) throw std::runtime_error("native trace close failed");
@@ -591,7 +619,15 @@ bool NativeTAGE::predict(gem5::ThreadID tid, gem5::Addr pc, bool conditional, vo
         }
         auto *bi=new TageBranchInfo(core,pc,true);
         history=bi;
+        if (row_activity_.is_open() && core.capturingActivity()) {
+            if (row_observation_.history)
+                throw std::logic_error("returned-row observation lost its BPU callback");
+            row_observation_={history,pc,pending_token_,pending_operands_,
+                              core.captureRows(pc,pending_operands_),false};
+        }
         predicted=core.predictWithOperands(tid,pc,bi->tageBranchInfo,pending_operands_);
+        if (row_observation_.history)
+            row_observation_.direction=predicted;
         core.activityQueryStage("row_response",pending_token_,pc);
         clearPendingQuery();
         next_query_tick_=gem5::curTick();
@@ -722,7 +758,23 @@ void NativeTAGE::branchPlaceholder(gem5::ThreadID tid,gem5::Addr pc,bool uncond,
     max_live_owners=std::max(max_live_owners,uint64_t(live_.size()));
     if(live_.size()>restore_capacity_) throw std::logic_error("placeholder capacity exceeded");
 }
-void NativeTAGE::seuAuditPrediction(void *info,uint64_t target) {
+void NativeTAGE::seuAuditPrediction(void *info,uint64_t target,bool target_valid) {
+    if (row_observation_.history) {
+        const auto &observation=row_observation_;
+        if (observation.history!=info)
+            throw std::logic_error("returned-row observation has the wrong BPU owner");
+        row_activity_ << gem5::curTick() << ',' << observation.token << ',' << observation.pc << ',';
+        list(row_activity_,observation.operand.indices); row_activity_ << ',';
+        list(row_activity_,observation.operand.tags); row_activity_ << ',';
+        list(row_activity_,observation.rows.tags); row_activity_ << ',';
+        list(row_activity_,observation.rows.counters);
+        row_activity_ << ',' << observation.rows.bank_mask << ',' << observation.rows.bimodal
+                      << ',' << observation.rows.prefer_longest << ',' << target_valid
+                      << ',' << observation.direction << '\n';
+        if (!row_activity_)
+            throw std::runtime_error("returned-row activity trace write failed");
+        row_observation_=RowObservation{};
+    }
     if(!observing_) return;
     auto i=frames_.find(info);
     if(i==frames_.end()) {++missing_bpu_prediction_mapping;return;}

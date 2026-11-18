@@ -22,6 +22,8 @@ def main():
     parser.add_argument('--diagnostics', action='store_true')
     parser.add_argument('--activity-end-tick', type=int, default=0,
                         help='Capture clean history operations before this absolute tick')
+    parser.add_argument('--capture-staged-rows', action='store_true',
+                        help='Capture the actual returned tagged/base rows and BPU target validity')
     parser.add_argument('--direct', action='store_true', help='Direct own-history query folds')
     parser.add_argument('--direct-bank-mask', type=lambda s:int(s,0), default=0)
     parser.add_argument('--lease-period', type=int, default=0,
@@ -67,6 +69,8 @@ def main():
         parser.error('staged hashing requires recurrent operands without legacy pacing or commit diagnostics')
     if args.single_training_port and not args.query_pipeline:
         parser.error('single-port training requires the registered query mode')
+    if args.capture_staged_rows and (not args.query_pipeline or not args.activity_end_tick):
+        parser.error('returned-row capture requires bounded staged history activity')
     output = Path(m5.options.outdir).resolve()
     activity = dict(history_activity_file=str(output/'history_activity.csv'),
                     history_activity_end_tick=args.activity_end_tick) if args.activity_end_tick else {}
@@ -83,11 +87,12 @@ def main():
     issue_interval = dict(query_ii_cycles=args.query_ii_cycles) if args.query_ii_cycles else {}
     pipeline = dict(query_pipeline=True) if args.query_pipeline else {}
     training = dict(single_training_port=True) if args.single_training_port else {}
+    rows = dict(row_activity_file=str(output/'staged_rows.csv')) if args.capture_staged_rows else {}
     predictor = NativeTAGE(tage=base,
         query_latency=args.query_latency, cycle_ticks=args.cycle_ticks,
         max_restore_owners=args.max_restore_owners,
         commit_trace_file=str(output/'committed.csv.gz') if args.diagnostics else '',
-        **issue_interval, **pipeline, **training)
+        **issue_interval, **pipeline, **training, **rows)
     system = create_system(args, output, predictor)
     root = Root(full_system=False, system=system)
     m5.core.seedRandom(args.seed)

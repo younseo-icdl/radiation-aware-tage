@@ -324,3 +324,88 @@ sequence and history state during this trace. They do not measure
 row-selection activity, table training, routed switching energy,
 or full CPU performance. The private inputs and replay logs are
 under `work/history-pipeline-activity-replay-20261118-r1/`.
+
+## Actual returned-row activity
+
+Added an optional clean capture of all seven returned tags and
+signed counters, the bimodal bit, bank enable and alternate chooser
+state, and the BPU's actual target-valid decision. Each record
+carries the same token as its history response, the PC, the saved
+query indices/tags, and the selected conditional direction. The
+observation takes row values at upstream selection and joins the
+target after BPU handling before discarding its temporary record.
+Legacy traces and timing modes keep their existing outputs.
+
+The expanded replay verifies the stored indices/tags and provider
+direction on each actual response alongside the speculative append
+and history state. Invalid row intervals retain the previous
+captured bus values for the activity estimate. With a routed
+netlist present, Xcelium checks its controls, operand outputs and
+feedback against RTL and can emit a gate-level waveform. This is
+an observation of timing inputs and switching under the captured
+sequence, not a separate implementation of TAGE table training.
+
+The new pinned producer and bounded gate are under
+`work/gem5-staged-rows-build-20261118-r1/` and
+`work/gem5-staged-rows-gate-20261118-r1/`. After the measured
+composed timing and timed checksum gates, the power coordinator
+captures both arms at the common period, trims them to a common
+pre-exit window, and imports the checked waveform into Innovus.
+Its outputs are under `work/history-staged-power-20261118-r1/`.
+
+The first returned-row run passed the normal gem5 regression and
+reproduced the prior native state, program output, termination and
+history trace. Its new CSV still had a truncated buffered tail at
+exit. The complete 14,483 responses before tick 39,968,000 passed
+the exact-index, exact-tag and direction checks across 79,937 RTL
+edges in a separately derived prefix. The original capture was
+preserved. The fix flushes the companion row stream at the same
+architectural-exit hook as the other observers and rejects a
+partially written record. The full paired retry is under
+`work/gem5-staged-rows-gate-20261118-r2/`. Its corresponding power
+consumer is `work/history-staged-power-20261118-r2/`.
+
+The private held-out runner passed a read-only prospective check
+of the exact three manifests, 24 locked event seeds, eight
+parallel workers, and the 54-case plan. It uses the fixed SOURCE
+generator and the existing owner-bootstrap analysis. No held-out
+workload was launched. The artifact and seed inventory is under
+`work/heldout-planning-20261118-r1/preflight/`.
+
+The flushed paired retry passed 32 native cases, 15 cross-checks,
+the 14-case finite checksum gate, and all C++/Python tests. The
+full trace replay passed 80,001 edges in each arm. Every live
+returned-row packet matched the CPU hash and target-gated direction.
+That covered 14,495 responses for recurrent and 14,482 for
+lease4096, including one cancellation in each arm and four lease
+publications inside the capture. The four original CPU artifacts
+remained byte-identical with the extra row observer enabled.
+
+Both scan-free staged layouts completed at the second common die
+size of 317,498.436 µm². Utilization is 72.979% and 72.630%.
+Placed cell area is 231,706.026 and 230,599.998 µm². These layouts
+passed DRC and the signal and supply connectivity checks.
+At the preliminary 8.150 ns recheck with CPPR, recurrent passed
++78 ps setup and +22 ps hold. Lease passed hold at +3 ps and
+failed setup by 173 ps on restore owner to checkpoint. This
+stopped the preliminary gate. The two measured returned-row
+feedback slacks were +2,177 ps and +969 ps under the original
+50 ps input constraint.
+
+The next paired STA directly uses the measured restore deficit
+and the row timing composition. No beneficial negative launch
+skew is credited across separately placed blocks. The latest
+registered address path is budgeted at 904 ps, the slower
+extracted reference read is 5,637 ps, and the explicitly unplaced
+link allowance is 100 ps. The returned-row input and the
+externally asserted target-valid deadline are constrained to
+6,641 ps. The larger feedback deficit is 5,622 ps from the
+8,150 ps recheck. The candidate common period is 13,850 ps,
+using the 50 ps upward rounding and additional 50 ps margin.
+The fresh STA, then conditional timed checksum and matched
+activity-power outputs, are under
+`work/history-composed-timing-20261118-r4/`,
+`work/history-composed-checksum-20261118-r3/`, and
+`work/history-staged-power-20261118-r3/`. The target deadline
+and cross-block allowance are explicit interface assumptions.
+The physical scope does not include the external target lookup.

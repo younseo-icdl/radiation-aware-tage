@@ -9,7 +9,7 @@ import shlex
 import shutil
 import subprocess
 
-from .implement import retime_history_sdc
+from .implement import REGISTERED_HISTORY_SCOPES, retime_history_sdc
 from .synthesize import tcl_word
 
 
@@ -36,7 +36,7 @@ def main():
             raise ValueError('completed route, VCD, valid scope/interval and 1..16 CPUs required')
         sdc = None
         if a.clock_period_ps is not None:
-            if parent['scope'] != 'B1A_HISTORY_DATAPATH':
+            if parent['scope'] not in REGISTERED_HISTORY_SCOPES:
                 raise ValueError('clock retiming requires a registered history checkpoint')
             sdc = retime_history_sdc((route/'inputs/mapped.sdc').read_text(),
                                      Decimal(a.clock_period_ps)/1000)

@@ -79,7 +79,7 @@ class ConditionalPredictor : public SimObject
     virtual void seuSquashEnd(ThreadID) {}
     virtual void seuAuditCommit(uint64_t,uint64_t,unsigned,bool,bool,void*) {}
     virtual void seuAuditBranch(void*,bool,bool,bool,bool,unsigned) {}
-    virtual void seuAuditPrediction(void*,uint64_t) {}
+    virtual void seuAuditPrediction(void*,uint64_t,bool) {}
     virtual void seuAuditInflight(unsigned) {}
     virtual bool seuCanRetire(ThreadID, void*) { return true; }
     virtual void seuReserveRetire(ThreadID, void*) {}

@@ -323,7 +323,8 @@ BPredUnit::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
     cPred->updateHistories(tid, hist->pc, hist->uncond, hist->predTaken,
                            hist->target->instAddr(), hist->inst,
                            hist->bpHistory);
-    cPred->seuAuditPrediction(hist->bpHistory,hist->target->instAddr());
+    cPred->seuAuditPrediction(hist->bpHistory,hist->target->instAddr(),
+                             hist->targetProvider!=TargetProvider::NoTarget);
 
 
     if (iPred) {

@@ -72,3 +72,14 @@ deadline around 4.7–4.8 ns at the current 8.1 ns block clock. The held-out
 Basicmath, Patricia and CRC32 set is locked. Its 54 runs begin after the
 timed CPU contract and bounded checks pass. See the provider note and
 `HELDOUT_LEASE4096_LOCK.md`.
+
+**What changed in the staged implementation?** Registered hash capture and
+subsequent row return now have separate CPU edges with cancellation and
+matched single-conditional-training-port control. The actual CPU row,
+target and owner captures reproduce the RTL's staged operands on 80,001
+edges per arm. The scan-free staged layouts routed at 72.98% and 72.63%
+die utilization. Extracted tagged and T0 read references take 5.074 and
+5.637 ns. They and the staged feedback reports motivate a common 13.850 ns
+candidate under an explicit target-valid deadline. Check the staged note
+for final STA, energy scope and whether the measured configuration is
+eligible for the locked workload tests.

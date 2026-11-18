@@ -19,6 +19,11 @@ class NativeTAGE;
 struct NativeQueryOperands {
     std::array<int, 8> indices{}, tags{};
 };
+struct NativeReturnedRows {
+    std::array<unsigned, 7> tags{}, counters{};
+    unsigned bank_mask=0;
+    bool bimodal=false, prefer_longest=false;
+};
 struct NativeSample {
     uint64_t lookup_id = 0, lookup_tick = 0, epoch = 0, buffer_epoch = 0;
     int head = 0, restore_head = 0;
@@ -102,6 +107,8 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     }
     NativeSample sample(const Base::BranchInfo &, uint64_t lookup_id) const;
     NativeQueryOperands captureOperands(gem5::ThreadID, gem5::Addr) const;
+    NativeReturnedRows captureRows(gem5::Addr, const NativeQueryOperands &) const;
+    bool capturingActivity() const { return activityOpen(); }
     bool predictWithOperands(gem5::ThreadID, gem5::Addr, Base::BranchInfo *,
                              const NativeQueryOperands &);
     uint64_t historyGeneration() const { return history_generation_; }
@@ -120,6 +127,16 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     std::unordered_map<void *, NativeSample> frames_;
     std::unordered_map<void *, Retired> retired_;
     std::unordered_set<void *> live_;
+    struct RowObservation {
+        const void *history=nullptr;
+        gem5::Addr pc=0;
+        uint32_t token=0;
+        NativeQueryOperands operand;
+        NativeReturnedRows rows;
+        bool direction=false;
+    };
+    RowObservation row_observation_;
+    std::ofstream row_activity_;
     gzFile trace_ = nullptr;
     bool observing_ = false;
     unsigned query_latency_ = 0;
@@ -177,7 +194,7 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     void squash(gem5::ThreadID, void *&) override;
     void seuAuditCommit(uint64_t, uint64_t, unsigned, bool, bool, void *) override;
     void seuAuditBranch(void*,bool,bool,bool,bool,unsigned) override;
-    void seuAuditPrediction(void*,uint64_t) override;
+    void seuAuditPrediction(void*,uint64_t,bool) override;
     void branchPlaceholder(gem5::ThreadID,gem5::Addr,bool,void *&) override;
     void seuAuditInflight(unsigned) override;
     bool seuFrontendBlocked(gem5::ThreadID, bool) override;
