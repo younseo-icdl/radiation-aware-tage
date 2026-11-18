@@ -122,6 +122,9 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     unsigned query_latency_ = 0;
     unsigned query_ii_cycles_ = 0;
     bool query_pipeline_ = false;
+    bool single_training_port_ = false;
+    bool pending_hash_captured_ = false;
+    gem5::EventFunctionWrapper query_hash_latch_;
     NativeQueryOperands pending_operands_;
     uint64_t pending_generation_ = 0;
     size_t pending_fault_count_ = 0;
@@ -134,8 +137,11 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     uint64_t lookups_this_tick_=0, conditionals_this_tick_=0;
     unsigned restore_capacity_=512;
     uint64_t next_retired_branch_ = 0;
+    gem5::Tick last_training_reservation_tick_=0, last_conditional_training_tick_=0;
     void writeTrace(const NativeSample *, const Retired *, gem5::Addr, bool, bool,
                     gem5::Addr, const Base::BranchInfo &);
+    void latchQueryHash();
+    void discardPendingQuery();
     static NativeTAGEBase &checkedCore(gem5::branch_prediction::TAGEBase *);
 
   public:
@@ -151,9 +157,13 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     unsigned queryLatency() const { return query_latency_; }
     unsigned queryInterval() const { return query_ii_cycles_; }
     bool queryPipeline() const { return query_pipeline_; }
+    bool singleTrainingPort() const { return single_training_port_; }
+    uint64_t training_port_reservations=0, training_port_waits=0;
     uint64_t staged_responses=0, staged_retries=0, staged_operand_holds=0;
     uint64_t staged_responses_after_fault=0, staged_responses_with_changed_hash=0;
+    uint64_t staged_captures=0, first_staged_hash_identity=0;
     gem5::Tick first_staged_issue_tick=0, first_staged_response_tick=0;
+    gem5::Tick first_staged_capture_tick=0;
     uint64_t query_interval_wait_calls=0;
     bool force_base = false;
     explicit NativeTAGE(const gem5::NativeTAGEParams &);
@@ -174,6 +184,8 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     size_t pendingObservationFrames() const { return frames_.size(); }
     size_t liveHistoryOwners() const { return live_.size(); }
     bool seuPredictionRequest(gem5::ThreadID, gem5::Addr, bool, uint32_t &) override;
+    bool seuCanRetire(gem5::ThreadID, void *) override;
+    void seuReserveRetire(gem5::ThreadID, void *) override;
     void seuCancelPending(gem5::ThreadID) override;
     bool seuPipelineDrained() const override { return !pending_ && live_.empty(); }
 

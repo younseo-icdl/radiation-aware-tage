@@ -37,6 +37,8 @@ def main():
                         help='Optional minimum gap between conditional query issues')
     parser.add_argument('--query-pipeline', action='store_true',
                         help='Register indices/tags before reading rows on a subsequent CPU cycle')
+    parser.add_argument('--single-training-port', action='store_true',
+                        help='Charge one conditional branch retirement reservation per CPU cycle')
     parser.add_argument('--max-ticks', type=int, default=2000000000000)
     parser.add_argument('--seed', type=int, default=548)
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -63,6 +65,8 @@ def main():
     if args.query_pipeline and (args.direct or args.direct_bank_mask or args.query_latency
                                 or args.query_ii_cycles or args.diagnostics):
         parser.error('staged hashing requires recurrent operands without legacy pacing or commit diagnostics')
+    if args.single_training_port and not args.query_pipeline:
+        parser.error('single-port training requires the registered query mode')
     output = Path(m5.options.outdir).resolve()
     activity = dict(history_activity_file=str(output/'history_activity.csv'),
                     history_activity_end_tick=args.activity_end_tick) if args.activity_end_tick else {}
@@ -78,11 +82,12 @@ def main():
         origin_file=str(output/'raw_origins.csv') if args.diagnostics else '', **activity)
     issue_interval = dict(query_ii_cycles=args.query_ii_cycles) if args.query_ii_cycles else {}
     pipeline = dict(query_pipeline=True) if args.query_pipeline else {}
+    training = dict(single_training_port=True) if args.single_training_port else {}
     predictor = NativeTAGE(tage=base,
         query_latency=args.query_latency, cycle_ticks=args.cycle_ticks,
         max_restore_owners=args.max_restore_owners,
         commit_trace_file=str(output/'committed.csv.gz') if args.diagnostics else '',
-        **issue_interval, **pipeline)
+        **issue_interval, **pipeline, **training)
     system = create_system(args, output, predictor)
     root = Root(full_system=False, system=system)
     m5.core.seedRandom(args.seed)
@@ -100,8 +105,10 @@ def main():
         'exit_cause': event.getCause(), 'exit_code': event.getCode(),
         'finite_source_transport': 'NOT_INSTANTIATED',
         'conditional_query_admission_latency_cycles': args.query_latency,
-        **({'conditional_query_hash_latch_cycles': 1, 'history_query_trace_phase': 'hash capture'}
+        **({'conditional_query_hash_latch_cycles': 1, 'conditional_query_row_return_cycles': 1,
+            'history_query_trace_phase': 'hash capture'}
            if args.query_pipeline else {}),
+        **({'conditional_training_admissions_per_cycle': 1} if args.single_training_port else {}),
         'cpu_cycle_ticks': args.cycle_ticks, 'lease_period_raw_appends': args.lease_period,
         'lease_service_cycles': args.lease_service_cycles,
         'lease_service_scope': 'own raw; quiescent restore-owner drain; no physical stage-fit assertion',

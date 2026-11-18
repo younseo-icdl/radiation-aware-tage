@@ -131,3 +131,95 @@ The T0 mapping retry passed. Its address-to-prediction data path is
 reference constraints. This includes neither routed interconnect nor
 the registered history block's downstream path. Separate tagged and
 T0 route jobs started for those read boundary measurements.
+
+## Cycle edges and scan-cell placement retry
+
+The first staged gem5 test captured the hash at request admission
+and charged a cycle before reading rows. The physical circuit has a
+distinct request interval before the hash register edge. The next
+producer schedules that latch one cycle after admission. Row
+consumption follows no sooner than the next cycle. An upset between
+admission and the latch is visible when hashing. An upset after the
+latch leaves the captured hash unchanged. The gem5 fault event runs
+before the latch at the shared tick, and redirects invalidate the
+outstanding packet before an append. The directed gate places one
+event in each interval and compares the first consumed hash identity.
+New results are under `work/gem5-query-pipeline-gate-20261117-r3/`.
+
+The initial staged recurrent placement stopped on Innovus
+`IMPSP-9099`. Genus had chosen scan-capable flops as a functional
+enable mux. For example, a checkpoint bit fed its own Q back to SI,
+with the write-enable signal on SE. The design has no DFT chain.
+Innovus also reported the issue in the lease arm, where placement
+continued below the tool's fatal threshold. Its partial evidence is
+retained separately. The paired remap excludes the scan-flop families
+in both variants and checks that the mapped files contain none. It
+keeps the same RTL, Liberty and timing constraints. The remap and
+replacement layout use `work/history-query-pipeline-synth-20261117-r2/`
+and `work/history-query-pipeline-route-20261117-r2/`.
+
+The two-edge CPU producer passed 30 native scenarios and 13
+cross-checks, the 14-case finite checksum gate, and `make test`.
+Both arms issued at 122,000 ps, captured at 122,500 ps, and first
+consumed rows at 123,000 ps in the 500 ps functional test. The
+122,001 ps flip changed the first latched hash. The 122,501 ps
+flip left that hash equal to clean while a new computation differed.
+Each applied at its requested tick. Both arms preserved the clean
+retirement identity and the lease arm still published six times.
+
+The staged qsort prefix retained conditional training bursts at
+two calls in the same tick. It had 635 such ticks in recurrent and
+633 in lease at the same 100 million-tick exposure. This is new
+evidence from the staged configuration, separate from the archived
+unpipelined counts. It motivated a matched optional single conditional
+training port. That mode reserves credit through O3's existing
+retirement hook, stalls only a conditional retirement with no
+available credit, and checks the actual upstream training callback
+width. The reservation does not reorder or replace the upstream
+training algorithm. Both modes use the same setting.
+
+The new producer passed 32 native scenarios and 15 cross-checks,
+and the finite 14-case checksum gate. The port-limited clean
+checksum had 20,016 completed conditional training calls per arm
+and zero waits. A distinct qsort prefix exercised the limit.
+
+| Mode | Conditional training calls | Maximum calls per tick | Port waits |
+|---|---:|---:|---:|
+| Recurrent | 42,348 | 1 | 639 |
+| Lease4096 | 42,215 | 1 | 641 |
+
+The qsort test stopped at its predefined tick, before architectural
+exit. It validates the scheduling cap and supplies no task runtime
+comparison. Logs are in `work/gem5-query-pipeline-gate-20261117-r4/`,
+`work/history-staged-training-audit-20261117-r1/` and
+`work/history-training-port-qsort-20261117-r1/`. A single conditional
+update call can update several arrays. The throughput check does not
+measure the table-training logic or the parallel usefulness aging
+operation.
+
+The first extracted array references missed the 75% die-utilization
+limit. Their address-to-data delays were 4.817 ns for the tagged
+reference and 5.490 ns for T0. These are useful diagnostics for why
+the mapped row-to-history slack cannot by itself establish an 8.100 ns
+pipeline clock. Both fresh reference routes reached the density range
+at 73.631% and 74.617%, respectively. A new audit checks CPPR hold
+and extracted path delays on the accepted layouts.
+
+The composed timing check uses extracted register-to-address and
+separately extracted address-to-row delays. It includes a declared
+100 ps unplaced boundary-link allowance and tests the same late
+deadline on the external target-valid input. The deadline is an
+interface bound, with no measurement of target lookup or cross-block
+routing at that boundary. It reruns STA with the late data constraints
+and then triggers a bounded checksum gate at the resulting candidate
+period if timing passes. Results are isolated from the held-out
+workloads in `work/history-composed-timing-20261117-r1/` and
+`work/history-composed-checksum-20261117-r1/`.
+
+The two-edge, port-limited checksum trace reported three ticks per
+arm with a hash capture preceding an older undo. The per-tick width
+was still one hash, one append, and at most six undos. The existing
+unstaged replay cannot tell whether the captured hash was subsequently
+discarded. Its conflict check is left intact. A staged trace must
+carry the request identity through capture and cancellation to verify
+this ordering against the RTL.

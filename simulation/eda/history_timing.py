@@ -80,16 +80,21 @@ def matched_summary(recurrent, lease):
     }
 
 
-def row_arrival_constraints(arrival_ps):
-    if arrival_ps is None:
-        return ''
-    if arrival_ps <= 0:
-        raise ValueError('row arrival must be positive')
+def row_arrival_constraints(arrival_ps, target_arrival_ps=None):
     # Change only the late constraint. The original early input delay
     # remains in the hold analysis.
-    ns = Decimal(arrival_ps)/1000
-    return (f'\nset_input_delay -clock [get_clocks history_clk] -max {ns:f} '
-            '[get_ports {row_tag_i* row_counter_i* bimodal_prediction_i}]\n')
+    constraints = ''
+    for time, ports in (
+        (arrival_ps, 'row_tag_i* row_counter_i* bimodal_prediction_i'),
+        (target_arrival_ps, 'taken_target_valid_i'),
+    ):
+        if time is not None:
+            if time <= 0:
+                raise ValueError('late arrival must be positive')
+            ns = Decimal(time)/1000
+            constraints += (f'\nset_input_delay -clock [get_clocks history_clk] -max {ns:f} '
+                            f'[get_ports {{{ports}}}]\n')
+    return constraints
 
 
 def main():
@@ -103,6 +108,8 @@ def main():
                         help='Set the same CPPR policy on both rechecked checkpoints')
     parser.add_argument('--row-arrival-ps', type=int,
                         help='Recheck both staged checkpoints at an explicitly bounded latest row arrival')
+    parser.add_argument('--target-arrival-ps', type=int,
+                        help='Bound the external taken-target-valid arrival for staged feedback')
     args = parser.parse_args()
     try:
         if args.recheck_period_ps is not None and args.recheck_period_ps <= 0:
@@ -110,23 +117,25 @@ def main():
         if args.recheck_cppr is not None and args.recheck_period_ps is None:
             raise ValueError('a CPPR override requires an explicit recheck period')
         summary = matched_summary(args.recurrent, args.lease)
-        if args.row_arrival_ps is not None:
+        arrivals = [x for x in (args.row_arrival_ps, args.target_arrival_ps) if x is not None]
+        if arrivals:
             if (args.recheck_period_ps is None or
                     summary['cases']['recurrent']['scope'] != 'STAGED_HISTORY_RETURNED_ROWS' or
-                    not 0 < args.row_arrival_ps < args.recheck_period_ps):
-                raise ValueError('row arrival requires a staged checkpoint and a larger recheck period')
+                    any(not 0 < x < args.recheck_period_ps for x in arrivals)):
+                raise ValueError('operand arrival requires a staged checkpoint and a larger recheck period')
         with args.output.open('x') as out:
             json.dump(summary, out, indent=2)
             out.write('\n')
         if args.audit_no_undo or args.recheck_period_ps is not None:
             for name, route in (('recurrent', args.recurrent), ('lease4096', args.lease)):
                 outdir = args.output.with_suffix('').with_name(args.output.stem+'-'+name)
-                audit_no_undo(route, outdir, args.recheck_period_ps, args.recheck_cppr, args.row_arrival_ps)
+                audit_no_undo(route, outdir, args.recheck_period_ps, args.recheck_cppr,
+                              args.row_arrival_ps, args.target_arrival_ps)
     except (ValueError, OSError, KeyError) as error:
         parser.error(str(error))
 
 
-def audit_no_undo(route, output, period_ps=None, cppr=None, row_arrival_ps=None):
+def audit_no_undo(route, output, period_ps=None, cppr=None, row_arrival_ps=None, target_arrival_ps=None):
     checkpoint = (route/'outputs/routed.inn').resolve(strict=True)
     pipeline = json.loads((route/'PRODUCER.json').read_text())['scope'] == 'STAGED_HISTORY_RETURNED_ROWS'
     output.mkdir()
@@ -140,7 +149,8 @@ def audit_no_undo(route, output, period_ps=None, cppr=None, row_arrival_ps=None)
         (output/'inputs').mkdir()
         original = (route/'inputs/mapped.sdc').read_text()
         constraints = retime_history_sdc(original, Decimal(period_ps)/1000)
-        (output/'inputs/recheck.sdc').write_text(constraints + row_arrival_constraints(row_arrival_ps))
+        (output/'inputs/recheck.sdc').write_text(
+            constraints + row_arrival_constraints(row_arrival_ps, target_arrival_ps))
     cmd = ['innovus', '-stylus', '-no_gui', '-files', 'flow.tcl', '-log', 'innovus.log']
     log = output/'console.log'
     with log.open('x') as stream:
@@ -158,6 +168,9 @@ def audit_no_undo(route, output, period_ps=None, cppr=None, row_arrival_ps=None)
         result['hold'] = worst_path((output/'reports/rechecked_hold.rpt').read_text(), 'fastview', 'Early')
         if pipeline:
             result['late_row_arrival_override_ps'] = row_arrival_ps
+            result['late_target_arrival_override_ps'] = target_arrival_ps
+            result['address_launch_setup'] = worst_path(
+                (output/'reports/address_launch_setup.rpt').read_text(), 'slowview', 'Late')
             result['provider_setup'] = worst_path(
                 (output/'reports/provider_to_state_setup.rpt').read_text(), 'slowview', 'Late')
     result['scope'] = 'query with all undo bits constrained to zero; remaining operands external'

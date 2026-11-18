@@ -469,13 +469,21 @@ void NativeTAGEBase::dumpResearch() {
             << ",\"query_interval_wait_calls\":" << owner->query_interval_wait_calls;
     if (owner && owner->queryPipeline())
         out << ",\"staged_query_hash_cycles\":1"
+            << ",\"staged_query_row_cycles\":1"
+            << ",\"staged_query_captures\":" << owner->staged_captures
             << ",\"staged_query_responses\":" << owner->staged_responses
             << ",\"staged_query_retries\":" << owner->staged_retries
             << ",\"staged_query_same_tick_holds\":" << owner->staged_operand_holds
             << ",\"staged_responses_after_fault\":" << owner->staged_responses_after_fault
             << ",\"staged_responses_with_changed_hash\":" << owner->staged_responses_with_changed_hash
             << ",\"first_staged_issue_tick\":" << owner->first_staged_issue_tick
+            << ",\"first_staged_capture_tick\":" << owner->first_staged_capture_tick
+            << ",\"first_staged_hash_identity\":" << owner->first_staged_hash_identity
             << ",\"first_staged_response_tick\":" << owner->first_staged_response_tick;
+    if (owner && owner->singleTrainingPort())
+        out << ",\"conditional_training_port_capacity\":1"
+            << ",\"conditional_training_port_reservations\":" << owner->training_port_reservations
+            << ",\"conditional_training_port_waits\":" << owner->training_port_waits;
     out << ",\"RNG_observation\":\"upstream TAGE::update unchanged; observer draws none; full RNG not exported\"}\n";
 }
 
@@ -484,10 +492,17 @@ NativeTAGEBase &NativeTAGE::checkedCore(gem5::branch_prediction::TAGEBase *base)
     if (!value) throw std::invalid_argument("NativeTAGE requires NativeTAGEBase");
     return *value;
 }
-NativeTAGE::NativeTAGE(const gem5::NativeTAGEParams &p) : TAGE(p), core(checkedCore(p.tage)) {
+NativeTAGE::NativeTAGE(const gem5::NativeTAGEParams &p)
+    : TAGE(p),
+      query_hash_latch_([this] { latchQueryHash(); }, name()+".hash_latch", false,
+                        gem5::Event::CPU_Tick_Pri-1),
+      core(checkedCore(p.tage)) {
     query_latency_ = p.query_latency; cycle_ticks_ = p.cycle_ticks;
     query_ii_cycles_ = p.query_ii_cycles;
     query_pipeline_ = p.query_pipeline;
+    single_training_port_ = p.single_training_port;
+    if (single_training_port_ && !query_pipeline_)
+        throw std::invalid_argument("single training port requires registered query mode");
     if (query_ii_cycles_>32 || (query_ii_cycles_ && query_latency_)
             || (query_ii_cycles_ && cycle_ticks_>UINT64_MAX/query_ii_cycles_))
         throw std::invalid_argument("invalid or combined native query interval");
@@ -512,7 +527,33 @@ NativeTAGE::NativeTAGE(const gem5::NativeTAGEParams &p) : TAGE(p), core(checkedC
         gzwrite(trace_, header, unsigned(std::char_traits<char>::length(header)));
     }
 }
-NativeTAGE::~NativeTAGE() { if (trace_) gzclose(trace_); }
+NativeTAGE::~NativeTAGE() {
+    discardPendingQuery();
+    if (trace_) gzclose(trace_);
+}
+void NativeTAGE::discardPendingQuery() {
+    if (query_hash_latch_.scheduled()) deschedule(query_hash_latch_);
+    pending_=false;
+    pending_hash_captured_=false;
+}
+void NativeTAGE::latchQueryHash() {
+    if (!pending_ || pending_hash_captured_)
+        throw std::logic_error("hash latch has no matching request");
+    if (pending_generation_ != core.historyGeneration() || core.lease.due())
+        return; // Its owner will cancel or retry before a provider can consume it.
+    pending_operands_=core.captureOperands(0,pending_pc_);
+    pending_fault_count_=core.appliedFaults();
+    pending_hash_captured_=true;
+    core.activityQuery(pending_pc_);
+    if (++staged_captures == 1) {
+        first_staged_capture_tick=gem5::curTick();
+        first_staged_hash_identity=14695981039346656037ULL;
+        for (unsigned bank=1; bank<pending_operands_.indices.size(); ++bank) {
+            mix(first_staged_hash_identity,pending_operands_.indices[bank]);
+            mix(first_staged_hash_identity,pending_operands_.tags[bank]);
+        }
+    }
+}
 void NativeTAGE::flushTrace() {
     if (trace_) {
         int result = gzclose(trace_); trace_ = nullptr;
@@ -534,7 +575,7 @@ bool NativeTAGE::predict(gem5::ThreadID tid, gem5::Addr pc, bool conditional, vo
     }
     bool predicted;
     if (conditional && query_pipeline_) {
-        if (!pending_ || pending_pc_ != pc || gem5::curTick() < ready_tick_ ||
+        if (!pending_ || !pending_hash_captured_ || pending_pc_ != pc || gem5::curTick() < ready_tick_ ||
             pending_generation_ != core.historyGeneration() || core.lease.due())
             throw std::logic_error("staged query consumed before matching readiness");
         if (pending_fault_count_ != core.appliedFaults()) {
@@ -546,7 +587,7 @@ bool NativeTAGE::predict(gem5::ThreadID tid, gem5::Addr pc, bool conditional, vo
         auto *bi=new TageBranchInfo(core,pc,true);
         history=bi;
         predicted=core.predictWithOperands(tid,pc,bi->tageBranchInfo,pending_operands_);
-        pending_=false;
+        discardPendingQuery();
         next_query_tick_=gem5::curTick();
         if (++staged_responses == 1)
             first_staged_response_tick=gem5::curTick();
@@ -583,7 +624,7 @@ bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
         if (token && token==pending_token_ && (!pending_ || pending_generation_!=core.historyGeneration())) {
             if (pending_) {
                 ++staged_retries;
-                pending_=false;
+                discardPendingQuery();
             }
             token=0;
         }
@@ -594,7 +635,10 @@ bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
     }
     if (!token) {
         if (pending_) throw std::logic_error("duplicate pending query owner");
-        const auto delay=cycle_ticks_*(query_pipeline_ ? 1 : query_latency_);
+        const auto stages=query_pipeline_ ? 2u : query_latency_;
+        if (cycle_ticks_>UINT64_MAX/stages)
+            throw std::overflow_error("query delay exceeds tick range");
+        const auto delay=cycle_ticks_*stages;
         if (gem5::curTick()>UINT64_MAX-delay)
             throw std::overflow_error("staged query deadline exceeds tick range");
         pending_ = true; pending_pc_ = pc;
@@ -602,10 +646,8 @@ bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
         token = pending_token_ = next_token_;
         ready_tick_ = gem5::curTick()+delay;
         if (query_pipeline_) {
-            pending_operands_=core.captureOperands(tid,pc);
-            core.activityQuery(pc);
             pending_generation_=core.historyGeneration();
-            pending_fault_count_=core.appliedFaults();
+            schedule(query_hash_latch_,gem5::curTick()+cycle_ticks_);
             if (!delayed_requests)
                 first_staged_issue_tick=gem5::curTick();
         }
@@ -614,10 +656,36 @@ bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
     if (!pending_ || token != pending_token_ || pending_pc_ != pc)
         throw std::logic_error("query ownership mismatch");
     if (gem5::curTick() < ready_tick_) { ++query_wait_calls; return false; }
+    if (query_pipeline_ && !pending_hash_captured_)
+        throw std::logic_error("row response reached readiness without a valid captured hash");
     return true;
 }
 void NativeTAGE::seuCancelPending(gem5::ThreadID) {
-    if (pending_) { ++canceled_requests; pending_ = false; }
+    if (pending_) {
+        ++canceled_requests;
+        discardPendingQuery();
+    }
+}
+bool NativeTAGE::seuCanRetire(gem5::ThreadID tid, void *history) {
+    if (!single_training_port_ || !history ||
+        !static_cast<const TageBranchInfo *>(history)->tageBranchInfo->condBranch)
+        return true;
+    if (tid)
+        throw std::invalid_argument("native training reservation requires one thread");
+    if (training_port_reservations && last_training_reservation_tick_==gem5::curTick()) {
+        ++training_port_waits;
+        return false;
+    }
+    return true;
+}
+void NativeTAGE::seuReserveRetire(gem5::ThreadID tid, void *history) {
+    if (!single_training_port_ || !history ||
+        !static_cast<const TageBranchInfo *>(history)->tageBranchInfo->condBranch)
+        return;
+    if (tid || (training_port_reservations && last_training_reservation_tick_==gem5::curTick()))
+        throw std::logic_error("conditional retirement exceeded training port capacity");
+    ++training_port_reservations;
+    last_training_reservation_tick_=gem5::curTick();
 }
 bool NativeTAGE::seuFrontendBlocked(gem5::ThreadID tid, bool empty) {
     if(tid) throw std::invalid_argument("lease frontend single thread");
@@ -702,6 +770,12 @@ void NativeTAGE::update(gem5::ThreadID tid, gem5::Addr pc, bool taken, void *&hi
     if (squashed) { TAGE::update(tid, pc, taken, history, true, inst, target); return; }
     auto *key = history;
     auto &bi = *static_cast<TageBranchInfo *>(history)->tageBranchInfo;
+    if (single_training_port_ && bi.condBranch) {
+        if (conditional_updates >= training_port_reservations ||
+            (conditional_updates && last_conditional_training_tick_==gem5::curTick()))
+            throw std::logic_error("conditional training exceeded the reserved port contract");
+        last_conditional_training_tick_=gem5::curTick();
+    }
     ++commit_updates; conditional_updates += bi.condBranch;
     if (observing_) {
         auto frame = frames_.find(key); auto retired = retired_.find(key);

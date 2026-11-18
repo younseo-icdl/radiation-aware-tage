@@ -6,6 +6,16 @@ proc run_state_synthesis {} {
     set_db syn_map_effort medium
     set_db syn_opt_effort medium
     read_libs $library_file
+    if {$pipeline} {
+        # Functional enable feedback must not be inferred as a physical scan chain.
+        set scan_cells {}
+        foreach family {SDFF SEDFF SMDFF} {
+            lappend scan_cells {*}[get_db lib_cells */${family}*]
+        }
+        if {[llength $scan_cells]!=0} {
+            set_db $scan_cells .avoid true
+        }
+    }
     set rtl {inputs/tage_history_hash.sv inputs/tage_history_lease.sv inputs/tage_history_state.sv}
     if {$pipeline} {
         lappend rtl inputs/tage_history_provider.sv inputs/tage_history_pipeline.sv

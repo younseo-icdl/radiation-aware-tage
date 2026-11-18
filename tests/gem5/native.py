@@ -26,7 +26,17 @@ def main():
                    help='Exercise matched conditional-query pacing and observe issued queries')
     p.add_argument('--query-pipeline', action='store_true',
                    help='Check registered hash operands in both arms, including an inter-stage fault')
+    p.add_argument('--single-training-port', action='store_true',
+                   help='Check staged conditional training-port retirement reservations')
+    p.add_argument('--cycle-ticks', type=int, default=500,
+                   help='CPU period in 1 ps units for the bounded native gate')
     args = p.parse_args()
+    if args.cycle_ticks < 2:
+        p.error('cycle period must leave an interior tick for directed faults')
+    if args.single_training_port and not args.query_pipeline:
+        p.error('--single-training-port requires --query-pipeline')
+    capture_end = 80_000 * args.cycle_ticks
+    capture = ['--activity-end-tick', str(capture_end)]
     if args.output.exists():
         p.error('output exists; choose a fresh directory')
     args.output = args.output.resolve()
@@ -67,13 +77,18 @@ def main():
                   ('short-tape',['--diagnostics','--schedule',str(short_tape)])]
     intervals = {}
     pipelines = {}
-    pipeline_fault_ticks = {}
+    pipeline_faults = {}
     if args.query_pipeline:
         for model in ('native', 'lease4096'):
             name = f'pipeline-{model}'
             mode = ['--lease-period', '4096'] if model == 'lease4096' else []
             pipelines[name] = (model, ['--query-pipeline'] + mode)
-            cases.append((name, pipelines[name][1]+['--activity-end-tick', '40000000']))
+            cases.append((name, pipelines[name][1]+capture))
+            if args.single_training_port:
+                port_case = name+'-training-port'
+                port_args = pipelines[name][1]+['--single-training-port']
+                pipelines[port_case] = (model, port_args)
+                cases.append((port_case, port_args+capture))
     if args.query_interval:
         for model in ('native', 'lease4096'):
             mode = ['--lease-period', '4096'] if model == 'lease4096' else []
@@ -81,7 +96,7 @@ def main():
                 name = f'interval-{model}-{cycles}'
                 intervals[name] = (model, cycles)
                 pace = ['--query-ii-cycles', str(cycles)] if cycles else []
-                cases.append((name, mode + pace + ['--activity-end-tick', '40000000']))
+                cases.append((name, mode + pace + capture))
             name = f'interval-{model}-4-fault'
             intervals[name] = (model, 4)
             cases.append((name, mode + ['--query-ii-cycles', '4', '--schedule', str(faults)]))
@@ -95,7 +110,8 @@ def main():
                '--tree', str(args.tree.resolve()), '--config',
                str(ROOT/'simulation/gem5/configs/native_study.py'),
                '--outdir', str(out), '--', '--binary', str(args.binary.resolve()),
-               '--execute', '--max-ticks', '1000000000'] + extra
+               '--cycle-ticks', str(args.cycle_ticks),
+               '--execute', '--max-ticks', str(2_000_000 * args.cycle_ticks)] + extra
         row = {'case': name, 'status': 'FAIL', 'command': cmd}
         try:
             with (args.output/(name+'.log')).open('x') as log:
@@ -122,12 +138,15 @@ def main():
             assert state['additional_lookup_hold'] == int(name in ('direct1', 'direct-fault'))
             assert state['additional_retirement_hold'] == 0
             assert state['periodic_service_clock'] is False
-            if name in pipeline_fault_ticks:
+            if name in pipeline_faults:
+                tick, after_capture, clean_hash = pipeline_faults[name]
                 assert state['applied_events'] == state['applied_flips'] == 1
                 with (out/'events.csv').open() as f:
                     event, = csv.DictReader(f)
-                assert int(event['requested_tick']) == int(event['applied_tick']) == pipeline_fault_ticks[name]
-                assert state['staged_responses_after_fault'] == state['staged_responses_with_changed_hash'] == 1
+                assert int(event['requested_tick']) == int(event['applied_tick']) == tick
+                assert state['staged_responses_after_fault'] == int(after_capture)
+                assert state['staged_responses_with_changed_hash'] == int(after_capture)
+                assert (state['first_staged_hash_identity'] == clean_hash) == after_capture
             elif name in ('fault','lease-fault') or interval_fault:
                 assert state['applied_events'] == state['applied_flips'] == 3
                 with (out/'events.csv').open() as f:
@@ -141,19 +160,27 @@ def main():
             assert state['future_events_censored'] == int(name == 'censored')
             if pipeline_model:
                 issue = state['first_staged_issue_tick']
-                assert issue > 0 and state['first_staged_response_tick'] - issue == 500
-                assert state['staged_query_hash_cycles'] == state['maximum_conditional_lookups_per_tick'] == 1
+                capture_tick = state['first_staged_capture_tick']
+                assert issue > 0
+                assert capture_tick - issue == state['first_staged_response_tick'] - capture_tick == args.cycle_ticks
+                assert state['staged_query_hash_cycles'] == state['staged_query_row_cycles'] == 1
+                assert state['maximum_conditional_lookups_per_tick'] == 1
                 assert state['staged_query_responses'] > 0 and state['canceled_query_requests'] > 0
+                assert state['staged_query_responses'] <= state['staged_query_captures'] <= state['delayed_requests']
                 accounted = (state['staged_query_responses'] + state['staged_query_retries']
                              + state['canceled_query_requests'])
                 assert state['delayed_requests'] - accounted in (0, 1)
                 assert (state['lease_publications'] > 0) == (pipeline_model == 'lease4096')
-                if name not in pipeline_fault_ticks:
+                if '--single-training-port' in extra:
+                    assert state['conditional_training_port_capacity'] == 1
+                    untrained = state['conditional_training_port_reservations'] - state['conditional_updates']
+                    assert 0 <= untrained <= state['all_live_history_owners_at_exit']
+                if name not in pipeline_faults:
                     with (out/'history_activity.csv').open() as f:
-                        assert next(f).strip() == '# capture_end_tick=40000000'
+                        assert next(f).strip() == f'# capture_end_tick={capture_end}'
                         query_ticks = [int(x['tick']) for x in csv.DictReader(f) if x['operation']=='query']
-                    assert query_ticks[0] == issue
-                    assert min(b-a for a,b in zip(query_ticks,query_ticks[1:])) >= 500
+                    assert query_ticks[0] == capture_tick
+                    assert min(b-a for a,b in zip(query_ticks,query_ticks[1:])) >= args.cycle_ticks
             if name in intervals:
                 model, cycles = intervals[name]
                 assert state.get('conditional_query_interval_cycles', 0) == cycles
@@ -162,12 +189,12 @@ def main():
                     assert (state['lease_publications'] > 0) == (model == 'lease4096')
                 else:
                     with (out/'history_activity.csv').open() as f:
-                        assert next(f).strip() == '# capture_end_tick=40000000'
+                        assert next(f).strip() == f'# capture_end_tick={capture_end}'
                         activity = list(csv.DictReader(f))
                     queries = [int(x['tick']) for x in activity if x['operation'] == 'query']
                     gap = min(b-a for a, b in zip(queries, queries[1:]))
                     row['minimum_conditional_query_gap_ticks'] = gap
-                    assert gap >= 500 * cycles
+                    assert gap >= args.cycle_ticks * cycles
                     assert any(x['operation'] == 'publish' for x in activity) == (model == 'lease4096')
             if args.integrated:
                 with (out/'events.csv').open() as f:
@@ -187,7 +214,7 @@ def main():
                             if event['event']=='start':
                                 assert pending is None
                                 pending=int(event['ready_tick'])
-                                assert pending-int(event['tick'])==1000
+                                assert pending-int(event['tick'])==2*args.cycle_ticks
                             else:
                                 assert event['event']=='publish' and pending==int(event['tick'])
                                 publications+=1;pending=None
@@ -227,13 +254,17 @@ def main():
             name = row['case']
             if name not in pipelines or row['status'] != 'PASS':
                 continue
-            tick = row['native']['first_staged_issue_tick'] + 1
-            fault = args.output/(name+'.events')
-            fault.write_text(f'# time_unit=ticks\n{tick} W0:0\n')
-            fault_case = name+'-interstage'
-            pipelines[fault_case] = pipelines[name]
-            pipeline_fault_ticks[fault_case] = tick
-            staged_faults.append((fault_case, pipelines[name][1]+['--schedule',str(fault)]))
+            if '--single-training-port' in pipelines[name][1]:
+                continue
+            clean = row['native']
+            for phase, edge in (('pre-latch','issue'), ('interstage','capture')):
+                tick = clean[f'first_staged_{edge}_tick'] + 1
+                fault_case = f'{name}-{phase}'
+                fault = args.output/(fault_case+'.events')
+                fault.write_text(f'# time_unit=ticks\n{tick} W0:0\n')
+                pipelines[fault_case] = pipelines[name]
+                pipeline_faults[fault_case] = (tick, edge=='capture', clean['first_staged_hash_identity'])
+                staged_faults.append((fault_case, pipelines[name][1]+['--schedule',str(fault)]))
         rows += list(pool.map(run, staged_faults))
     checks = []
     if all(x['status'] == 'PASS' for x in rows):

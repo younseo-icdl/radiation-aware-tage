@@ -2,6 +2,7 @@
 import argparse
 import json
 from pathlib import Path
+import re
 import shlex
 import shutil
 import subprocess
@@ -127,6 +128,13 @@ def main():
     if a.block in ('row-store', 'bimodal-prediction'):
         artifacts.append('reports/read_address_timing.rpt')
     valid = valid and all((out/x).is_file() and (out/x).stat().st_size>0 for x in artifacts)
+    if valid and a.block == 'pipeline':
+        # Check the emitted netlist because these cells require actual scan
+        # chain definitions in placement, even when used for functional feedback.
+        scan_cell = re.search(r'^\s+(?:SDFF|SEDFF|SMDFF)\w*\s', (out/'mapped.v').read_text(), re.MULTILINE)
+        if scan_cell:
+            metadata['validation_failure'] = 'functional netlist contains a scan flop'
+            valid = False
     metadata.update(status='PASS' if valid else 'FAIL', returncode=result.returncode)
     (out/'PRODUCER.json').write_text(json.dumps(metadata, indent=2)+'\n')
     print(json.dumps({'output': str(out), 'status': metadata['status'], 'scope': metadata['scope']}))
