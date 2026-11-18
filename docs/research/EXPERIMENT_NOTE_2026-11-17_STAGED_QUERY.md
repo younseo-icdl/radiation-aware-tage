@@ -483,3 +483,9 @@ At the same candidate period the checksum clean runs completed
 at 1,529,538,600 and 1,530,965,150 ticks, a 103-cycle
 lease overhead. This is bounded checksum evidence. The held-out
 programs remain unopened.
+
+Both timed checksum arms recorded 20,052 direct conditional
+lookups and zero indirect conditional lookups. The held-out
+runner records the same counters and treats any nonzero or
+missing indirect count as outside the measured target-path scope.
+It retains such runs and excludes them from comparative timing.
