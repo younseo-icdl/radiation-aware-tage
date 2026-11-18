@@ -893,3 +893,24 @@ in the existing CRC32 runs. The glibc follow-up retries with
 the newly fingerprinted build only after those gates. The
 initial logs are in `work/heldout-glibc-followup-20261118-r1/`.
 The build and gates are in `work/gem5-frontend-owner-fix-20261118-r1/`.
+
+The corrected front-end build passed the canonical source audit,
+all 14 finite checksum cases, 23 native cases and 12 cross-checks.
+The targeted native and staged `PSRLDQ` tests both passed and
+retired the same stream. The original 21 native case observations
+and all four bounded history activity traces matched the previous
+qualified build exactly. CRC32's two clean and 16 faulted archives
+contain zero `NoBranch` BPU lookups, so the fix's changed admission
+condition was absent from their measured path. The original power
+and CRC32 observations remain applicable to their own producers.
+
+All four corrected glibc clean controls matched the locked host
+stdout and their matched retirement identities. Basicmath retired
+51,416,894 instructions per arm, using 57,639,766 recurrent and
+57,671,810 lease cycles. Patricia retired 73,714,108 instructions
+per arm, using 85,117,221 recurrent and 85,159,564 lease cycles.
+Both pairs had zero indirect conditional lookups. The producer
+opened exactly 16 paired SOURCE tapes for the two admitted
+workloads with the original owner seed schedule. Results and
+logs are under
+`work/heldout-glibc-followup-20261118-r1/evaluation-owner-fix/`.
