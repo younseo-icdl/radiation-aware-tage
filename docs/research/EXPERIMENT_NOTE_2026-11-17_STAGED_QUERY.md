@@ -831,3 +831,23 @@ libc, and libm. All eight SHA-256 checks and both archived atomic
 stdout comparisons passed. The manifest is under
 `work/heldout-libc-compat-probe-20261118-r1/` and does not replace
 the original benchmark lock.
+
+A separate x87 prototype explores completing the original locked
+executables with a correctly sized register representation.
+It adds an independently renamed sign/exponent lane to each
+x87 stack slot and connects both lanes to `FLD m80`, `FADDP`,
+and `FSTP m80`. This tests an end-to-end load, arithmetic and
+store dependency rather than only using extended arithmetic
+inside a host-side helper. The prototype is intentionally
+incompatible with the remaining x87 operations and is isolated
+from all held-out runners. Its build and probe are under
+`work/gem5-x87-extended-prototype-20261118-r1/`.
+
+The native probe emits all ten payload bytes for 36 control and
+rounding-boundary operations. The existing simulator completed
+the probe and reproduced all 12 half-ULP control results. It
+rounded away the 24 positive and negative 1.5 test offsets,
+which should move the 2^64-magnitude result by one extended
+ULP. The first atomic attempt reached its short simulation limit
+before producing all records. The retry used the existing
+longer diagnostic configuration and completed normally.
