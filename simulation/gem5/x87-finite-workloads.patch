@@ -1,0 +1,265 @@
+diff --git a/src/arch/x86/isa/decoder/x87.isa b/src/arch/x86/isa/decoder/x87.isa
+index dc5840f..dc112f5 100644
+--- a/src/arch/x86/isa/decoder/x87.isa
++++ b/src/arch/x86/isa/decoder/x87.isa
+@@ -44,7 +44,7 @@ format WarnUnimpl {
+             0x2: fcom();
+             0x3: fcomp();
+             0x4: Inst::FSUB1(Ed);
+-            0x5: fsubr();
++            0x5: Inst::FSUBR1(Ed);
+             0x6: Inst::FDIV1(Ed);
+             0x7: fdivr();
+         }
+@@ -194,12 +194,12 @@ format WarnUnimpl {
+                 default: fcomp();
+             }
+             0x4: decode MODRM_MOD {
+-                0x3: fsubr();
++                0x3: Inst::FSUBR2(Rq);
+                 default: Inst::FSUB2(Mq);
+             }
+             0x5: decode MODRM_MOD {
+                 0x3: Inst::FSUB2(Eq);
+-                default: fsubr();
++                default: Inst::FSUBR1(Mq);
+             }
+             0x6: decode MODRM_MOD {
+                 0x3: fdivr();
+@@ -313,7 +313,7 @@ format WarnUnimpl {
+                 default: Inst::FILD(Mq);
+             }
+             0x6: decode MODRM_MOD {
+-                0x3: fcomip();
++                0x3: Inst::FCOMIP(Rq);
+                 default: fbstp();
+             }
+             0x7: decode MODRM_MOD {
+diff --git a/src/arch/x86/isa/insts/x87/arithmetic/subtraction.py b/src/arch/x86/isa/insts/x87/arithmetic/subtraction.py
+index 0835fcb..32ef36b 100644
+--- a/src/arch/x86/isa/insts/x87/arithmetic/subtraction.py
++++ b/src/arch/x86/isa/insts/x87/arithmetic/subtraction.py
+@@ -96,7 +96,28 @@ def macroop FSUBRP_R
+     subfp sti, st(0), sti, spm=1
+ };
+
++def macroop FSUBR1_R
++{
++    subfp st(0), sti, st(0)
++};
++
++def macroop FSUBR1_M
++{
++    ldfp87 ufp1, seg, sib, disp
++    subfp st(0), ufp1, st(0)
++};
++
++def macroop FSUBR1_P
++{
++    rdip t7
++    ldfp87 ufp1, seg, riprel, disp
++    subfp st(0), ufp1, st(0)
++};
++
++def macroop FSUBR2_R
++{
++    subfp sti, st(0), sti
++};
++
+ # FISUB
+-# FSUBR
+-# FISUBR
+ """
+diff --git a/src/arch/x86/isa/insts/x87/compare_and_test/floating_point_ordered_compare.py b/src/arch/x86/isa/insts/x87/compare_and_test/floating_point_ordered_compare.py
+index a9f849f..5715ec5 100644
+--- a/src/arch/x86/isa/insts/x87/compare_and_test/floating_point_ordered_compare.py
++++ b/src/arch/x86/isa/insts/x87/compare_and_test/floating_point_ordered_compare.py
+@@ -37,11 +37,15 @@ microcode = """
+ # FCOM
+ # FCOMP
+ # FCOMPP
+-# FCOMIP
+
+ def macroop FCOMI_R
+ {
+     compfp st(0), sti
+ };
+
++def macroop FCOMIP_R
++{
++    compfp st(0), sti, spm=1
++};
++
+ """
+diff --git a/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/convert_and_load_or_store_integer.py b/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/convert_and_load_or_store_integer.py
+index 3673803..4b9bef1 100644
+--- a/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/convert_and_load_or_store_integer.py
++++ b/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/convert_and_load_or_store_integer.py
+@@ -39,14 +39,14 @@ microcode = """
+ # fild common case
+ def macroop FILD_M {
+     ldifp87 ufp1, seg, sib, disp
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ # fild with RIP-relative addressing
+ def macroop FILD_P {
+     rdip t7
+     ldifp87 ufp1, seg, riprel, disp
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ # FIST
+diff --git a/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/exchange.py b/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/exchange.py
+index 6ed407d..ca941fc 100644
+--- a/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/exchange.py
++++ b/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/exchange.py
+@@ -36,8 +36,8 @@
+ microcode = """
+ def macroop FXCH_R
+ {
+-    movfp ufp1, sti
+-    movfp sti, st(0)
+-    movfp st(0), ufp1
++    movfp ufp1, sti, dataSize=8
++    movfp sti, st(0), dataSize=8
++    movfp st(0), ufp1, dataSize=8
+ };
+ """
+diff --git a/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/load_or_store_floating_point.py b/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/load_or_store_floating_point.py
+index a9314a5..d0a56eb 100644
+--- a/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/load_or_store_floating_point.py
++++ b/src/arch/x86/isa/insts/x87/data_transfer_and_conversion/load_or_store_floating_point.py
+@@ -36,17 +36,19 @@
+ microcode = """
+ def macroop FLD_M {
+     ldfp87 ufp1, seg, sib, disp
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ def macroop FLD_P {
+     rdip t7
+     ldfp87 ufp1, seg, riprel, disp
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ def macroop FLD_R {
+-    movfp st(-1), sti, spm=-1
++    # The register source is full width even when the decoder
++    # uses the same operand class as the m32 form.
++    movfp st(-1), sti, spm=-1, dataSize=8
+ };
+
+ def macroop FLD80_M {
+@@ -63,7 +65,7 @@ def macroop FLD80_P {
+ };
+
+ def macroop FST_R {
+-    movfp sti, st(0)
++    movfp sti, st(0), dataSize=8
+ };
+
+ def macroop FST_M {
+@@ -76,17 +78,17 @@ def macroop FST_P {
+ };
+
+ def macroop FSTP_R {
+-    movfp sti, st(0), spm=1
++    movfp sti, st(0), spm=1, dataSize=8
+ };
+
+ def macroop FSTP_M {
+-    movfp ufp1, st(0)
++    movfp ufp1, st(0), dataSize=8
+     stfp87 ufp1, seg, sib, disp
+     pop87
+ };
+
+ def macroop FSTP_P {
+-    movfp ufp1, st(0)
++    movfp ufp1, st(0), dataSize=8
+     rdip t7
+     stfp87 ufp1, seg, riprel, disp
+     pop87
+diff --git a/src/arch/x86/isa/insts/x87/load_constants/load_0_1_or_pi.py b/src/arch/x86/isa/insts/x87/load_constants/load_0_1_or_pi.py
+index dcd43f5..e384f66 100644
+--- a/src/arch/x86/isa/insts/x87/load_constants/load_0_1_or_pi.py
++++ b/src/arch/x86/isa/insts/x87/load_constants/load_0_1_or_pi.py
+@@ -38,17 +38,17 @@ microcode = """
+
+ def macroop FLDZ {
+     lfpimm ufp1, 0.0
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ def macroop FLD1 {
+     lfpimm ufp1, 1.0
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ def macroop FLDPI {
+     lfpimm ufp1, 3.14159265359
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ """
+diff --git a/src/arch/x86/isa/insts/x87/load_constants/load_logarithm.py b/src/arch/x86/isa/insts/x87/load_constants/load_logarithm.py
+index c7c944c..7841155 100644
+--- a/src/arch/x86/isa/insts/x87/load_constants/load_logarithm.py
++++ b/src/arch/x86/isa/insts/x87/load_constants/load_logarithm.py
+@@ -38,22 +38,22 @@ microcode = """
+
+ def macroop FLDL2E {
+     lfpimm ufp1, 1.44269504089
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ def macroop FLDL2T {
+     lfpimm ufp1, 3.32192809489
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ def macroop FLDLG2 {
+     lfpimm ufp1, 0.30102999566
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ def macroop FLDLN2 {
+     lfpimm ufp1, 0.69314718056
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ """
+diff --git a/src/arch/x86/isa/insts/x87/transcendental_functions/trigonometric_functions.py b/src/arch/x86/isa/insts/x87/transcendental_functions/trigonometric_functions.py
+index 416ccce..20c74dd 100644
+--- a/src/arch/x86/isa/insts/x87/transcendental_functions/trigonometric_functions.py
++++ b/src/arch/x86/isa/insts/x87/transcendental_functions/trigonometric_functions.py
+@@ -46,14 +46,14 @@ def macroop FCOS {
+ def macroop FSINCOS {
+     sinfp ufp1, st(0)
+     cosfp ufp2, st(0)
+-    movfp st(0), ufp1
+-    movfp st(-1), ufp2, spm=-1
++    movfp st(0), ufp1, dataSize=8
++    movfp st(-1), ufp2, spm=-1, dataSize=8
+ };
+
+ def macroop FPTAN {
+     tanfp st(0), st(0)
+     lfpimm ufp1, 1
+-    movfp st(-1), ufp1, spm=-1
++    movfp st(-1), ufp1, spm=-1, dataSize=8
+ };
+
+ # FPATAN

@@ -10,6 +10,7 @@ import sysconfig
 
 ROOT = Path(__file__).resolve().parents[1]
 TAG, COMMIT = (ROOT / 'simulation/gem5/VERSION').read_text().splitlines()
+X87_PATCH = 'simulation/gem5/x87-finite-workloads.patch'
 
 
 def command(args, cwd=None, env=None):
@@ -33,7 +34,7 @@ def environment(cxx=None):
     return env
 
 
-def prepare(destination):
+def prepare(destination, x87_workload_compat=False):
     if destination.exists():
         raise ValueError('destination exists; use a fresh directory for each producer')
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -43,6 +44,8 @@ def prepare(destination):
                                      universal_newlines=True).strip()
     if actual != COMMIT:
         raise ValueError('gem5 tag does not match the pinned commit')
+    if x87_workload_compat:
+        command(['git', 'apply', ROOT / X87_PATCH], destination)
     shutil.copytree(str(ROOT / 'tage/include/tage'), str(destination / 'src/tage'))
     for source_root in (ROOT / 'tage/backend', ROOT / 'simulation/gem5/overlay/src'):
         for source in source_root.rglob('*'):
@@ -62,16 +65,20 @@ def main():
     p.add_argument('--tree', type=Path, default=ROOT / 'build/gem5')
     p.add_argument('--jobs', type=int, default=4)
     p.add_argument('--cxx', help='compiler for this build only')
+    p.add_argument('--x87-workload-compat', action='store_true',
+                   help='apply the finite x87 workload fixes when preparing a new tree')
     p.add_argument('--outdir', type=Path, help='fresh run directory; required by run')
     p.add_argument('--config', type=Path, default=ROOT/'simulation/gem5/configs/finite.py',
                    help='simulation config; default is the finite comparison')
     arguments = sys.argv[1:]
     split = arguments.index('--') if '--' in arguments else len(arguments)
     a = p.parse_args(arguments[:split])
+    if a.x87_workload_compat and a.action != 'prepare':
+        p.error('--x87-workload-compat applies when preparing a tree')
     config_args = arguments[split+1:]
     try:
         if a.action == 'prepare':
-            prepare(a.tree.resolve())
+            prepare(a.tree.resolve(), a.x87_workload_compat)
         elif a.action == 'build':
             if not 1 <= a.jobs <= 32:
                 p.error('jobs must be 1..32')

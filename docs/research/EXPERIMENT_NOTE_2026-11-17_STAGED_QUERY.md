@@ -741,3 +741,25 @@ arithmetic and comparison, formatted output, locked workload
 hashes, and the exact timed checksum. Logs are under
 `work/gem5-heldout-x87-build-20261118-r{2,3}/` and
 `work/heldout-admission-20261118-r8/`.
+
+The full-width x87 build passed all four probes, all 16 locked
+artifact hashes, and the 21 timed checksum cases plus 11
+cross-checks. The two Basicmath and two Patricia clean runs
+completed with equal stdout within each arm pair. They failed the
+locked host byte comparison. Basicmath differed on 9,905 of
+19,733 lines. Patricia differed on 10,437 of 10,440 lines, all
+in its printed input-time field; address and lookup-result fields
+agreed on every line. The x87 model's double-precision arithmetic
+remains a compatibility limitation for musl's extended-precision
+conversions. No stdout criterion was changed.
+
+The clean-qualified runner verifies the exact archive plan and six
+clean records using the already tested binary and config hashes.
+It independently admits only workload pairs with passing clean
+stdout, execution contracts, and matching retirement identity. For
+each admitted workload it retains the original eight owner seeds
+and absolute SOURCE tape law. Ineligible workloads remain in the
+admission and summary files as failed clean gates. It waits for the
+original clean archive rather than rerunning any validated clean
+work. The runner logs are in
+`work/heldout-clean-qualified-20261118-r1/`.

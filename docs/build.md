@@ -44,6 +44,15 @@ Preparation clones the official pinned upstream tag, verifies its commit, then c
 
 The finite SimObjects are registered in gem5's predictor SConscript. The backend under `tage/backend/` is the single maintained backend. Full upstream source, generated bindings, and compiled binaries remain under the ignored build directory.
 
+For locked workloads that exercise x87 floating-point formatting, prepare a
+separate tree with `--x87-workload-compat`. This applies the project patch
+for full-width `FLD ST(i)`, reverse subtraction, and compare-and-pop
+within gem5's existing x87 model. The simulator still uses the upstream
+internal double-precision representation. Keep the workload stdout and
+the timed checksum regression as separate validation gates for that binary.
+Pass the same flag to `tools/audit_gem5.py` to verify the exact ISA patch
+alongside the canonical overlay.
+
 ## CPU smoke and fault schedules
 
 After building gem5, run the reusable 14-case O3 regression (nine clean configurations and five fixed-injection checks):

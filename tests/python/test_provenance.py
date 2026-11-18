@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from tools.audit_gem5 import audit, REGISTRATION
+from tools.audit_gem5 import audit, REGISTRATION, X87_PATCH
 
 
 class ProvenanceTest(unittest.TestCase):
@@ -17,6 +17,7 @@ class ProvenanceTest(unittest.TestCase):
             self.git(root, 'init', '-q')
         self.put(self.upstream, 'src/cpu/pred/SConscript', 'upstream\n')
         self.put(self.upstream, 'src/cpu/core.cc', 'original\n')
+        self.put(self.upstream, 'src/arch/x86/isa/x87.isa', 'original\n\ncontext\n')
         self.commit(self.upstream)
         pin = self.git(self.upstream, 'rev-parse', 'HEAD').decode().strip()
         self.put(self.repo, 'simulation/gem5/VERSION', 'test-tag\n'+pin+'\n')
@@ -77,6 +78,18 @@ class ProvenanceTest(unittest.TestCase):
         result = audit(self.repo, self.upstream, pristine=True)
         self.assertEqual(result['status'], 'FAIL')
         self.assertIn('upstream commit differs from the pin', result['errors'])
+
+    def test_x87_patch_requires_exact_source_changes_and_explicit_opt_in(self):
+        self.overlay()
+        path = 'src/arch/x86/isa/x87.isa'
+        self.put(self.upstream, path, 'patched\n\ncontext\n')
+        patch = self.git(self.upstream, 'diff', '--', path).decode().replace('\n \n', '\n\n')
+        self.put(self.repo, X87_PATCH, patch)
+        self.commit(self.repo)
+        self.assertEqual(audit(self.repo, self.upstream)['status'], 'FAIL')
+        self.assertEqual(audit(self.repo, self.upstream, x87_workload_compat=True)['status'], 'PASS')
+        self.put(self.upstream, path, 'patched\n\nextra change\n')
+        self.assertEqual(audit(self.repo, self.upstream, x87_workload_compat=True)['status'], 'FAIL')
 
 
 if __name__ == '__main__':
