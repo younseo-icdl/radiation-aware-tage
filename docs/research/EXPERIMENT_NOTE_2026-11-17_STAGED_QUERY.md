@@ -489,3 +489,25 @@ lookups and zero indirect conditional lookups. The held-out
 runner records the same counters and treats any nonzero or
 missing indirect count as outside the measured target-path scope.
 It retains such runs and excludes them from comparative timing.
+
+### Held-out admission and SOURCE delivery audit
+
+The native checksum audit now records SHA-256 digests of gem5,
+the simulation configuration, its common CPU configuration, and
+the checksum binary. The private held-out runner binds the two
+timed checksum arms to the execution period and exact simulator
+and configuration hashes. Admission requires the measured direct
+BTB reference and passing paired late-arrival STA. If the final
+clock changes, the activity-power replay must match it before
+launch. The admission coordinator is waiting on the live reference
+producer. No held-out workload was opened.
+
+The SOURCE checker regenerates the declared tape, compares each
+applied record against the absolute-tick prefix at architectural
+exit, and verifies raw sites, contiguous multiplicity, XOR, and
+censoring against the native log. Equal-tick records stay distinct.
+It passed on the twelve retained development recurrent/lease runs
+and a fresh paired checksum at 13,850 ps with a shared diagnostic
+SOURCE tape. Each checksum arm applied one event and retained
+twenty future records. The checksum control and its frozen-config
+regression are under `work/heldout-planning-20261118-r1/`.

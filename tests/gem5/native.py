@@ -4,6 +4,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import csv
 import gzip
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -18,6 +19,7 @@ def main():
     p.add_argument('--tree', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--binary', type=Path, default=ROOT/'build/checksum')
+    p.add_argument('--config', type=Path, default=ROOT/'simulation/gem5/configs/native_study.py')
     p.add_argument('--native-reference', type=Path,
                    help='ordinary native checksum output from the finite gate')
     p.add_argument('--direct', action='store_true', help='Also test direct-query cost and cancellation')
@@ -35,6 +37,13 @@ def main():
         p.error('cycle period must leave an interior tick for directed faults')
     if args.single_training_port and not args.query_pipeline:
         p.error('--single-training-port requires --query-pipeline')
+    named_files = {'gem5': args.tree/'build/X86/gem5.opt',
+                   'config': args.config, 'baseline': args.config.with_name('baseline.py'),
+                   'checksum': args.binary}
+    provenance = {}
+    for name, path in named_files.items():
+        with path.open('rb') as source:
+            provenance[name] = hashlib.file_digest(source, 'sha256').hexdigest()
     capture_end = 80_000 * args.cycle_ticks
     capture = ['--activity-end-tick', str(capture_end)]
     if args.output.exists():
@@ -108,7 +117,7 @@ def main():
         out = args.output/name
         cmd = [sys.executable, str(ROOT/'tools/gem5.py'), 'run',
                '--tree', str(args.tree.resolve()), '--config',
-               str(ROOT/'simulation/gem5/configs/native_study.py'),
+               str(args.config.resolve()),
                '--outdir', str(out), '--', '--binary', str(args.binary.resolve()),
                '--cycle-ticks', str(args.cycle_ticks),
                '--execute', '--max-ticks', str(2_000_000 * args.cycle_ticks)] + extra
@@ -322,7 +331,8 @@ def main():
                          if line.strip() and not line.startswith('-') and len(line.split()) >= 2)
             checks.append({'check': 'ordinary upstream native completion time', 'status':
                 'PASS' if int(stats['simTicks']) == states['light']['tick'] else 'FAIL'})
-    report = {'cases': rows, 'cross_checks': checks}
+    report = {'cycle_ticks': args.cycle_ticks, 'sha256': provenance,
+              'cases': rows, 'cross_checks': checks}
     (args.output/'audit.json').write_text(json.dumps(report, indent=2)+'\n')
     for x in rows + checks:
         print(json.dumps({k: v for k, v in x.items() if k not in ('native', 'command')}))
