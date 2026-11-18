@@ -13,9 +13,11 @@ from .implement import retime_history_sdc
 
 
 def worst_path(text, view, analysis):
-    match = re.search(r'^Path 1:\s+(MET|VIOLATED)\s+\(([+-]?\d+(?:\.\d+)?) (ns|ps)\) (Early|Late)\b',
+    match = re.search(r'^Path 1:\s+(MET|VIOLATED)\s+\(([+-]?\d+(?:\.\d+)?) (ns|ps)\) '
+                      r'(Early|Late|Hold Check|Setup Check)\b',
                       text, re.MULTILINE)
-    if not match or match[4] != analysis:
+    kinds = {'Early': ('Early', 'Hold Check'), 'Late': ('Late', 'Setup Check')}
+    if not match or match[4] not in kinds[analysis]:
         raise ValueError('no supported first-path slack for '+analysis+' analysis')
     fields = {}
     for field in ('View', 'Startpoint', 'Endpoint'):

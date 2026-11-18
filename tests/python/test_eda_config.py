@@ -26,6 +26,8 @@ class EdaConfigTests(unittest.TestCase):
             worst_path(report, 'fastview', 'Late')
         with self.assertRaises(ValueError):
             worst_path(report, 'slowview', 'Early')
+        hold = report.replace('Late Output Delay Assertion', 'Hold Check with Pin path_reg[1]/CK->D')
+        self.assertEqual(worst_path(hold, 'slowview', 'Early')['slack_ps'], '-176.000')
 
     def test_utilization_uses_die_bounds_and_excludes_physical_only_area(self):
         report = ('Hinst Name Module Name Inst Count Total Area Buffer Inverter '

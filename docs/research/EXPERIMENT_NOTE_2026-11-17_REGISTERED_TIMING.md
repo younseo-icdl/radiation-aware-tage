@@ -186,3 +186,34 @@ reference. Final report gates still determine actual slack.
 
 Preserved reports: `work/b1a-route-20261117-r6/attempt1/`.
 Temporary diagnostic reports: `work/history-checkpoint-diagnostic-20261117-r1/`.
+
+### Checkpoint result and revised route
+
+Both Innovus diagnostic sessions completed at 7.4 ns. The postprocessor
+initially rejected the registered hold heading `Hold Check`. It now
+accepts that heading as early analysis and continues to verify the fast
+view. The existing reports were parsed again without rerunning Cadence.
+
+| First routed checkpoint | Setup WNS | Hold WNS | No-undo query WNS |
+|---|---:|---:|---:|
+| Recurrent | +0.198 ns | -0.004 ns | +1.093 ns |
+| Lease4096 | +0.054 ns | -0.007 ns | +1.376 ns |
+
+The strongest path still includes the common history query boundary.
+Constraining undo to zero improves query slack by 0.895 ns and 1.322 ns
+respectively. The first lease unrestricted worst query starts on an
+undo count bit. Disabling undo leaves a head-register-to-query path.
+This identifies a timing opportunity in separating redirect recovery
+from normal delivery. Externally supplied prediction and append-to-query
+feedback still need their own timing contract.
+
+The revised matched primary batch started under
+`work/b1a-route-20261117-r7/` at 7.4 ns, with a common initial die side
+of 528.426 µm based on measured cell areas, and a positive 30 ps hold
+repair target. Its fresh layout must satisfy actual 65–75% utilization,
+DRC/connectivity, setup and hold. The earlier sizing coordinator was
+retired to avoid duplicate primary retries. The live Hybrid05 job
+was preserved as a separate diagnostic. STA and bounded activity
+power watchers now target the revised batch. The power watcher only
+runs after the density gate and nonnegative routed timing at the
+chosen shared clock.
