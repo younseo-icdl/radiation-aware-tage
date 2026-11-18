@@ -285,3 +285,42 @@ and all retry artifacts are preserved.
 The prospective benchmark manifest was rechecked without running
 the held-out programs. All 16 locked files matched their recorded
 SHA-256 digests.
+
+## November 18 physical and trace replay checks
+
+The scan-free attempt completed both routes at the first common
+die size. Recurrent and lease utilization were 80.418% and
+78.660%, above the required range. A fresh common 563.349 µm
+die is running, using the placed cell areas from the first attempt.
+The attempt-1 reports remain under
+`work/history-query-pipeline-route-20261117-r2/attempt1/`.
+
+The exact-pin T0 ECO inserted two BUFX2 repeaters at the diagnosed
+data sinks. The restored layout passed DRC, signal and supply
+connectivity, +3 ps fast hold, and +2,338 ps slow setup. Its die
+utilization is 74.6194%. The extracted address-to-data delay stays
+5,637 ps. The approved reference pair and its timing are in
+`work/history-composed-timing-20261117-r3/REFERENCES.json`.
+The staged matched STA and late-arrival checks still precede the
+timed checksum and held-out gates.
+
+A fresh Xcelium replay used the structured port-limited CPU
+traces on the staged history wrapper. It applies the row response
+on its recorded edge and moves ordinary append/undo operations to
+their closing edge. For the captured redirect at 188,000 ps, the
+cancel suppresses the packet while the older undo takes its
+normal state edge. The replay compares live token, raw ring
+window, head and path at every edge, and checks response and
+publication admission. Both modes passed 80,001 edges.
+
+| Mode | Accepted row responses | Canceled captured queries | Lease publications |
+|---|---:|---:|---:|
+| Recurrent | 14,495 | 1 | 0 |
+| Lease4096 | 14,482 | 1 | 4 |
+
+The bench uses the observed speculative direction as a synthetic
+bimodal row response. The results qualify the interface event
+sequence and history state during this trace. They do not measure
+row-selection activity, table training, routed switching energy,
+or full CPU performance. The private inputs and replay logs are
+under `work/history-pipeline-activity-replay-20261118-r1/`.
