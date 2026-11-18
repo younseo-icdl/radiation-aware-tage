@@ -71,3 +71,18 @@ the same logic, clock and libraries in separate producer
 directories. Neither arm mixes a mapped result from the other
 strategy for its primary pair. The independent logs and
 checkpoints are under `work/history-secded-ppa-20261118-r2/`.
+
+The first lease route's extracted CPPR audit marked setup at
+-496 ps with the common 6.641 ns row arrival. The worst early
+path was a row-request PC output assertion reported as a
+negative slack rounded to 0 ps. Both are retained as timing
+failures at 13.850 ns for that fresh placement. The previously
+published lease placement remains a distinct producer.
+
+The user increased the allocation to 16 cores for each arm.
+Cadence synthesis reads its worker configuration at launch.
+The 4-core hierarchy-preserving retry was stopped, retaining
+its partial logs. A fresh hierarchy-preserving ECC/lease pair
+uses 16 cores per Genus, Innovus and Voltus producer under
+`work/history-secded-ppa-20261118-r3/`. The original ECC
+mapping is retained as an independent fallback.
