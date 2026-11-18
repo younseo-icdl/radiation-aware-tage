@@ -62,17 +62,6 @@ lease publications. The zero-delay switching estimate was 4.438 versus
 whole-task energy remain outside this measurement. See
 `EXPERIMENT_NOTE_2026-11-17_REGISTERED_TIMING.md`.
 
-**What remains and which experiment changes a decision?** Match the
-predictor-row, direction, speculative append and restore-owner timing boundaries
-before backannotating a common frequency and issue schedule. The qsort replay
-shows substantial same-tick query–append ordering. A common conditional issue
-interval is implemented and checksum-tested. An issued prediction still needs
-to reach the same-edge history append, and its path has a measured external
-deadline around 4.7–4.8 ns at the current 8.1 ns block clock. The held-out
-Basicmath, Patricia and CRC32 set is locked. Its 54 runs begin after the
-timed CPU contract and bounded checks pass. See the provider note and
-`HELDOUT_LEASE4096_LOCK.md`.
-
 **What changed in the staged implementation?** Registered hash capture and
 subsequent row return now have separate CPU edges with cancellation and
 matched single-conditional-training-port control. The actual CPU row,
@@ -87,14 +76,17 @@ history-block window, with all nets directly annotated and zero cell
 delay. The routed direct target-validity reference subsequently
 passed at 69.82% die utilization. Its 8.578 ns read delay fit the
 same 13.850 ns period and left +330 ps target setup slack in the
-limiting lease arm. The timed checksum passed before the clean
-held-out references ran. Basicmath and Patricia still failed
-exact host stdout after the gem5 x87 compatibility fixes.
+limiting lease arm. The timed checks and exact output gates preceded
+the performance runs.
 
-**What does the held-out workload show?** On CRC32, lease reduced the
-incremental SOURCE fault cost from +0.038004% to +0.0000468%. The
-+0.086650% clean lease cost exceeded that reduction. Ordinary TAGE
-was faster in all eight CRC32 pairs, with a mean lease benefit of
--0.048674%. The clean gate for the other two workloads limits
-between-workload inference. See
-[`source-heldout-2026-11-18.md`](../results/source-heldout-2026-11-18.md).
+**What do the held-out results show?** Fixed lease4096 improved runtime
+by a mean of 4.159667% on the approved glibc Basicmath follow-up and
+5.179958% on the glibc Patricia follow-up. Each had eight valid pairs
+and the original input and output bytes. On CRC32 with its originally
+locked executable, lease reduced the incremental SOURCE fault cost
+from +0.038004% to +0.0000468%. Its +0.086650% clean cost exceeded
+that reduction, and all eight pairs favoured ordinary TAGE. The
+glibc-linked and locked executable cohorts are reported separately.
+The three workloads show the tradeoff between fault-induced disruption
+and recurring maintenance. See the [CRC32 results](../results/source-heldout-2026-11-18.md)
+and [glibc results](../results/source-heldout-glibc-2026-11-18.md).

@@ -80,3 +80,15 @@ uncertainty. Report failed pairs explicitly and withhold all-owner superiority
 there. The fixed three-workload suite supplies a between-workload check.
 It does not define a random sample of all programs. Stop at eight owners
 per workload and retain unfavourable results.
+
+## Executable qualification and follow-up
+
+The original artifact lock was used unchanged for the CRC32 SOURCE
+comparison. The original Basicmath and Patricia executables failed
+the exact host stdout gate. On November 18 the user approved a
+separate glibc follow-up for those two workloads. The follow-up
+kept the input bytes, required output bytes, seed ordering and
+all predictor and tape parameters. The new executable and library
+hashes are recorded separately. The [CRC32 results](../results/source-heldout-2026-11-18.md)
+and [glibc results](../results/source-heldout-glibc-2026-11-18.md)
+identify their cohorts and actual simulator producers.

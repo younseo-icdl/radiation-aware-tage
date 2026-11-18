@@ -84,8 +84,9 @@ runs terminated successfully and produced identical bytes within
 each paired configuration. The host byte check failed for 9,905 of
 19,733 Basicmath lines and 10,437 of 10,440 Patricia lines. The Patricia
 differences were confined to the printed input-time field. The frozen
-artifacts and the failure reports remain intact. No SOURCE performance
-claim uses either workload.
+artifacts and the failure reports remain intact. The user-approved
+[glibc follow-up](source-heldout-glibc-2026-11-18.md) contains separate
+results for the two workloads with newly linked executables.
 
 The ignored local directory `work/heldout-source-20261118-r3/`
 contains `ADMISSION.json`, `CLEAN.json`, `CLEAN_PROVENANCE.json`,

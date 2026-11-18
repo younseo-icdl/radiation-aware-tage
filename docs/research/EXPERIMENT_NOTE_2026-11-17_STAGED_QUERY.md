@@ -914,3 +914,21 @@ opened exactly 16 paired SOURCE tapes for the two admitted
 workloads with the original owner seed schedule. Results and
 logs are under
 `work/heldout-glibc-followup-20261118-r1/evaluation-owner-fix/`.
+
+The glibc follow-up completed with 32/32 faulted passes and
+eight comparable pairs for each program. Mean lease4096 benefit
+was +4.159667% on Basicmath and +5.179958% on Patricia. Their
+exploratory paired-owner intervals were [+4.126559%, +4.194265%]
+and [+5.143109%, +5.219713%]. All 16 pairs favoured lease. The
+[follow-up report](../results/source-heldout-glibc-2026-11-18.md)
+reports individual cycles, event counts and the separate
+archived CRC32 tradeoff.
+
+The final receipt regenerated and checked every actual elapsed
+SOURCE delivery prefix, exact output, retirement identity, and
+lease publication timing for 54 comparable clean and faulted
+runs across the two executable cohorts. It recomputed all three
+owner-bootstrap summaries and checked the matched physical
+reports, clock and full activity annotation. The fixed WHOLE
+laws remain separately tested. The receipt is
+`work/heldout-glibc-followup-20261118-r1/FINAL_AUDIT.json`.

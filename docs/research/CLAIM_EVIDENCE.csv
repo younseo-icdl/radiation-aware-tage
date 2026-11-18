@@ -5,6 +5,7 @@ C03,raw repair after tap repairs all predictor state,REJECTED,production microte
 C04,ordinary algebraic undo may be replaced by canonical repair,REJECTED,test_bulk_restore 63000 comparisons,arbitrary current live raw and folds,charge actual read and restore circuit
 C05,no prior TAGE fault or history consistency studies exist,REJECTED,BADGR2016 ICCD2018 ISPASS2019 primary cards,different fault state and timing semantics,frame narrower research question
 C06,full direct hash fits500ps,REJECTED_B0,matched B0 route reports,even recurrent fails; full source boundary absent,qualify matched full boundary and CPU contract
-C07,lease4096 improves runtime for all populations,UNRESOLVED,SOURCE development24 and clean controls,only two development tapes per workload and assumed service,no independent batch before physical backannotation
+C07,lease4096 always reduces faulted runtime,REJECTED,matched timed CRC32 SOURCE eight pairs,all CRC32 pairs favoured ordinary TAGE; both glibc follow-up workloads favoured lease,report workload and executable scope
 C08,bank-select publication touches only selected folds,SUPPORTED_UNIT,test_lease masks0 3 5 96 127,standalone kernel not new CPU or PPA result,qualify cost and completion protocol
 C09,full WHOLE physical population is covered,NOT_ESTABLISHED,native logical manifest and STATE_MAP.csv,head busy timer checkpoint chooser RNG and other sites incomplete,finish semantic union before WHOLE claim
+C10,online consistency probes observe persistent isolated discrepancies,SUPPORTED_UNIT,matched seven-probe C++ sweep over raw and fold sites,coherent corruptions remained invisible; no CPU timing or learning policy,keep diagnostic separate from fixed lease
