@@ -77,6 +77,11 @@ cmp work/native.stdout work/checksum-ecc/program.stdout
 
 The checksum is a freestanding Linux x86-64 program. It prints `checksum: 2bf45f80b1c37877`. It is a regression workload, not SPEC or a representative performance benchmark.
 
+The staged native gate can also exercise a control micro-op inside x86
+`PSRLDQ`. Build it with `make build/gem5-frontend-control` and pass
+`--query-pipeline --frontend-control build/gem5-frontend-control` to
+`tests/gem5/native.py` with the appropriate tree and config.
+
 Use `--representation recurrent|direct`, `--query-latency 1|2`, `--update-latency 1|2`, and one of the four schemes. Periodic parity uses `--scheme P_ED --inspection-interval 64`. Direct folding is an additional P0 representation with source update L=1; the configuration rejects an apparent direct update L=2. `--early-unconditional` selects the separate early checkpoint path. The clean `--model native` reference uses the instrumented backend's ordinary timing path; it is not a separate pristine upstream build.
 
 Generate a cycle-based SOURCE schedule:

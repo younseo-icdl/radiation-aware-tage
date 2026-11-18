@@ -12,6 +12,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED = b'checksum: 2bf45f80b1c37877\n'
+FRONTEND_CONTROL_OUTPUT = b'frontend-control: PASS\n'
 
 
 def main():
@@ -30,6 +31,8 @@ def main():
                    help='Check registered hash operands in both arms, including an inter-stage fault')
     p.add_argument('--single-training-port', action='store_true',
                    help='Check staged conditional training-port retirement reservations')
+    p.add_argument('--frontend-control', type=Path,
+                   help='Also check the freestanding x86 microcode branch regression')
     p.add_argument('--cycle-ticks', type=int, default=500,
                    help='CPU period in 1 ps units for the bounded native gate')
     args = p.parse_args()
@@ -40,6 +43,10 @@ def main():
     named_files = {'gem5': args.tree/'build/X86/gem5.opt',
                    'config': args.config, 'baseline': args.config.with_name('baseline.py'),
                    'checksum': args.binary}
+    if args.frontend_control:
+        if not args.query_pipeline:
+            p.error('--frontend-control requires --query-pipeline')
+        named_files['frontend_control'] = args.frontend_control
     provenance = {}
     for name, path in named_files.items():
         digest = hashlib.sha256()
@@ -90,6 +97,12 @@ def main():
     intervals = {}
     pipelines = {}
     pipeline_faults = {}
+    frontend_cases = {}
+    if args.frontend_control:
+        frontend_cases = {'frontend-control-native': [], 'frontend-control-staged': ['--query-pipeline']}
+        if args.single_training_port:
+            frontend_cases['frontend-control-staged'].append('--single-training-port')
+        cases.extend(frontend_cases.items())
     if args.query_pipeline:
         for model in ('native', 'lease4096'):
             name = f'pipeline-{model}'
@@ -115,13 +128,15 @@ def main():
 
     def run(item):
         name, extra = item
+        frontend_case = name in frontend_cases
         interval_fault = name in intervals and name.endswith('-fault')
         pipeline_model = pipelines[name][0] if name in pipelines else None
         out = args.output/name
+        binary = args.frontend_control if frontend_case else args.binary
         cmd = [sys.executable, str(ROOT/'tools/gem5.py'), 'run',
                '--tree', str(args.tree.resolve()), '--config',
                str(args.config.resolve()),
-               '--outdir', str(out), '--', '--binary', str(args.binary.resolve()),
+               '--outdir', str(out), '--', '--binary', str(binary.resolve()),
                '--cycle-ticks', str(args.cycle_ticks),
                '--execute', '--max-ticks', str(2_000_000 * args.cycle_ticks)] + extra
         row = {'case': name, 'status': 'FAIL', 'command': cmd}
@@ -137,9 +152,21 @@ def main():
                 row['status'] = 'PASS'
                 return row
             assert result.returncode == 0
-            assert (out/'program.stdout').read_bytes() == EXPECTED
+            expected = FRONTEND_CONTROL_OUTPUT if frontend_case else EXPECTED
+            assert (out/'program.stdout').read_bytes() == expected
             state = json.loads((out/'native.json').read_text())
             row['native'] = state
+            if frontend_case:
+                termination = json.loads((out/'termination.json').read_text())
+                stats = dict(line.split()[:2] for line in (out/'stats.txt').read_text().splitlines()
+                             if len(line.split()) >= 2)
+                prefix = 'system.cpu.branchPred.lookups_0::'
+                assert termination['status'] == 'PASS' and state['faults_frozen']
+                assert int(stats[prefix+'NoBranch']) > 0 and int(stats[prefix+'DirectCond']) > 0
+                if name == 'frontend-control-staged':
+                    assert state['staged_query_responses'] == int(stats[prefix+'DirectCond'])
+                row['status'] = 'PASS'
+                return row
             assert state['missing_lookup_mapping'] == state['missing_retirement_mapping'] == 0
             if args.integrated:
                 assert state['missing_bpu_mapping'] == state['missing_bpu_prediction_mapping'] == 0
@@ -328,6 +355,11 @@ def main():
                 checks.append({'check': name+' preserves architectural stream', 'status': 'PASS'
                                if states[name]['retired_pc_identity']==states['light']['retired_pc_identity']
                                else 'FAIL'})
+        if frontend_cases:
+            checks.append({'check': 'internal microcode branch preserves architectural stream',
+                           'status': 'PASS' if
+                           states['frontend-control-native']['retired_pc_identity'] ==
+                           states['frontend-control-staged']['retired_pc_identity'] else 'FAIL'})
         if args.native_reference:
             stats = dict(line.split()[:2] for line in
                          (args.native_reference/'stats.txt').read_text().splitlines()

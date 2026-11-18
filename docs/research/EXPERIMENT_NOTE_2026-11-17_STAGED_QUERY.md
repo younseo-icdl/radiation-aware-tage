@@ -871,3 +871,25 @@ before its unchanged eight SOURCE pairs can start. Results will
 report the two compatible variants as a follow-up cohort. The
 original frozen failure records and CRC32 cohort remain intact.
 The private producer is `work/heldout-glibc-followup-20261118-r1/`.
+
+All four initial glibc clean runs failed with a duplicate pending
+query owner. An O3 trace identified a `PSRLDQ` internal microcode
+branch. Fetch treated control without the unconditional flag as
+a conditional request. The BPU classified the same micro-op as
+`NoBranch` because its conditional flag was unset, leaving the
+reserved request unconsumed. The next request hit the duplicate
+owner check. Fetch now uses the BPU's affirmative conditional
+flag. The existing BPU history update and target behavior are
+retained.
+
+A freestanding `PSRLDQ` plus conditional-branch regression
+prints the expected native result and reproduces the duplicate
+owner error on the old staged binary. The C++ suite and all 70
+Python unit tests passed. The new private build will run the
+regular 14-case checksum, the native timed gate with the new
+probe, compare prior checksum observations and activity traces
+byte for byte, and confirm zero affected branch class lookups
+in the existing CRC32 runs. The glibc follow-up retries with
+the newly fingerprinted build only after those gates. The
+initial logs are in `work/heldout-glibc-followup-20261118-r1/`.
+The build and gates are in `work/gem5-frontend-owner-fix-20261118-r1/`.

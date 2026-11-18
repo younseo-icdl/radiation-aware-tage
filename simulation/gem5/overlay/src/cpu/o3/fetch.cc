@@ -1295,9 +1295,11 @@ Fetch::fetch(bool &status_change)
                 newMacro |= staticInst->isLastMicroop();
             }
 
+            // Match PredictorHistory::uncond: some x86 microcode branches
+            // set IsControl without setting either direction flag.
             if (staticInst->isControl() &&
                 !bac->seuPredictionRequest(tid, this_pc.instAddr(),
-                                           !staticInst->isUncondCtrl(),
+                                           staticInst->isCondCtrl(),
                                            seuPendingToken[tid])) {
                 seuPendingInst[tid] = staticInst;
                 seuResponseHold = true;

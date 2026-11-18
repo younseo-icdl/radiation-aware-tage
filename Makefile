@@ -42,6 +42,8 @@ clean:
 CC ?= gcc
 $(BUILD)/checksum: simulation/workloads/checksum.c | $(BUILD)
 	$(CC) -O2 -std=c11 -ffreestanding -fno-stack-protector -mstackrealign -nostdlib -static -no-pie -fno-pie -Wl,-e,_start $< -o $@
+$(BUILD)/gem5-frontend-control: tests/gem5/frontend_control.S | $(BUILD)
+	$(CC) -nostdlib -static -no-pie -Wl,-e,_start $< -o $@
 .PHONY: checksum
 checksum: $(BUILD)/checksum
 	$(BUILD)/checksum
