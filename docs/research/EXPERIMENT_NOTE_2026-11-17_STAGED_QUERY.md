@@ -610,3 +610,12 @@ giving 83.582% utilization. The coordinator started a larger-die
 retry. The first flat route remains outside the physical gate.
 Inputs and reports are under
 `work/history-btb-reference-route-20261118-r1/attempt1/`.
+
+The second banked layout completed in 1 h 47 min. Internal DRC
+and both connectivity checks passed. The final tool reports
+show +4,033 ps setup and -291 ps hold slack. Placed cell area was
+1,142,352.846 µm² on a 1,517,774.720 µm² die, giving 75.265%
+utilization. This exceeds the predeclared limit by 0.265 percentage
+points. The coordinator retained the result and started a third
+floorplan. The fallback remains gated on the utilization range.
+Reports are under `work/history-btb-reference-route-20261118-r2/attempt2/`.
