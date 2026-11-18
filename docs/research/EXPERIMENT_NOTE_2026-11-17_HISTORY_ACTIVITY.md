@@ -84,3 +84,39 @@ the newly canonical fold. This directed sequence passed in
 `work/b1-lease-phase-gate-20261117-r1/`. It establishes the RTL phase
 ordering for this case. A complete trace replay must still reconcile
 all service start, publication and operation edges independently.
+
+## Full bounded RTL trace replay
+
+The replay now uses the complete checksum capture for each method.
+`simulation.analysis.history_replay` allocates up to 512 physical
+checkpoint slots. It defers reuse of slots released within the current
+edge and rejects unsupported undo ordering, port demand and off-grid
+operations. CPU operations at tick T drive the interval ending at
+T + period. An autonomous publication is checked at the opening edge T.
+This preserves the two observed publication-followed-by-append cases.
+The service input is driven from the recorded quiescent service window.
+It does not impose unrecorded work on the RTL.
+
+Xcelium passed 80,001 edges for each method with the 500 ps capture
+grid. The test checks the raw window, path value and ring head at
+every edge against the independent replay state. It checks the
+publication pulse against the trace before each edge. Native recorded
+zero publications and lease4096 recorded five, all at the expected
+edges. Hash values during the functional trace use the RTL logic
+already covered by the separate production-reference vectors.
+
+The first replay passed in `work/history-replay-20261117-r1/`. The
+independent rerun with releases deferred within an edge passed in
+`work/history-replay-20261117-r2/`. Retain both vector sets, console
+logs and VCDs. The VCD scope is `history_activity_tb`. Each simulation
+also accepts `+period_ps` to drive the same edge sequence at the
+reported common physical period once timing allows.
+
+Use the 500 ps VCDs for functional evidence. A fresh matched-period
+pair is required for the registered power estimate. The two methods
+have their own actual checksum activity, including idle intervals
+and undo. An estimate over this prefix uses port annotation and
+tool propagation of internal activity. It will report coverage and
+bounded history-block power. Full task energy needs qualified clock,
+complete activity and measured run duration. Provider feedback still
+needs a timing contract before held-out CPU performance.
