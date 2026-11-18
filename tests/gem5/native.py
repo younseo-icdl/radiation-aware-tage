@@ -42,8 +42,11 @@ def main():
                    'checksum': args.binary}
     provenance = {}
     for name, path in named_files.items():
+        digest = hashlib.sha256()
         with path.open('rb') as source:
-            provenance[name] = hashlib.file_digest(source, 'sha256').hexdigest()
+            for chunk in iter(lambda: source.read(1024*1024), b''):
+                digest.update(chunk)
+        provenance[name] = digest.hexdigest()
     capture_end = 80_000 * args.cycle_ticks
     capture = ['--activity-end-tick', str(capture_end)]
     if args.output.exists():

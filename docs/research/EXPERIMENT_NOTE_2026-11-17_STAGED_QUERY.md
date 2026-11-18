@@ -534,3 +534,12 @@ policies depends on the reference layout. The banked
 producer and admission controller are under
 `work/history-btb-reference-20261118-r2/` and
 `work/heldout-admission-20261118-r2/`.
+
+The banked map reached a synthesis partition and dispatched
+work to a mapping worker. The flat producer was still active.
+The latest private coordinator under
+`work/heldout-admission-20261118-r3/` also handles a clock
+change by rerunning the paired activity replay and checking
+full annotation before admission. It reuses the recorded
+13,850 ps replay if the clock remains unchanged. No
+held-out run was started by this change.
