@@ -87,8 +87,14 @@ history-block window, with all nets directly annotated and zero cell
 delay. The routed direct target-validity reference subsequently
 passed at 69.82% die utilization. Its 8.578 ns read delay fit the
 same 13.850 ns period and left +330 ps target setup slack in the
-limiting lease arm. The timed checksum passed and the clean
-held-out references opened. Basicmath and Patricia encountered
-shared x87 formatting failures under gem5. No held-out faulted
-performance result is available while the compatibility repair is
-being checked. See `EXPERIMENT_NOTE_2026-11-17_STAGED_QUERY.md`.
+limiting lease arm. The timed checksum passed before the clean
+held-out references ran. Basicmath and Patricia still failed
+exact host stdout after the gem5 x87 compatibility fixes.
+
+**What does the held-out workload show?** On CRC32, lease reduced the
+incremental SOURCE fault cost from +0.038004% to +0.0000468%. The
++0.086650% clean lease cost exceeded that reduction. Ordinary TAGE
+was faster in all eight CRC32 pairs, with a mean lease benefit of
+-0.048674%. The clean gate for the other two workloads limits
+between-workload inference. See
+[`source-heldout-2026-11-18.md`](../results/source-heldout-2026-11-18.md).
