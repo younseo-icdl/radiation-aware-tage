@@ -20,6 +20,10 @@ def check_trace(stream):
     conflicts = Counter()
     first_conflict = {}
     peak = Counter()
+    ordering = Counter({key: 0 for key in (
+        'query_after_undo', 'query_after_append', 'append_after_query',
+        'query_after_query_then_append',
+    )})
     frame = Counter()
     tick = -1
     ready = None
@@ -42,11 +46,17 @@ def check_trace(stream):
         if op == 'query':
             if owner or extra or not 0 <= value < 2**64:
                 raise ValueError('invalid query record')
+            ordering['query_after_undo'] += bool(frame['undo'])
+            ordering['query_after_append'] += bool(frame['append'])
+            ordering['query_after_query_then_append'] += bool(frame['append_after_query'])
         elif op == 'append':
             if owner <= 0 or owner in appended or value not in (0, 1) or extra not in (0, 1):
                 raise ValueError('invalid or duplicate owner append')
             allocated.add(owner)
             appended[owner] = None
+            if frame['query']:
+                frame['append_after_query'] += 1
+                ordering['append_after_query'] += 1
         elif op == 'undo':
             if value != 1 or extra or not appended or next(reversed(appended)) != owner:
                 raise ValueError('undo did not reference the youngest appended owner')
@@ -84,6 +94,7 @@ def check_trace(stream):
     return {'scope': 'captured clean operations and conservative undo-first edge grouping',
             'capture_end_tick_exclusive': end, 'last_observed_operation_tick': tick,
             'totals': totals, 'peak_per_tick': peak, 'conflicting_operations': conflicts,
+            'same_tick_ordering': ordering,
             'first_conflict_tick': first_conflict, 'pending_service_at_capture_end': ready,
             'status': 'REQUIRES_SCHEDULING' if conflicts else 'NO_OBSERVED_EDGE_CONFLICT',
             'cpu_timing_qualified': False}

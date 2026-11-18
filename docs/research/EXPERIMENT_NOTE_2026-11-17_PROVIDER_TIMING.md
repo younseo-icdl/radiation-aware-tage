@@ -95,3 +95,23 @@ assertion evidence are `work/gem5-query-ii-build-20261117-r1/`,
 the scheduling mechanism at the existing 500 ps simulation setting.
 The held-out issue interval still requires a measured implementation
 contract.
+
+## Same-tick operand ordering
+
+The activity checker now reports ordered query, append and undo demand
+independently of the port-width gate. Reanalysis of the retained clean
+qsort prefix found 61,271 of 319,920 queries after an earlier same-tick
+append. For 61,249 of those, the tick already contained an earlier query
+before an append. The event ordering identifies which ticks need a
+timed feedback or scheduling contract. Activity rows lack the producing
+query's identity on each append, so the counts are upper bounds on
+conditional-to-conditional data dependencies.
+
+The checksum controls contained no query–append–query chains, while
+every captured conditional query was followed by an append on the same
+tick. A one-query issue restriction removes same-tick chains between
+conditional queries by construction. It still requires a closed path
+from the issued query to its speculative append. It must also cover
+earlier nonconditional appends, table-row arrival, and redirect timing.
+The ordering reports from existing captures are in
+`work/history-order-audit-20261117-r1/`. This audit launched no workloads.

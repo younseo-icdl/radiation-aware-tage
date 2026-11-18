@@ -84,10 +84,14 @@ def main():
     parser.add_argument('--audit-no-undo', action='store_true')
     parser.add_argument('--recheck-period-ps', type=int,
                         help='Recheck both routed checkpoints at a specified common clock')
+    parser.add_argument('--recheck-cppr', choices=('none', 'both'),
+                        help='Set the same CPPR policy on both rechecked checkpoints')
     args = parser.parse_args()
     try:
         if args.recheck_period_ps is not None and args.recheck_period_ps <= 0:
             raise ValueError('recheck clock period must be positive')
+        if args.recheck_cppr is not None and args.recheck_period_ps is None:
+            raise ValueError('a CPPR override requires an explicit recheck period')
         summary = matched_summary(args.recurrent, args.lease)
         with args.output.open('x') as out:
             json.dump(summary, out, indent=2)
@@ -95,18 +99,19 @@ def main():
         if args.audit_no_undo or args.recheck_period_ps is not None:
             for name, route in (('recurrent', args.recurrent), ('lease4096', args.lease)):
                 outdir = args.output.with_suffix('').with_name(args.output.stem+'-'+name)
-                audit_no_undo(route, outdir, args.recheck_period_ps)
+                audit_no_undo(route, outdir, args.recheck_period_ps, args.recheck_cppr)
     except (ValueError, OSError, KeyError) as error:
         parser.error(str(error))
 
 
-def audit_no_undo(route, output, period_ps=None):
+def audit_no_undo(route, output, period_ps=None, cppr=None):
     checkpoint = (route/'outputs/routed.inn').resolve(strict=True)
     output.mkdir()
     (output/'reports').mkdir()
     shutil.copy2(Path(__file__).with_name('innovus_history_modes.tcl'), output/'flow.tcl')
     (output/'site.tcl').write_text('set checkpoint '+tcl_word(checkpoint)+'\n'
-                                 f'set retimed {int(period_ps is not None)}\n')
+                                 f'set retimed {int(period_ps is not None)}\n'
+                                 'set cppr '+tcl_word(cppr or '')+'\n')
     if period_ps is not None:
         (output/'inputs').mkdir()
         original = (route/'inputs/mapped.sdc').read_text()
@@ -123,6 +128,7 @@ def audit_no_undo(route, output, period_ps=None):
               for mode in ('unrestricted', 'no_undo')}
     if period_ps is not None:
         result['rechecked_period_ps'] = period_ps
+        result['cppr'] = (output/'reports/cppr.txt').read_text().strip()
         result['setup'] = worst_path((output/'reports/rechecked_setup.rpt').read_text(), 'slowview', 'Late')
         result['hold'] = worst_path((output/'reports/rechecked_hold.rpt').read_text(), 'fastview', 'Early')
     result['scope'] = 'query with all undo bits constrained to zero; remaining operands external'

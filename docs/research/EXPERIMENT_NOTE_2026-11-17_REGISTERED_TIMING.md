@@ -242,3 +242,21 @@ setting, compares both-edge CPPR, and attempts incremental hold repair
 with the same +30 ps target. This run diagnoses the origin of the
 remaining short paths before touching a density-accepted checkpoint.
 Its output is `work/history-hold-repair-20261117-r1/`.
+
+The restored session reported CPPR disabled. At 8.2 ns its unmodified
+lease checkpoint had +57 ps setup and -13 ps hold slack. Enabling CPPR
+for both timing edges kept +57 ps setup and returned zero paths at or
+below 0 ps hold slack. The incremental hold repair step then encountered
+a 100% local-placement-density error. No repaired layout is used. The
+original constraints, timing and density failures remain recorded.
+
+Added an explicit common CPPR option to the paired STA recheck. The
+next diagnostic uses the larger detailed setup lower bound, rounded
+up to 50 ps plus a 50 ps margin. It will retain the original and
+rechecked slow/fast views and require matching CPPR, 65–75% die use,
+clean DRC and connectivity, and nonnegative setup and hold. If this
+registered block passes, matched checksum activity is replayed at
+the rechecked period and the same clock is applied to the restored
+power checkpoint. This remains a bounded registered-history result
+with port-level activity. Coordination evidence is
+`work/history-matched-recheck-power-20261117-r1/`.

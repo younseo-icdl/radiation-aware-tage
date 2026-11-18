@@ -22,6 +22,17 @@ class HistoryActivityTests(unittest.TestCase):
         self.assertEqual(result['status'], 'REQUIRES_SCHEDULING')
         self.assertEqual(result['first_conflict_tick']['undo_after_append_or_query'], 2)
 
+    def test_same_tick_ordering_is_distinct_from_width_conflicts(self):
+        result = self.check('1,append,1,0,1\n'
+                            '2,undo,1,1,0\n2,append,1,0,1\n2,query,0,64,0\n'
+                            '2,append,2,1,1\n2,query,0,68,0\n'
+                            '3,query,0,72,0\n')
+        self.assertEqual(result['status'], 'NO_OBSERVED_EDGE_CONFLICT')
+        self.assertEqual(result['same_tick_ordering'], {
+            'query_after_undo': 2, 'query_after_append': 2,
+            'append_after_query': 1, 'query_after_query_then_append': 1,
+        })
+
     def test_service_deadline_and_live_owner(self):
         with self.assertRaisesRegex(ValueError, 'occupied owners'):
             self.check('1,append,1,0,0\n2,service_start,0,4,4096\n')

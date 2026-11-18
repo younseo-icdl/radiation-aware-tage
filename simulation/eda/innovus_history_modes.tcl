@@ -5,6 +5,13 @@ proc report_history_modes {} {
     read_db $checkpoint
     if {$retimed} {
         update_constraint_mode -name functional -sdc_files [list [file normalize inputs/recheck.sdc]]
+        if {$cppr ne ""} {
+            set_db timing_analysis_type ocv
+            set_db timing_analysis_cppr $cppr
+        }
+        set cppr_record [open reports/cppr.txt w]
+        puts $cppr_record [get_db timing_analysis_cppr]
+        close $cppr_record
         report_timing > reports/rechecked_setup.rpt
         report_timing -early > reports/rechecked_hold.rpt
     }
