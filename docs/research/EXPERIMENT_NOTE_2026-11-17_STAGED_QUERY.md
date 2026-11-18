@@ -601,3 +601,12 @@ reports. A coordinator startup with an unset module search path
 failed before opening a checkpoint. The corrected launch and
 `work/heldout-admission-20261118-r4/` are waiting for a qualified
 physical producer. The locked workload outputs are still absent.
+
+The first flat BTB reference route completed in 2 h 00 min.
+Internal DRC, signal connectivity, and supply connectivity passed.
+The final tool reports show +3,333 ps setup and -290 ps hold slack.
+Placed cell area was 1,069,219.908 µm² on a 1,279,240.170 µm² die,
+giving 83.582% utilization. The coordinator started a larger-die
+retry. The first flat route remains outside the physical gate.
+Inputs and reports are under
+`work/history-btb-reference-route-20261118-r1/attempt1/`.
