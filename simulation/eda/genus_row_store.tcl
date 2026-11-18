@@ -14,6 +14,7 @@ proc run_row_store_synthesis {} {
         set read_ports {read_addr_i*}
     } elseif {$row_block eq "btb-hit"} {
         set_db hdl_max_loop_limit 16384
+        set_db auto_ungroup none
         foreach family {SDFF SEDFF SMDFF} {
             set scan_cells [get_db lib_cells */${family}*]
             if {[llength $scan_cells]} { set_db $scan_cells .avoid true }

@@ -511,3 +511,26 @@ and a fresh paired checksum at 13,850 ps with a shared diagnostic
 SOURCE tape. Each checksum arm applied one event and retained
 twenty future records. The checksum control and its frozen-config
 regression are under `work/heldout-planning-20261118-r1/`.
+
+### Banked physical layout of the direct-target reference
+
+The flat 4,096-row reference was still using CPU time after
+58 minutes, while the mapping workers remained idle. An
+independent producer organizes the same 4,096 entries as
+eight 512-row banks and preserves their hierarchy during
+mapping. The low nine index bits address a row, and the
+high three select its bank. The selected valid bit and
+16-bit tag use the original comparison.
+
+The paired RTL gate filled all 4,096 indices and checked
+a hit and a conflicting tag at each index for both layouts.
+It also checked replacement and reset. Both synthesis
+producers retain separate logs and route directories. The
+single admission process accepts the first physically
+qualified target budget, then reruns the timed checksum
+with the exact frozen configuration and checks the matching
+power period. Neither the fault law nor the two predictor
+policies depends on the reference layout. The banked
+producer and admission controller are under
+`work/history-btb-reference-20261118-r2/` and
+`work/heldout-admission-20261118-r2/`.

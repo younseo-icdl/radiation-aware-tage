@@ -3,7 +3,9 @@ module history_btb_hit_tb;
     reg clk_i=0, reset_i=1, write_enable_i=0;
     reg [27:0] write_pc_i=0, read_pc_i=0;
     wire hit_o;
+    wire flat_hit;
     tage_btb_hit_reference dut (.*);
+    tage_btb_hit_reference #(.BANKED(0)) reference (.hit_o(flat_hit), .*);
 
     task tick;
         #4; clk_i=1;
@@ -18,7 +20,7 @@ module history_btb_hit_tb;
     task query(input [27:0] pc, input bit expected);
         read_pc_i=pc;
         #1;
-        if(hit_o!==expected) $fatal(1,"unexpected BTB hit at PC %h",pc);
+        if(hit_o!==expected || flat_hit!==expected) $fatal(1,"unexpected BTB hit at PC %h",pc);
     endtask
     initial begin
         tick();
@@ -33,9 +35,15 @@ module history_btb_hit_tb;
         query(28'ha012000,0);
         query(28'ha013000,1);
         query(28'hfe09fff,1);
+        for (int index=0; index<4096; index++)
+            insert(28'hc028000 | index);
+        for (int index=0; index<4096; index++) begin
+            query(28'hc028000 | index,1);
+            query(28'hc038000 | index,0);
+        end
         reset_i=1;
         tick();
-        query(28'hfe09fff,0);
+        query(28'hc028fff,0);
         $display("PASS_BTB_HIT_REFERENCE");
         $finish;
     end
