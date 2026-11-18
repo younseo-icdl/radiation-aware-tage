@@ -104,3 +104,28 @@ late row and target arrivals passed at 13.850 ns with
 +426 ps setup and +16 ps hold slack. SECDED is routing with
 the same settings. The original automatic-ungrouping ECC
 producer was independently active.
+
+## Extracted closure and gate-level reset check
+
+The matched 16-core SECDED route completed with 233,071.290 µm²
+of placed cells at 73.409% die utilization. Both arms used the
+same die and passed internal DRC and signal and supply connectivity.
+
+The CPPR recheck at 13.850 ns gave SECDED -988 ps setup and +5 ps
+hold. The limiting setup path launches at a returned row-tag
+input and terminates at a raw SECDED check-bit register. Lease
+met the same constraints with +426 ps setup and +16 ps hold.
+At 14.900 ns, SECDED closed with +65 ps setup and +5 ps hold,
+while lease closed with +1,085 ps setup and +16 ps hold.
+The common-period power comparison uses this verified 14.900 ns.
+
+The first routed SECDED activity replay stopped before edge zero
+because the reset sequence left X in portions of the raw ring.
+Waveform tracing found unknown feedback at the data pin of a
+representative raw flop during synchronous reset; the raw decoder
+then propagated it to admission. RTL reset had passed. Lease
+passed the first routed replay. An independent paired retry
+specifies identical concrete all-one simulation initialization
+before the existing synchronous reset. Its outputs will be
+admitted only if reset and the same clean trace pass. The original
+failed wave and log remain available.
