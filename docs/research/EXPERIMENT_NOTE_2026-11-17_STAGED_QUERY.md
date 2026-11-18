@@ -693,3 +693,29 @@ build under `work/gem5-heldout-x87-build-20261118-r1/` tests the
 missing decode paths using the existing gem5 x87 arithmetic and
 compare model. The pinned workload files, original outputs and
 SOURCE settings are preserved.
+
+A standalone finite-double formatting probe reproduces the same
+`fmt_fp` crash without an unimplemented-instruction warning. A
+bounded limb probe produces identical wrong numerical intermediates
+under AtomicSimpleCPU and O3. A focused x87 test clears the cause
+of the zero integer limb. A regular load of 1.5 remains correct,
+while `FLD ST(0)` pushes zero into an unused stack register and
+a subsequent `FISTP` converts that zero. The generated
+`FLD_R` inherited a four-byte operand size from the shared m32
+decoder and `movfp` copied only the lower 32 bits of the internal
+64-bit payload. The register copy must use the full internal
+payload width. The x87 model still has its original double
+precision approximation for stack arithmetic.
+
+The initial build that added only `FSUBR` and `FCOMIP` was
+stopped and its files retained. The separate repair build in
+`work/gem5-heldout-x87-build-20261118-r2/` also forces a full
+register copy for `FLD ST(i)`. The original failing probes are
+under `work/gem5-heldout-x87-probes-20261118-r1/`. A fresh
+gate in `work/heldout-admission-20261118-r7/` requires the
+native-reference instruction and formatting probes, locked
+file hashes, and a new exact-binary checksum before running
+clean references again. The faulted phase remains gated on
+the clean references. This is simulator compatibility work.
+The workload binaries, protection policy and matched timing
+constraints remain fixed.

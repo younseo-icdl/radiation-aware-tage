@@ -84,6 +84,11 @@ the staged layouts and bounded gem5 gate pass at 13.850 ns. At this
 clock and using actual CPU rows, the routed history estimates are
 2.389 versus 2.517 µJ, a 5.38% increase for lease. Scope is the clean
 history-block window, with all nets directly annotated and zero cell
-delay. The separate target-validity path is being characterized before
-the held-out evaluation opens. See
-`EXPERIMENT_NOTE_2026-11-17_STAGED_QUERY.md`.
+delay. The routed direct target-validity reference subsequently
+passed at 69.82% die utilization. Its 8.578 ns read delay fit the
+same 13.850 ns period and left +330 ps target setup slack in the
+limiting lease arm. The timed checksum passed and the clean
+held-out references opened. Basicmath and Patricia encountered
+shared x87 formatting failures under gem5. No held-out faulted
+performance result is available while the compatibility repair is
+being checked. See `EXPERIMENT_NOTE_2026-11-17_STAGED_QUERY.md`.
