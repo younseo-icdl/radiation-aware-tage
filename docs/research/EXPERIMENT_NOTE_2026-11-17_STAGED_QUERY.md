@@ -562,3 +562,21 @@ figures, before final extracted CPPR recheck. Both the final
 hold constraints and final die utilization remain required.
 The flat synthesis has since entered four-way partitioning.
 The admission controller has not opened the workload inputs.
+
+The first banked layout completed at 83.503% die utilization
+and is outside the range. Its extracted CPPR audit measured an
+8,710 ps read-to-hit path and -185 ps write hold slack. The
+limiting path starts at `write_pc_i[0]`. At that endpoint the
+capture clock insertion is 362 ps and the input delay plus data
+path is 204 ps. The new larger-die run is in placement. The flat
+reference also completed synthesis and is routing separately.
+The first banked checkpoint remains available for diagnosis.
+
+An isolated physical pilot inventories early paths from the
+write, enable and reset inputs, then inserts a non-inverting
+repeater chain on the worst write input. It reroutes and
+extracts the modified branch before comparing its early and
+late slack under unchanged SDC. Its starting layout remains
+outside the density range. The pilot will guide a legal hold
+repair on an accepted-density layout if needed. Inputs, logs and
+reports are under `work/history-btb-write-hold-pilot-20261118-r1/`.
