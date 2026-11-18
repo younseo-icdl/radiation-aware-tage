@@ -30,6 +30,7 @@ class NativeTAGE(TAGE):
     tage = NativeTAGEBase()
     commit_trace_file = Param.String('', 'Gzip committed branch times and consumed source snapshots')
     query_latency = Param.Unsigned(0, 'Additional conditional-query latency, in CPU cycles')
+    query_ii_cycles = Param.Unsigned(0, 'Optional minimum interval between issued conditional queries')
     cycle_ticks = Param.Unsigned(500, 'CPU clock period in simulator ticks')
     force_base = Param.Bool(False, 'Diagnostic: force base output while retaining TAGE internals')
     max_restore_owners = Param.Unsigned(512, 'Declared finite history-owner capacity, asserted and measured')

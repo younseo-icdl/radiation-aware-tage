@@ -426,6 +426,9 @@ void NativeTAGEBase::dumpResearch() {
         << ",\"maximum_conditional_lookups_per_tick\":" << owner->maximum_conditional_lookups_per_tick
         << ",\"lease_frontend_wait_calls\":" << owner->lease_frontend_wait_calls
         << ",\"native_branch_history_observation_frames_at_exit\":" << owner->pendingObservationFrames();
+    if (owner && owner->queryInterval())
+        out << ",\"conditional_query_interval_cycles\":" << owner->queryInterval()
+            << ",\"query_interval_wait_calls\":" << owner->query_interval_wait_calls;
     out << ",\"RNG_observation\":\"upstream TAGE::update unchanged; observer draws none; full RNG not exported\"}\n";
 }
 
@@ -436,6 +439,10 @@ NativeTAGEBase &NativeTAGE::checkedCore(gem5::branch_prediction::TAGEBase *base)
 }
 NativeTAGE::NativeTAGE(const gem5::NativeTAGEParams &p) : TAGE(p), core(checkedCore(p.tage)) {
     query_latency_ = p.query_latency; cycle_ticks_ = p.cycle_ticks;
+    query_ii_cycles_ = p.query_ii_cycles;
+    if (query_ii_cycles_>32 || (query_ii_cycles_ && query_latency_)
+            || (query_ii_cycles_ && cycle_ticks_>UINT64_MAX/query_ii_cycles_))
+        throw std::invalid_argument("invalid or combined native query interval");
     force_base = p.force_base;
     restore_capacity_=p.max_restore_owners;
     if (!cycle_ticks_ || query_latency_ > 32)
@@ -462,6 +469,13 @@ void NativeTAGE::flushTrace() {
     }
 }
 bool NativeTAGE::predict(gem5::ThreadID tid, gem5::Addr pc, bool conditional, void *&history) {
+    if (conditional && query_ii_cycles_) {
+        const auto now=gem5::curTick();
+        const auto interval=cycle_ticks_*query_ii_cycles_;
+        if (now<next_query_tick_ || now>UINT64_MAX-interval)
+            throw std::logic_error("conditional query violated its issue interval");
+        next_query_tick_=now+interval;
+    }
     if (conditional && query_latency_) {
         if (!pending_ || pending_pc_ != pc || gem5::curTick() < ready_tick_)
             throw std::logic_error("delayed direct query consumed before readiness");
@@ -487,6 +501,10 @@ bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
                                     bool conditional, uint32_t &token) {
     if (tid) throw std::invalid_argument("query admission single thread");
     if(core.lease.due()) return false;
+    if (conditional && query_ii_cycles_ && gem5::curTick()<next_query_tick_) {
+        ++query_interval_wait_calls;
+        return false;
+    }
     if (!conditional || !query_latency_) return true;
     if (!token) {
         if (pending_) throw std::logic_error("duplicate pending query owner");

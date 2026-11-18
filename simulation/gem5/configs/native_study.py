@@ -33,6 +33,8 @@ def main():
     parser.add_argument('--max-restore-owners', type=int, default=512)
     parser.add_argument('--query-latency', type=int, default=0,
                         help='Additional conditional-query CPU cycles, explicitly modeled')
+    parser.add_argument('--query-ii-cycles', type=int, default=0,
+                        help='Optional minimum gap between conditional query issues')
     parser.add_argument('--max-ticks', type=int, default=2000000000000)
     parser.add_argument('--seed', type=int, default=548)
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -49,6 +51,8 @@ def main():
         parser.error('max-ticks must be positive')
     if not 0 <= args.query_latency <= 32:
         parser.error('query-latency must be 0..32')
+    if not 0 <= args.query_ii_cycles <= 32 or (args.query_ii_cycles and args.query_latency):
+        parser.error('query II must be 0..32 and cannot be combined with delayed query latency')
     if (not 0 <= args.direct_bank_mask < 128 or not 0 <= args.lease_period <= 65535
             or args.lease_service_cycles <= 0 or args.cycle_ticks <= 0 or args.max_restore_owners <= 0):
         parser.error('invalid mask, lease, clock, or owner capacity')
@@ -67,10 +71,11 @@ def main():
         event_file=str(output/'events.csv'), summary_file=str(output/'native.json'),
         manifest_file=str(output/'logical_manifest.json'),
         origin_file=str(output/'raw_origins.csv') if args.diagnostics else '', **activity)
+    issue_interval = dict(query_ii_cycles=args.query_ii_cycles) if args.query_ii_cycles else {}
     predictor = NativeTAGE(tage=base,
         query_latency=args.query_latency, cycle_ticks=args.cycle_ticks,
         max_restore_owners=args.max_restore_owners,
-        commit_trace_file=str(output/'committed.csv.gz') if args.diagnostics else '')
+        commit_trace_file=str(output/'committed.csv.gz') if args.diagnostics else '', **issue_interval)
     system = create_system(args, output, predictor)
     root = Root(full_system=False, system=system)
     m5.core.seedRandom(args.seed)

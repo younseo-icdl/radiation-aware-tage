@@ -44,8 +44,29 @@ implementation for physical characterization of row-read cost.
 
 Gate and Genus producers are `work/history-row-store-gate-20261117-r1/`
 and `work/history-row-store-synthesis-20261117-r1/`. The synthesis
-requests a dedicated address-to-row timing report. Result pending.
-The tool's initial -870 ps on selection and the row-store result can
-inform a complete staged or dependent path, but neither certifies a
-second query using a first query's direction in the same cycle.
+requests a dedicated address-to-row timing report. Genus passed on the
+reference bank with a 1,210 ps address-to-data path, -835 ps slack
+under the 500 ps constraints and 101,733.235 µm² mapped cell area.
+The provider-select report gives 1,245 ps data path. These are measured
+separate mappings. Combining them requires a concrete circuit and
+timing boundary, including the T0 read, data arrival and feedback.
 The 65–75% matched history routing remains a separate live batch.
+
+## Matched issue interval mechanism
+
+Added an optional gem5 `--query-ii-cycles`. A conditional query that
+actually executes consumes a slot and sets the next permissible issue
+tick. Further conditional requests wait until then. This setting can
+apply equally to recurrent and lease4096 and measures a throughput
+restriction independently of lookup result latency. An issued slot
+remains charged if a squash follows. The default preserves existing
+callers. Added interval and wait counters appear only when enabled.
+
+This is a scheduling mechanism for a potential measured common
+contract. The test below uses a two-cycle interval to exercise the
+gate, rather than selecting the held-out policy or asserting a
+two-cycle measured path. The test will verify adjacent conditional
+query gaps, observability of stalls, exact checksum stdout, lease
+publication and original disabled behavior. New producer and gate
+outputs are `work/gem5-query-ii-build-20261117-r1/` and
+`work/gem5-query-ii-gate-20261117-r1/`.

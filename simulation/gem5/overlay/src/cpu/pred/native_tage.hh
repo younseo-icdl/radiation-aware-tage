@@ -103,7 +103,9 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     gzFile trace_ = nullptr;
     bool observing_ = false;
     unsigned query_latency_ = 0;
+    unsigned query_ii_cycles_ = 0;
     gem5::Tick cycle_ticks_ = 500, ready_tick_ = 0;
+    gem5::Tick next_query_tick_ = 0;
     gem5::Addr pending_pc_ = 0;
     uint32_t next_token_ = 0, pending_token_ = 0;
     bool pending_ = false;
@@ -126,6 +128,8 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     uint64_t maximum_lookups_per_tick=0, maximum_conditional_lookups_per_tick=0;
     uint64_t query_wait_calls = 0, delayed_requests = 0, canceled_requests = 0;
     unsigned queryLatency() const { return query_latency_; }
+    unsigned queryInterval() const { return query_ii_cycles_; }
+    uint64_t query_interval_wait_calls=0;
     bool force_base = false;
     explicit NativeTAGE(const gem5::NativeTAGEParams &);
     ~NativeTAGE() override;
