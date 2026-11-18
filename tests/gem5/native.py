@@ -24,6 +24,8 @@ def main():
     p.add_argument('--integrated', action='store_true', help='Also test hybrid/lease, actual BPU observations, and tape coverage')
     p.add_argument('--query-interval', action='store_true',
                    help='Exercise matched conditional-query pacing and observe issued queries')
+    p.add_argument('--query-pipeline', action='store_true',
+                   help='Check registered hash operands in both arms, including an inter-stage fault')
     args = p.parse_args()
     if args.output.exists():
         p.error('output exists; choose a fresh directory')
@@ -64,6 +66,14 @@ def main():
                   ('lease-age',lease+['--schedule',str(age)]),
                   ('short-tape',['--diagnostics','--schedule',str(short_tape)])]
     intervals = {}
+    pipelines = {}
+    pipeline_fault_ticks = {}
+    if args.query_pipeline:
+        for model in ('native', 'lease4096'):
+            name = f'pipeline-{model}'
+            mode = ['--lease-period', '4096'] if model == 'lease4096' else []
+            pipelines[name] = (model, ['--query-pipeline'] + mode)
+            cases.append((name, pipelines[name][1]+['--activity-end-tick', '40000000']))
     if args.query_interval:
         for model in ('native', 'lease4096'):
             mode = ['--lease-period', '4096'] if model == 'lease4096' else []
@@ -79,6 +89,7 @@ def main():
     def run(item):
         name, extra = item
         interval_fault = name in intervals and name.endswith('-fault')
+        pipeline_model = pipelines[name][0] if name in pipelines else None
         out = args.output/name
         cmd = [sys.executable, str(ROOT/'tools/gem5.py'), 'run',
                '--tree', str(args.tree.resolve()), '--config',
@@ -111,7 +122,13 @@ def main():
             assert state['additional_lookup_hold'] == int(name in ('direct1', 'direct-fault'))
             assert state['additional_retirement_hold'] == 0
             assert state['periodic_service_clock'] is False
-            if name in ('fault','lease-fault') or interval_fault:
+            if name in pipeline_fault_ticks:
+                assert state['applied_events'] == state['applied_flips'] == 1
+                with (out/'events.csv').open() as f:
+                    event, = csv.DictReader(f)
+                assert int(event['requested_tick']) == int(event['applied_tick']) == pipeline_fault_ticks[name]
+                assert state['staged_responses_after_fault'] == state['staged_responses_with_changed_hash'] == 1
+            elif name in ('fault','lease-fault') or interval_fault:
                 assert state['applied_events'] == state['applied_flips'] == 3
                 with (out/'events.csv').open() as f:
                     events = list(csv.DictReader(f))
@@ -122,6 +139,21 @@ def main():
             else:
                 assert state['applied_events'] == 0
             assert state['future_events_censored'] == int(name == 'censored')
+            if pipeline_model:
+                issue = state['first_staged_issue_tick']
+                assert issue > 0 and state['first_staged_response_tick'] - issue == 500
+                assert state['staged_query_hash_cycles'] == state['maximum_conditional_lookups_per_tick'] == 1
+                assert state['staged_query_responses'] > 0 and state['canceled_query_requests'] > 0
+                accounted = (state['staged_query_responses'] + state['staged_query_retries']
+                             + state['canceled_query_requests'])
+                assert state['delayed_requests'] - accounted in (0, 1)
+                assert (state['lease_publications'] > 0) == (pipeline_model == 'lease4096')
+                if name not in pipeline_fault_ticks:
+                    with (out/'history_activity.csv').open() as f:
+                        assert next(f).strip() == '# capture_end_tick=40000000'
+                        query_ticks = [int(x['tick']) for x in csv.DictReader(f) if x['operation']=='query']
+                    assert query_ticks[0] == issue
+                    assert min(b-a for a,b in zip(query_ticks,query_ticks[1:])) >= 500
             if name in intervals:
                 model, cycles = intervals[name]
                 assert state.get('conditional_query_interval_cycles', 0) == cycles
@@ -144,7 +176,7 @@ def main():
                         after = list(map(int,event['bit_values_after'].split(';')))
                         assert len(before)==len(after)==int(event['multiplicity'])
                         assert all((a^b)==1 for a,b in zip(before,after))
-                if name.startswith('lease'):
+                if name.startswith('lease') or pipeline_model == 'lease4096':
                     assert state['lease_publications'] > 0
                     assert state['lease_frontend_wait_calls'] > 0
                     assert state['lease_service_wait_calls'] > 0
@@ -161,7 +193,7 @@ def main():
                                 publications+=1;pending=None
                     assert publications==state['lease_publications']
                     assert (pending is not None)==state['lease_completion_censored_at_exit']
-            if name != 'light' and name not in intervals:
+            if name != 'light' and name not in intervals and not pipeline_model:
                 with gzip.open(out/'committed.csv.gz', 'rt') as f:
                     count = 0; bpu_misses = 0
                     for x in csv.DictReader(f):
@@ -190,6 +222,19 @@ def main():
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         rows = list(pool.map(run, cases))
+        staged_faults = []
+        for row in rows:
+            name = row['case']
+            if name not in pipelines or row['status'] != 'PASS':
+                continue
+            tick = row['native']['first_staged_issue_tick'] + 1
+            fault = args.output/(name+'.events')
+            fault.write_text(f'# time_unit=ticks\n{tick} W0:0\n')
+            fault_case = name+'-interstage'
+            pipelines[fault_case] = pipelines[name]
+            pipeline_fault_ticks[fault_case] = tick
+            staged_faults.append((fault_case, pipelines[name][1]+['--schedule',str(fault)]))
+        rows += list(pool.map(run, staged_faults))
     checks = []
     if all(x['status'] == 'PASS' for x in rows):
         states = {x['case']: x.get('native') for x in rows}
@@ -220,6 +265,12 @@ def main():
                     if all(low[f] == disabled[f] for f in fields)
                     and high['tick'] > disabled['tick']
                     and high['retired_pc_identity'] == disabled['retired_pc_identity'] else 'FAIL'})
+        if args.query_pipeline:
+            for name in pipelines:
+                assert name in states
+                checks.append({'check': name+' preserves architectural stream', 'status': 'PASS'
+                               if states[name]['retired_pc_identity']==states['light']['retired_pc_identity']
+                               else 'FAIL'})
         if args.native_reference:
             stats = dict(line.split()[:2] for line in
                          (args.native_reference/'stats.txt').read_text().splitlines()

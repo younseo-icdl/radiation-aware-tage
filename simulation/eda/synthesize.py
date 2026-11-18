@@ -12,10 +12,14 @@ BLOCKS = {
              'PASS_B0_HASH_SYNTHESIS_NOT_FULL_HISTORY_PPA'),
     'state': ('B1A_HISTORY_DATAPATH', 'genus_state.tcl',
               'PASS_B1A_STATE_SYNTHESIS'),
+    'pipeline': ('STAGED_HISTORY_RETURNED_ROWS', 'genus_state.tcl',
+                 'PASS_STAGED_HISTORY_SYNTHESIS'),
     'provider': ('PROVIDER_SELECT_RETURNED_ROWS_ONLY', 'genus_hash.tcl',
                  'PASS_PROVIDER_SELECT_SYNTHESIS'),
     'row-store': ('ONE_TAGGED_BANK_2R1W_REFERENCE', 'genus_row_store.tcl',
                   'PASS_ROW_STORE_SYNTHESIS'),
+    'bimodal-prediction': ('T0_PREDICTION_BITS_REFERENCE', 'genus_row_store.tcl',
+                           'PASS_ROW_STORE_SYNTHESIS'),
 }
 
 
@@ -61,18 +65,22 @@ def main():
         values = site_values(json.loads(a.site.read_text()), a.direct_mask, a.cpus)
         if not 0 < a.timeout < float('inf'):
             raise ValueError('finite positive host timeout required')
-        if not 0 <= a.publish_mask < 128 or (a.block != 'state' and a.publish_mask):
-            raise ValueError('publication mask must be 0..127 and applies to the state block')
-        if a.block == 'state':
+        registered = a.block in ('state', 'pipeline')
+        if not 0 <= a.publish_mask < 128 or (not registered and a.publish_mask):
+            raise ValueError('publication mask must be 0..127 and applies to registered blocks')
+        if a.block == 'pipeline' and (a.direct_mask or a.publish_mask != (127 if a.lease_period else 0)):
+            raise ValueError('staged history uses recurrent hashes and full-bank publication when enabled')
+        if registered:
             values['publish_mask'] = a.publish_mask
             values['lease_period'] = a.lease_period
             values['lease_service_cycles'] = a.lease_service_cycles
-        if a.block in ('provider', 'row-store') and a.direct_mask:
+            values['pipeline'] = int(a.block == 'pipeline')
+        if a.block in ('provider', 'row-store', 'bimodal-prediction') and a.direct_mask:
             raise ValueError('provider and row store boundaries have no direct bank mask')
         if (not 0 <= a.lease_period <= 65535 or
                 not 1 <= a.lease_service_cycles <= 65535 or
-                (a.lease_period and (a.block != 'state' or not a.publish_mask))):
-            raise ValueError('an enabled lease requires a state block and a nonzero publication mask')
+                (a.lease_period and (not registered or not a.publish_mask))):
+            raise ValueError('an enabled lease requires a registered block and a nonzero publication mask')
     except (ValueError, OSError, KeyError) as error:
         p.error(str(error))
     out = a.output.resolve()
@@ -82,11 +90,20 @@ def main():
     scope, script, marker = BLOCKS[a.block]
     values['provider_select'] = int(a.block == 'provider')
     rtl_name = {'provider': 'tage_history_provider.sv',
-                'row-store': 'tage_history_row_store.sv'}.get(a.block, 'tage_history_hash.sv')
+                'row-store': 'tage_history_row_store.sv',
+                'bimodal-prediction': 'tage_history_row_store.sv'}.get(a.block, 'tage_history_hash.sv')
     shutil.copy2(ROOT/'tage/rtl'/rtl_name, out/'inputs'/rtl_name)
-    if a.block == 'state':
+    if a.block in ('row-store', 'bimodal-prediction'):
+        values['bimodal_prediction'] = int(a.block == 'bimodal-prediction')
+    if a.block == 'bimodal-prediction':
+        name = 'tage_bimodal_prediction_store.sv'
+        shutil.copy2(ROOT/'tage/rtl'/name, out/'inputs'/name)
+    if registered:
         shutil.copy2(ROOT/'tage/rtl/tage_history_state.sv', out/'inputs/tage_history_state.sv')
         shutil.copy2(ROOT/'tage/rtl/tage_history_lease.sv', out/'inputs/tage_history_lease.sv')
+    if a.block == 'pipeline':
+        for name in ('tage_history_pipeline.sv', 'tage_history_provider.sv'):
+            shutil.copy2(ROOT/'tage/rtl'/name, out/'inputs'/name)
     shutil.copy2(Path(__file__).with_name(script), out/'flow'/script)
     (out/'site.tcl').write_text(''.join('set {} {}\n'.format(k, tcl_word(v)) for k,v in values.items()))
     metadata = {'scope': scope, 'full_history_stage_qualified': False,
@@ -103,9 +120,11 @@ def main():
     text = (out/'console.log').read_text(errors='replace')
     valid = result.returncode == 0 and marker in text
     artifacts = ['mapped.v','mapped.sdc','TOP.txt','reports/area.rpt','reports/timing.rpt']
-    if a.block == 'state':
+    if registered:
         artifacts.append('reports/query_timing.rpt')
-    if a.block == 'row-store':
+    if a.block == 'pipeline':
+        artifacts.append('reports/provider_to_state_timing.rpt')
+    if a.block in ('row-store', 'bimodal-prediction'):
         artifacts.append('reports/read_address_timing.rpt')
     valid = valid and all((out/x).is_file() and (out/x).stat().st_size>0 for x in artifacts)
     metadata.update(status='PASS' if valid else 'FAIL', returncode=result.returncode)

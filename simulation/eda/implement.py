@@ -9,19 +9,26 @@ import shutil
 import subprocess
 from .synthesize import ROOT, tcl_word
 
+REGISTERED_HISTORY_SCOPES = {'B1A_HISTORY_DATAPATH', 'STAGED_HISTORY_RETURNED_ROWS'}
+ROW_REFERENCE_SCOPES = {'ONE_TAGGED_BANK_2R1W_REFERENCE', 'T0_PREDICTION_BITS_REFERENCE'}
+
 
 def retime_history_sdc(text, period_ns):
+    return retime_clock_sdc(text, period_ns, 'history_clk')
+
+
+def retime_clock_sdc(text, period_ns, clock):
     period = Decimal(str(period_ns))
     if not period.is_finite() or period <= 0:
         raise ValueError('route clock period must be finite and positive')
-    pattern = (r'^(create_clock -name "history_clk" -period )[\d.]+'
+    pattern = (r'^(create_clock -name "' + re.escape(clock) + r'" -period )[\d.]+'
                r'( -waveform \{)0\.0 [\d.]+(\} \[get_ports clk_i\])$')
     text, count = re.subn(
         pattern,
         lambda m: m[1]+format(period, 'f')+m[2]+'0.0 '+format(period/2, 'f')+m[3],
         text, flags=re.MULTILINE)
     if count != 1:
-        raise ValueError('expected one generated history clock and 50% waveform')
+        raise ValueError(f'expected one generated {clock} clock and 50% waveform')
     return text
 
 
@@ -76,21 +83,24 @@ def main():
         p.error('output exists; choose a fresh implementation producer')
     try:
         parent=json.loads((a.synthesis/'PRODUCER.json').read_text())
-        if parent['status']!='PASS' or parent['scope'] not in {
-            'B0_COMBINATIONAL_HASH_ONLY', 'B1A_HISTORY_DATAPATH'
-        }:
+        if parent['status']!='PASS' or parent['scope'] not in (
+            REGISTERED_HISTORY_SCOPES | ROW_REFERENCE_SCOPES | {'B0_COMBINATIONAL_HASH_ONLY'}
+        ):
             raise ValueError('a passed TAGE synthesis producer is required')
         top=(a.synthesis/'TOP.txt').read_text().strip()
         config=json.loads(a.site.read_text())
         values=physical_values(config,top,a.cpus)
-        values['registered'] = int(parent['scope'] == 'B1A_HISTORY_DATAPATH')
+        values['registered'] = int(parent['scope'] in REGISTERED_HISTORY_SCOPES | ROW_REFERENCE_SCOPES)
+        values['pipeline'] = int(parent['scope'] == 'STAGED_HISTORY_RETURNED_ROWS')
+        values['row_reference'] = int(parent['scope'] in ROW_REFERENCE_SCOPES)
         route_period=config.get('route_clock_period_ns')
         if route_period is not None and (not values['registered']
                 or not isinstance(route_period, (int, float)) or isinstance(route_period, bool)):
-            raise ValueError('route_clock_period_ns is numeric and applies to the registered history')
+            raise ValueError('route_clock_period_ns is numeric and applies to registered blocks')
         constraints=(a.synthesis/'mapped.sdc').read_text()
         if route_period is not None:
-            constraints=retime_history_sdc(constraints,route_period)
+            clock = 'row_clk' if values['row_reference'] else 'history_clk'
+            constraints=retime_clock_sdc(constraints,route_period,clock)
         if not 0<a.timeout<float('inf'):
             raise ValueError('finite positive host timeout required')
     except (ValueError, OSError, KeyError) as error:
@@ -130,6 +140,9 @@ def main():
         valid = valid and all((out/f).is_file() and (out/f).stat().st_size for f in
                               ['reports/clock_trees.rpt','reports/query_setup.rpt'])
         metadata['CTS'] = 'FLOW_COMPLETE_CHECK_REPORTS' if valid else 'CHECK_PARTIAL_REPORTS'
+    if values['pipeline']:
+        feedback = out/'reports/provider_to_state_setup.rpt'
+        valid = valid and feedback.is_file() and feedback.stat().st_size > 0
     if valid:
         try:
             metadata.update(die_utilization((out/'reports/die_bbox_um.txt').read_text(),

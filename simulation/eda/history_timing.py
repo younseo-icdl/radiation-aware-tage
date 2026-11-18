@@ -9,7 +9,7 @@ import shutil
 import subprocess
 
 from .synthesize import tcl_word
-from .implement import retime_history_sdc
+from .implement import REGISTERED_HISTORY_SCOPES, retime_history_sdc
 
 
 def worst_path(text, view, analysis):
@@ -36,7 +36,7 @@ def worst_path(text, view, analysis):
 def routed_case(directory):
     record = json.loads((directory/'PRODUCER.json').read_text())
     if (record['status'] != 'FLOW_COMPLETE_CHECK_REPORTS'
-            or record['scope'] != 'B1A_HISTORY_DATAPATH'
+            or record['scope'] not in REGISTERED_HISTORY_SCOPES
             or record['CTS'] != 'FLOW_COMPLETE_CHECK_REPORTS'):
         raise ValueError('registered history requires a completed routed producer with CTS')
     utilization = record['die_utilization_percent']
@@ -53,7 +53,10 @@ def routed_case(directory):
                  ('hold', 'hold_path.rpt', 'fastview', 'Early'),
                  ('query_setup', 'query_setup.rpt', 'slowview', 'Late'),
              )}
-    return {'producer': str(directory.resolve()), 'die_utilization_percent': utilization,
+    if record['scope'] == 'STAGED_HISTORY_RETURNED_ROWS':
+        paths['provider_setup'] = worst_path(
+            (directory/'reports/provider_to_state_setup.rpt').read_text(), 'slowview', 'Late')
+    return {'producer': str(directory.resolve()), 'scope': record['scope'], 'die_utilization_percent': utilization,
             'die_area_um2': record['die_area_um2'], 'source_commit': synth['source_commit'],
             'reference_period_ps': str(period_ps), 'paths': paths}
 
@@ -61,7 +64,7 @@ def routed_case(directory):
 def matched_summary(recurrent, lease):
     cases = {'recurrent': routed_case(recurrent), 'lease4096': routed_case(lease)}
     values = list(cases.values())
-    if any(values[0][key] != values[1][key] for key in ('reference_period_ps', 'source_commit')):
+    if any(values[0][key] != values[1][key] for key in ('reference_period_ps', 'source_commit', 'scope')):
         raise ValueError('registered cases must share the source revision and clock target')
     period = Decimal(values[0]['reference_period_ps'])
     deficit = max(Decimal(0), *(-Decimal(case['paths'][key]['slack_ps'])
@@ -77,6 +80,18 @@ def matched_summary(recurrent, lease):
     }
 
 
+def row_arrival_constraints(arrival_ps):
+    if arrival_ps is None:
+        return ''
+    if arrival_ps <= 0:
+        raise ValueError('row arrival must be positive')
+    # Change only the late constraint. The original early input delay
+    # remains in the hold analysis.
+    ns = Decimal(arrival_ps)/1000
+    return (f'\nset_input_delay -clock [get_clocks history_clk] -max {ns:f} '
+            '[get_ports {row_tag_i* row_counter_i* bimodal_prediction_i}]\n')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('recurrent', 'lease', 'output'):
@@ -86,6 +101,8 @@ def main():
                         help='Recheck both routed checkpoints at a specified common clock')
     parser.add_argument('--recheck-cppr', choices=('none', 'both'),
                         help='Set the same CPPR policy on both rechecked checkpoints')
+    parser.add_argument('--row-arrival-ps', type=int,
+                        help='Recheck both staged checkpoints at an explicitly bounded latest row arrival')
     args = parser.parse_args()
     try:
         if args.recheck_period_ps is not None and args.recheck_period_ps <= 0:
@@ -93,29 +110,37 @@ def main():
         if args.recheck_cppr is not None and args.recheck_period_ps is None:
             raise ValueError('a CPPR override requires an explicit recheck period')
         summary = matched_summary(args.recurrent, args.lease)
+        if args.row_arrival_ps is not None:
+            if (args.recheck_period_ps is None or
+                    summary['cases']['recurrent']['scope'] != 'STAGED_HISTORY_RETURNED_ROWS' or
+                    not 0 < args.row_arrival_ps < args.recheck_period_ps):
+                raise ValueError('row arrival requires a staged checkpoint and a larger recheck period')
         with args.output.open('x') as out:
             json.dump(summary, out, indent=2)
             out.write('\n')
         if args.audit_no_undo or args.recheck_period_ps is not None:
             for name, route in (('recurrent', args.recurrent), ('lease4096', args.lease)):
                 outdir = args.output.with_suffix('').with_name(args.output.stem+'-'+name)
-                audit_no_undo(route, outdir, args.recheck_period_ps, args.recheck_cppr)
+                audit_no_undo(route, outdir, args.recheck_period_ps, args.recheck_cppr, args.row_arrival_ps)
     except (ValueError, OSError, KeyError) as error:
         parser.error(str(error))
 
 
-def audit_no_undo(route, output, period_ps=None, cppr=None):
+def audit_no_undo(route, output, period_ps=None, cppr=None, row_arrival_ps=None):
     checkpoint = (route/'outputs/routed.inn').resolve(strict=True)
+    pipeline = json.loads((route/'PRODUCER.json').read_text())['scope'] == 'STAGED_HISTORY_RETURNED_ROWS'
     output.mkdir()
     (output/'reports').mkdir()
     shutil.copy2(Path(__file__).with_name('innovus_history_modes.tcl'), output/'flow.tcl')
     (output/'site.tcl').write_text('set checkpoint '+tcl_word(checkpoint)+'\n'
                                  f'set retimed {int(period_ps is not None)}\n'
+                                 f'set pipeline {int(pipeline)}\n'
                                  'set cppr '+tcl_word(cppr or '')+'\n')
     if period_ps is not None:
         (output/'inputs').mkdir()
         original = (route/'inputs/mapped.sdc').read_text()
-        (output/'inputs/recheck.sdc').write_text(retime_history_sdc(original, Decimal(period_ps)/1000))
+        constraints = retime_history_sdc(original, Decimal(period_ps)/1000)
+        (output/'inputs/recheck.sdc').write_text(constraints + row_arrival_constraints(row_arrival_ps))
     cmd = ['innovus', '-stylus', '-no_gui', '-files', 'flow.tcl', '-log', 'innovus.log']
     log = output/'console.log'
     with log.open('x') as stream:
@@ -131,6 +156,10 @@ def audit_no_undo(route, output, period_ps=None, cppr=None):
         result['cppr'] = (output/'reports/cppr.txt').read_text().strip()
         result['setup'] = worst_path((output/'reports/rechecked_setup.rpt').read_text(), 'slowview', 'Late')
         result['hold'] = worst_path((output/'reports/rechecked_hold.rpt').read_text(), 'fastview', 'Early')
+        if pipeline:
+            result['late_row_arrival_override_ps'] = row_arrival_ps
+            result['provider_setup'] = worst_path(
+                (output/'reports/provider_to_state_setup.rpt').read_text(), 'slowview', 'Late')
     result['scope'] = 'query with all undo bits constrained to zero; remaining operands external'
     (output/'MODE_TIMING.json').write_text(json.dumps(result, indent=2)+'\n')
 

@@ -6,8 +6,18 @@ proc run_row_store_synthesis {} {
     set_db syn_map_effort medium
     set_db syn_opt_effort medium
     read_libs $library_file
-    read_hdl -sv inputs/tage_history_row_store.sv
-    elaborate tage_history_row_store
+    set rtl {inputs/tage_history_row_store.sv}
+    if {$bimodal_prediction} {
+        set_db hdl_max_loop_limit 16384
+        lappend rtl inputs/tage_bimodal_prediction_store.sv
+        set top tage_bimodal_prediction_store
+        set read_ports {read_addr_i*}
+    } else {
+        set top tage_history_row_store
+        set read_ports {read0_addr_i* read1_addr_i*}
+    }
+    read_hdl -sv $rtl
+    elaborate $top
     create_clock -name row_clk -period $clock_period_ns [get_ports clk_i]
     set_clock_uncertainty $clock_uncertainty_ns [get_clocks row_clk]
     set data_inputs [remove_from_collection [all_inputs] [get_ports clk_i]]
@@ -20,7 +30,7 @@ proc run_row_store_synthesis {} {
     syn_opt
     report_area > reports/area.rpt
     report_timing -max_paths 20 > reports/timing.rpt
-    report_timing -from [get_ports {read0_addr_i* read1_addr_i*}] -to [all_outputs] > reports/read_address_timing.rpt
+    report_timing -from [get_ports $read_ports] -to [all_outputs] > reports/read_address_timing.rpt
     write_hdl > mapped.v
     write_sdc > mapped.sdc
     set f [open TOP.txt w]

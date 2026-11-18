@@ -47,7 +47,17 @@ proc implement_hash {} {
     time_design -post_route -hold -report_dir reports -report_prefix hold
     report_timing > reports/setup_path.rpt
     report_timing -early > reports/hold_path.rpt
-    if {$registered} {
+    if {$pipeline} {
+        report_timing -to [get_ports {row_request_index_o* row_request_tag_o*}] > reports/query_setup.rpt
+        set provider_inputs [get_ports {row_tag_i* row_counter_i* bimodal_prediction_i prefer_longest_i taken_target_valid_i}]
+        report_timing -from $provider_inputs -to [all_registers -data_pins] > reports/provider_to_state_setup.rpt
+    } elseif {$row_reference} {
+        set read_ports [get_ports {read*addr_i*}]
+        if {[sizeof_collection $read_ports] == 0} {
+            error "Expected asynchronous read address ports"
+        }
+        report_timing -from $read_ports -to [all_outputs] > reports/query_setup.rpt
+    } elseif {$registered} {
         report_timing -to [get_ports {query_index_o* query_tag_o*}] > reports/query_setup.rpt
     }
     report_area -detail -out_file reports/area.rpt

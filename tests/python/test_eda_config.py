@@ -2,8 +2,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from simulation.eda.synthesize import site_values, tcl_word
-from simulation.eda.implement import die_utilization, physical_values, retime_history_sdc
-from simulation.eda.history_timing import worst_path
+from simulation.eda.implement import die_utilization, physical_values, retime_clock_sdc, retime_history_sdc
+from simulation.eda.history_timing import row_arrival_constraints, worst_path
 
 
 class EdaConfigTests(unittest.TestCase):
@@ -16,6 +16,17 @@ class EdaConfigTests(unittest.TestCase):
             retime_history_sdc(original+original, 6.5)
         with self.assertRaises(ValueError):
             retime_history_sdc(original, float('inf'))
+        row = original.replace('history_clk', 'row_clk')
+        self.assertEqual(retime_clock_sdc(row, 8.1, 'row_clk'),
+                         row.replace('0.5 -waveform {0.0 0.25}', '8.1 -waveform {0.0 4.05}'))
+
+    def test_late_returned_rows_change_setup_constraint_only(self):
+        self.assertEqual(row_arrival_constraints(None), '')
+        self.assertEqual(row_arrival_constraints(1950),
+                         '\nset_input_delay -clock [get_clocks history_clk] -max 1.95 '
+                         '[get_ports {row_tag_i* row_counter_i* bimodal_prediction_i}]\n')
+        with self.assertRaises(ValueError):
+            row_arrival_constraints(-1)
 
     def test_registered_sta_units_and_corner(self):
         report = ('Path 1: VIOLATED (-0.176 ns) Late Output Delay Assertion\n'

@@ -14,8 +14,16 @@ proc report_history_modes {} {
         close $cppr_record
         report_timing > reports/rechecked_setup.rpt
         report_timing -early > reports/rechecked_hold.rpt
+        if {$pipeline} {
+            set provider_inputs [get_ports {row_tag_i* row_counter_i* bimodal_prediction_i prefer_longest_i taken_target_valid_i}]
+            report_timing -from $provider_inputs -to [all_registers -data_pins] > reports/provider_to_state_setup.rpt
+        }
     }
-    set query_ports [get_ports {query_index_o* query_tag_o*}]
+    if {$pipeline} {
+        set query_ports [get_ports {row_request_index_o* row_request_tag_o*}]
+    } else {
+        set query_ports [get_ports {query_index_o* query_tag_o*}]
+    }
     set undo_ports [get_ports {undo_count_i*}]
     if {[sizeof_collection $query_ports] == 0 || [sizeof_collection $undo_ports] != 10} {
         error "Expected the registered history query outputs and ten undo-count bits"

@@ -6,6 +6,7 @@
 #include "tage/predictor/tage_access.hpp"
 #include "tage/history/direct_access.hpp"
 #include "tage/history/lease.hpp"
+#include <array>
 #include <fstream>
 #include <map>
 #include <set>
@@ -15,6 +16,9 @@
 
 namespace bp {
 class NativeTAGE;
+struct NativeQueryOperands {
+    std::array<int, 8> indices{}, tags{};
+};
 struct NativeSample {
     uint64_t lookup_id = 0, lookup_tick = 0, epoch = 0, buffer_epoch = 0;
     int head = 0, restore_head = 0;
@@ -52,6 +56,9 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     gem5::Tick declared_horizon_=0;
     gem5::Tick append_tick_=0, restore_tick_=0;
     uint64_t appends_this_tick_=0, restores_this_tick_=0;
+    uint64_t history_generation_=0;
+    gem5::Tick history_change_tick_=0;
+    const NativeQueryOperands *staged_operands_=nullptr;
     gem5::EventFunctionWrapper injection_;
     gem5::EventFunctionWrapper lease_publication_;
     void loadFaults();
@@ -60,6 +67,8 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     void writeManifest() const;
     bool activityOpen() const;
     void historyActivity(const char *op, uint64_t owner, uint64_t value, uint64_t auxiliary);
+    void noteHistoryChange();
+    void calculateIndicesAndTags(gem5::ThreadID, gem5::Addr, Base::BranchInfo *) override;
 
   public:
     QuiescentLease lease;
@@ -89,6 +98,14 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
         return getBimodePred(pc, const_cast<Base::BranchInfo *>(&bi));
     }
     NativeSample sample(const Base::BranchInfo &, uint64_t lookup_id) const;
+    NativeQueryOperands captureOperands(gem5::ThreadID, gem5::Addr) const;
+    bool predictWithOperands(gem5::ThreadID, gem5::Addr, Base::BranchInfo *,
+                             const NativeQueryOperands &);
+    uint64_t historyGeneration() const { return history_generation_; }
+    size_t appliedFaults() const { return next_fault_; }
+    bool historyChangedThisTick() const {
+        return history_generation_ && history_change_tick_ == gem5::curTick();
+    }
 };
 
 class NativeTAGE : public gem5::branch_prediction::TAGE {
@@ -104,6 +121,10 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     bool observing_ = false;
     unsigned query_latency_ = 0;
     unsigned query_ii_cycles_ = 0;
+    bool query_pipeline_ = false;
+    NativeQueryOperands pending_operands_;
+    uint64_t pending_generation_ = 0;
+    size_t pending_fault_count_ = 0;
     gem5::Tick cycle_ticks_ = 500, ready_tick_ = 0;
     gem5::Tick next_query_tick_ = 0;
     gem5::Addr pending_pc_ = 0;
@@ -129,6 +150,10 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     uint64_t query_wait_calls = 0, delayed_requests = 0, canceled_requests = 0;
     unsigned queryLatency() const { return query_latency_; }
     unsigned queryInterval() const { return query_ii_cycles_; }
+    bool queryPipeline() const { return query_pipeline_; }
+    uint64_t staged_responses=0, staged_retries=0, staged_operand_holds=0;
+    uint64_t staged_responses_after_fault=0, staged_responses_with_changed_hash=0;
+    gem5::Tick first_staged_issue_tick=0, first_staged_response_tick=0;
     uint64_t query_interval_wait_calls=0;
     bool force_base = false;
     explicit NativeTAGE(const gem5::NativeTAGEParams &);
