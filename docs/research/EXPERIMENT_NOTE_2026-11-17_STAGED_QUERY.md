@@ -851,3 +851,23 @@ which should move the 2^64-magnitude result by one extended
 ULP. The first atomic attempt reached its short simulation limit
 before producing all records. The retry used the existing
 longer diagnostic configuration and completed normally.
+
+The extended stack prototype built successfully. Its atomic
+probe returned incorrect ten-byte results even on the control
+inputs, so the checker withheld O3 validation. The logs remain
+isolated and the prototype did not enter the experiment build.
+
+The user authorized a separate glibc follow-up for Basicmath
+and Patricia. Its preflight verified the original artifact lock,
+the two compatible executable hashes and shared library hashes,
+and exact parity of input hashes, stdout hashes, seed order,
+SOURCE law, paired-bootstrap settings, and execution limits.
+Before running the follow-up, four clean cells and 32 faulted
+cells were declared. The O3 runs use the same 13,850 ps composed
+timing, measured service settings, and checksum-qualified binary
+as the completed CRC32 comparison. Each workload must pass
+both exact clean stdout checks and retirement identity checks
+before its unchanged eight SOURCE pairs can start. Results will
+report the two compatible variants as a follow-up cohort. The
+original frozen failure records and CRC32 cohort remain intact.
+The private producer is `work/heldout-glibc-followup-20261118-r1/`.
