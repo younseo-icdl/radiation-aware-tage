@@ -625,10 +625,17 @@ The third banked floorplan and second flat floorplan again showed
 The intermediate transforms inserted tens of thousands of cells
 and still left a global violation above 290 ps. A separate banked
 physical producer now applies the measured root-port repair after
-post-route DRV repair, before running endpoint-by-endpoint hold
+post-route DRV repair in place of endpoint-by-endpoint hold
 optimization. It retains the same netlist, I/O and clock constraints,
 CTS, RC extraction, and final physical checks. Its 1,012 µm square
 core is sized from the first run's 60.79% pre-hold core density.
 The new placement can change either density or timing. It must pass
 the same final gates under GPDK45. Inputs and outputs are isolated
 under `work/history-btb-early-hold-route-20261118-r1/`.
+
+The early repair producer now has an independent qualification
+watcher under `work/history-target-budget-20261118-r4/`.
+It requires completed CTS, extracted timing, final DRC and
+connectivity, accepted die utilization, and a matched target-arrival
+recheck. A single controller under `work/heldout-admission-20261118-r5/`
+chooses the first fully qualified timing producer.
