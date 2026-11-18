@@ -163,3 +163,26 @@ needs adjustment. It does not reoptimize the layout. Negative
 hold or unresolved operand feedback continues to prevent CPU
 qualification. Focused parsing and SDC preservation tests passed.
 The actual checkpoint recheck depends on completed routed files.
+
+## First routed reports at 6.5 ns
+
+Both primary Innovus flows completed CTS, routing and extraction in
+attempt 1. DRC and signal connectivity report no violations or
+problems. Final setup and hold still fail at this reference:
+
+| Design | Routed logic area (µm²) | Die utilization | Setup WNS | Hold WNS |
+|---|---:|---:|---:|---:|
+| Recurrent | 205,950.348 | 82.6245% | -0.814 ns | -0.002 ns |
+| Lease4096 | 184,976.856 | 74.2102% | -0.411 ns | -0.006 ns |
+
+The common die area was 249,260.544 µm². The coordinator retains these
+results and will use measured areas for the next sizing attempt after
+Hybrid05. A fresh diagnostic session is running on the first two
+checkpoints at 7.4 ns, rounded upward from 7.314 ns, solely to verify
+the common-clock recheck and examine the undo cone. Both old hold
+failures still require repair. Future registered flows now request
+the +30 ps hold optimization margin used by the local physical
+reference. Final report gates still determine actual slack.
+
+Preserved reports: `work/b1a-route-20261117-r6/attempt1/`.
+Temporary diagnostic reports: `work/history-checkpoint-diagnostic-20261117-r1/`.

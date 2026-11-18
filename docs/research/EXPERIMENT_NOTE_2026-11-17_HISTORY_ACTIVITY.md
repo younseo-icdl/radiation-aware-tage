@@ -120,3 +120,27 @@ tool propagation of internal activity. It will report coverage and
 bounded history-block power. Full task energy needs qualified clock,
 complete activity and measured run duration. Provider feedback still
 needs a timing contract before held-out CPU performance.
+
+## Development qsort burst check
+
+One clean development qsort execution captured the first 500,000,000
+ticks. It exited successfully at 17,242,531,000 ticks and matched
+the retained output. Comparing native summaries isolated one expected
+difference: the earlier diagnostics run retained ten branch observation
+frames at exit, while this activity-only capture retained zero.
+The first replay stopped at an overly strict whole-file equality
+assertion. The second explicitly checked the single expected metadata
+difference before proceeding. All performance and state fingerprint
+fields agreed.
+
+The capture contained 319,920 conditional queries, 407,487 appends
+and 30,299 single-bit undos. Peaks were two queries, three appends,
+30 undos per tick and 45 allocated append owners. The ordered validator
+found no edge-grouping conflict in this prefix. The Xcelium replay
+then passed 1,000,001 registered history edges against the independent
+raw, path and head model. This exercises the wider input shape beyond
+checksum. It does not time the external prediction result or owner
+allocator. No held-out workload was opened.
+
+Private sources: `work/qsort-edge-demand-20261117-r1/` and
+`work/qsort-history-replay-20261117-r2/`.

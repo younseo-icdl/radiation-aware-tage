@@ -33,6 +33,10 @@ proc implement_hash {} {
     route_design
     set_db timing_analysis_type ocv
     opt_design -post_route -drv -report_dir reports -report_prefix drv
+    if {$registered} {
+        # Leave hold repair margin for detail routing and final extraction.
+        set_db opt_hold_target_slack 0.03
+    }
     opt_design -post_route -hold -report_dir reports -report_prefix hold
     route_detail
     add_fillers -base_cells {FILL64 FILL32 FILL16 FILL8 FILL4 FILL2 FILL1} -prefix FILLER
