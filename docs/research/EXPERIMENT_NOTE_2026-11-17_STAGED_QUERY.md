@@ -580,3 +580,24 @@ late slack under unchanged SDC. Its starting layout remains
 outside the density range. The pilot will guide a legal hold
 repair on an accepted-density layout if needed. Inputs, logs and
 reports are under `work/history-btb-write-hold-pilot-20261118-r1/`.
+
+The write-input pilot completed on the first banked checkpoint.
+Twenty of the 30 inventoried write-address, enable, and reset inputs
+had at least one negative early path. Six BUFX2 repeaters on
+`write_pc_i[0]` improved its extracted CPPR hold slack from -185 ps
+to +116 ps with the original constraints. Its worst write setup
+slack decreased from +9,467 ps to +7,780 ps. This is a one-port
+diagnostic on the 83.503% layout.
+
+A fallback under `work/history-target-budget-20261118-r3/` waits
+for the banked route to meet die utilization, DRC, and connectivity.
+On a separate checkpoint it inventories all 30 write/control ports
+and inserts root repeaters only on ports with negative early slack.
+Chain sizing uses 35 ps per cell and aims for 50 ps of hold margin.
+Extracted global timing, read-to-hit delay, die utilization, DRC,
+and both signal and power connectivity are checked again after the
+repair. The report classifier was replayed against all 30 pilot
+reports. A coordinator startup with an unset module search path
+failed before opening a checkpoint. The corrected launch and
+`work/heldout-admission-20261118-r4/` are waiting for a qualified
+physical producer. The locked workload outputs are still absent.
