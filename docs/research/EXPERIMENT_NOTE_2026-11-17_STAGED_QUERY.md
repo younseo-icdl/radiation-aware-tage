@@ -409,3 +409,77 @@ activity-power outputs, are under
 `work/history-staged-power-20261118-r3/`. The target deadline
 and cross-block allowance are explicit interface assumptions.
 The physical scope does not include the external target lookup.
+
+The paired late-arrival STA passed at 13.850 ns with +1,286 ps
+setup and +22 ps hold for recurrent, and +189 ps setup and +3 ps
+hold for lease. Both checks used the same 6,641 ps late data and
+target-valid constraints and CPPR. The bounded gem5 suite at
+13,850 ticks per cycle also passed, including inter-stage fault
+ordering, exact checksum and retired identity, single-port
+retirement, and fixed two-cycle lease service.
+
+The first routed power replay stopped at elaboration because the
+routed provider submodule and the RTL reference used the same
+module name. Its modified physical ports were bound to the
+unmodified RTL module. The retry renames only the simulation
+copies of the reference RTL modules and reuses the same frozen
+layout, row data and edge vectors. That preserves the physical
+net and scope names for power annotation. It is under
+`work/history-staged-power-20261118-r4/`.
+
+The target-valid signal is independently characterized at the
+external boundary. The reference uses the frozen single-thread
+SimpleBTB geometry of 4,096 direct-mapped entries, a 12-bit
+index, and a 16-bit tag plus valid bit. The directed RTL gate
+passed insert, tag collision, hits at both ends of the index
+range, replacement and invalidation. Target payload, return
+stack and indirect prediction are outside this reference. Genus
+and route producers are under `work/history-btb-reference-20261118-r1/`
+and `work/history-btb-reference-route-20261118-r1/`. A separate
+STA diagnostic isolates the target input to the staged state
+registers at the current shared clock, in
+`work/history-target-arrival-audit-20261118-r1/`. The timing
+deadline must be compared to measured generation before using the
+candidate period for held-out conclusions.
+
+The target-only STA reports +4,554 ps and +3,271 ps of slack at
+the same 6,641 ps input constraint in recurrent and lease.
+The limiting latest target arrival across the matched pair is
+therefore 9,912 ps at 13.850 ns. The measured reference route is
+queued after the live Genus job. Its follow-up will combine the
+registered PC path with the extracted hit path without taking
+credit for negative launch skew, then recheck the actual target
+budget on both layouts. Results will be under
+`work/history-target-budget-20261118-r1/`.
+
+## Staged activity-based power at 13.850 ns
+
+The namespace-isolated routed replay passed 80,001 edges per
+arm with the actual rows, chooser state and target validity from
+the timed checksum runs. It compared 14,532 ordinary and 14,519
+lease responses, one cancellation per arm and four lease
+publications. Both designs directly annotated every net, every
+flop output and all 237 primary input bits. They used the slow
+0.9 V view for the common 1.10801385 ms window.
+
+| Mode | Internal (mW) | Switching (mW) | Leakage (mW) | Total (mW) | Window energy (µJ) |
+|---|---:|---:|---:|---:|---:|
+| Recurrent | 1.49128 | 0.65926 | 0.005431 | 2.15597 | 2.38884 |
+| Lease4096 | 1.53668 | 0.72973 | 0.005481 | 2.27189 | 2.51729 |
+
+Lease used 0.48% less placed cell area and 5.38% more
+history-window energy in this staged layout pair. Its estimated
+switching power was 10.69% higher. The previous interface's
+11.68% reduction was measured on different layouts and a
+different clock and activity window. The two comparisons cannot
+isolate which RTL or placement change caused the reversal.
+The current gate-level activity has zero cell delay. The
+estimates cover the history datapath and returned-row selection,
+with no power from separate lookup arrays, the external frontend
+or the full program. Routed reports are under
+`work/history-staged-power-20261118-r4/`.
+
+At the same candidate period the checksum clean runs completed
+at 1,529,538,600 and 1,530,965,150 ticks, a 103-cycle
+lease overhead. This is bounded checksum evidence. The held-out
+programs remain unopened.

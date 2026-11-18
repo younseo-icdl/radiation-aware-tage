@@ -7,11 +7,20 @@ proc run_row_store_synthesis {} {
     set_db syn_opt_effort medium
     read_libs $library_file
     set rtl {inputs/tage_history_row_store.sv}
-    if {$bimodal_prediction} {
+    if {$row_block eq "bimodal-prediction"} {
         set_db hdl_max_loop_limit 16384
         lappend rtl inputs/tage_bimodal_prediction_store.sv
         set top tage_bimodal_prediction_store
         set read_ports {read_addr_i*}
+    } elseif {$row_block eq "btb-hit"} {
+        set_db hdl_max_loop_limit 16384
+        foreach family {SDFF SEDFF SMDFF} {
+            set scan_cells [get_db lib_cells */${family}*]
+            if {[llength $scan_cells]} { set_db $scan_cells .avoid true }
+        }
+        lappend rtl inputs/tage_btb_hit_reference.sv
+        set top tage_btb_hit_reference
+        set read_ports {read_pc_i*}
     } else {
         set top tage_history_row_store
         set read_ports {read0_addr_i* read1_addr_i*}

@@ -79,7 +79,11 @@ matched single-conditional-training-port control. The actual CPU row,
 target and owner captures reproduce the RTL's staged operands on 80,001
 edges per arm. The scan-free staged layouts routed at 72.98% and 72.63%
 die utilization. Extracted tagged and T0 read references take 5.074 and
-5.637 ns. They and the staged feedback reports motivate a common 13.850 ns
-candidate under an explicit target-valid deadline. Check the staged note
-for final STA, energy scope and whether the measured configuration is
-eligible for the locked workload tests.
+5.637 ns. With the derived late data and stated target-valid deadline,
+the staged layouts and bounded gem5 gate pass at 13.850 ns. At this
+clock and using actual CPU rows, the routed history estimates are
+2.389 versus 2.517 µJ, a 5.38% increase for lease. Scope is the clean
+history-block window, with all nets directly annotated and zero cell
+delay. The separate target-validity path is being characterized before
+the held-out evaluation opens. See
+`EXPERIMENT_NOTE_2026-11-17_STAGED_QUERY.md`.

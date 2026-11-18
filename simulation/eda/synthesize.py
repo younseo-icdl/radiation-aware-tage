@@ -21,6 +21,12 @@ BLOCKS = {
                   'PASS_ROW_STORE_SYNTHESIS'),
     'bimodal-prediction': ('T0_PREDICTION_BITS_REFERENCE', 'genus_row_store.tcl',
                            'PASS_ROW_STORE_SYNTHESIS'),
+    'btb-hit': ('SIMPLE_BTB_HIT_REFERENCE', 'genus_row_store.tcl', 'PASS_ROW_STORE_SYNTHESIS'),
+}
+ROW_BLOCKS = {
+    'row-store': '',
+    'bimodal-prediction': 'tage_bimodal_prediction_store.sv',
+    'btb-hit': 'tage_btb_hit_reference.sv',
 }
 
 
@@ -76,7 +82,7 @@ def main():
             values['lease_period'] = a.lease_period
             values['lease_service_cycles'] = a.lease_service_cycles
             values['pipeline'] = int(a.block == 'pipeline')
-        if a.block in ('provider', 'row-store', 'bimodal-prediction') and a.direct_mask:
+        if (a.block == 'provider' or a.block in ROW_BLOCKS) and a.direct_mask:
             raise ValueError('provider and row store boundaries have no direct bank mask')
         if (not 0 <= a.lease_period <= 65535 or
                 not 1 <= a.lease_service_cycles <= 65535 or
@@ -90,15 +96,14 @@ def main():
     (out/'reports').mkdir()
     scope, script, marker = BLOCKS[a.block]
     values['provider_select'] = int(a.block == 'provider')
-    rtl_name = {'provider': 'tage_history_provider.sv',
-                'row-store': 'tage_history_row_store.sv',
-                'bimodal-prediction': 'tage_history_row_store.sv'}.get(a.block, 'tage_history_hash.sv')
+    if a.block in ROW_BLOCKS:
+        rtl_name = 'tage_history_row_store.sv'
+        values['row_block'] = a.block
+        if name := ROW_BLOCKS[a.block]:
+            shutil.copy2(ROOT/'tage/rtl'/name, out/'inputs'/name)
+    else:
+        rtl_name = 'tage_history_provider.sv' if a.block == 'provider' else 'tage_history_hash.sv'
     shutil.copy2(ROOT/'tage/rtl'/rtl_name, out/'inputs'/rtl_name)
-    if a.block in ('row-store', 'bimodal-prediction'):
-        values['bimodal_prediction'] = int(a.block == 'bimodal-prediction')
-    if a.block == 'bimodal-prediction':
-        name = 'tage_bimodal_prediction_store.sv'
-        shutil.copy2(ROOT/'tage/rtl'/name, out/'inputs'/name)
     if registered:
         shutil.copy2(ROOT/'tage/rtl/tage_history_state.sv', out/'inputs/tage_history_state.sv')
         shutil.copy2(ROOT/'tage/rtl/tage_history_lease.sv', out/'inputs/tage_history_lease.sv')
@@ -125,10 +130,10 @@ def main():
         artifacts.append('reports/query_timing.rpt')
     if a.block == 'pipeline':
         artifacts.append('reports/provider_to_state_timing.rpt')
-    if a.block in ('row-store', 'bimodal-prediction'):
+    if a.block in ROW_BLOCKS:
         artifacts.append('reports/read_address_timing.rpt')
     valid = valid and all((out/x).is_file() and (out/x).stat().st_size>0 for x in artifacts)
-    if valid and a.block == 'pipeline':
+    if valid and a.block in ('pipeline', 'btb-hit'):
         # Check the emitted netlist because these cells require actual scan
         # chain definitions in placement, even when used for functional feedback.
         scan_cell = re.search(r'^\s+(?:SDFF|SEDFF|SMDFF)\w*\s', (out/'mapped.v').read_text(), re.MULTILINE)

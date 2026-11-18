@@ -52,7 +52,7 @@ proc implement_hash {} {
         set provider_inputs [get_ports {row_tag_i* row_counter_i* bimodal_prediction_i prefer_longest_i taken_target_valid_i}]
         report_timing -from $provider_inputs -to [all_registers -data_pins] > reports/provider_to_state_setup.rpt
     } elseif {$row_reference} {
-        set read_ports [get_ports {read*addr_i*}]
+        set read_ports [get_ports {read*addr_i* read_pc_i*}]
         if {[sizeof_collection $read_ports] == 0} {
             error "Expected asynchronous read address ports"
         }

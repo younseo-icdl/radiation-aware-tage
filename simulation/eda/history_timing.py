@@ -173,6 +173,8 @@ def audit_no_undo(route, output, period_ps=None, cppr=None, row_arrival_ps=None,
                 (output/'reports/address_launch_setup.rpt').read_text(), 'slowview', 'Late')
             result['provider_setup'] = worst_path(
                 (output/'reports/provider_to_state_setup.rpt').read_text(), 'slowview', 'Late')
+            result['target_setup'] = worst_path(
+                (output/'reports/target_to_state_setup.rpt').read_text(), 'slowview', 'Late')
     result['scope'] = 'query with all undo bits constrained to zero; remaining operands external'
     (output/'MODE_TIMING.json').write_text(json.dumps(result, indent=2)+'\n')
 
