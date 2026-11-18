@@ -619,3 +619,16 @@ utilization. This exceeds the predeclared limit by 0.265 percentage
 points. The coordinator retained the result and started a third
 floorplan. The fallback remains gated on the utilization range.
 Reports are under `work/history-btb-reference-route-20261118-r2/attempt2/`.
+
+The third banked floorplan and second flat floorplan again showed
+69,632 negative early endpoints before automatic hold optimization.
+The intermediate transforms inserted tens of thousands of cells
+and still left a global violation above 290 ps. A separate banked
+physical producer now applies the measured root-port repair after
+post-route DRV repair, before running endpoint-by-endpoint hold
+optimization. It retains the same netlist, I/O and clock constraints,
+CTS, RC extraction, and final physical checks. Its 1,012 µm square
+core is sized from the first run's 60.79% pre-hold core density.
+The new placement can change either density or timing. It must pass
+the same final gates under GPDK45. Inputs and outputs are isolated
+under `work/history-btb-early-hold-route-20261118-r1/`.
