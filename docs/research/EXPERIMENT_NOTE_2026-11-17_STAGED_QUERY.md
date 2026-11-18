@@ -649,3 +649,24 @@ CPPR recheck measured -148 ps hold and found negative slack on
 nine of 30 write/control inputs. The fallback is repairing that
 checkpoint in its own directory, `work/history-target-budget-20261118-r3/btb/`.
 The area, timing, and checks on the repaired checkpoint are pending.
+
+Both targeted write-port experiments completed. The repair of the
+third banked checkpoint improved its global extracted CPPR hold
+slack from -148 ps to +1 ps. Setup slack was +4,363 ps, read-to-hit
+delay was 9,362 ps, and die utilization was 71.873%. Internal DRC
+and both connectivity checks passed. Its wrapper initially matched
+an echoed Tcl branch instead of the terminal output marker. The
+preserved terminal marker and reports show the repair ran.
+
+The independently placed banked version applied the root-port
+repair during the physical flow. Its extracted CPPR setup and hold
+slack were +5,147 and +41 ps, read-to-hit delay was 8,578 ps, and
+die utilization was 69.821%. Placed cell area was 743,667.030 µm²
+on a 1,065,106.560 µm² die. Internal DRC and both connectivity
+checks passed. Its qualification retry recognizes the Innovus
+checkpoint directory and preserves the first checker log. The
+earlier repair has less hold margin and its read path exceeds
+the current target budget. The 8,578 ps physical reference is
+therefore being evaluated against both history arms before any
+held-out run. See `work/history-btb-early-hold-route-20261118-r1/`
+and `work/history-target-budget-20261118-r4/`.
