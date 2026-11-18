@@ -216,10 +216,72 @@ period if timing passes. Results are isolated from the held-out
 workloads in `work/history-composed-timing-20261117-r1/` and
 `work/history-composed-checksum-20261117-r1/`.
 
-The two-edge, port-limited checksum trace reported three ticks per
-arm with a hash capture preceding an older undo. The per-tick width
+The two-edge, port-limited checksum trace reported three undo
+operations per arm after a same-tick hash capture. The per-tick width
 was still one hash, one append, and at most six undos. The existing
 unstaged replay cannot tell whether the captured hash was subsequently
 discarded. Its conflict check is left intact. A staged trace must
 carry the request identity through capture and cancellation to verify
 this ordering against the RTL.
+
+The new clean trace records query request, hash capture, row response
+and cancellation under one token. The validator requires a live
+matching token, distinct ordered edges, and a same-tick append after
+response. It rejects a response if an intervening undo or append
+invalidated the captured history. The ordinary trace and replay
+format remain available. The old replay explicitly rejects the new
+staged trace so it cannot silently interpret a hash capture as a
+completed query. The fresh producer checks trace transparency
+against the verified port-limited checksum, under
+`work/gem5-query-pipeline-gate-20261117-r5/`.
+
+The density-qualified extracted references report 5.074 ns for the
+tagged read at 73.631% and 5.637 ns for the T0 read at 74.617%. The
+tagged checkpoint passed its matched CPPR timing audit, including
++31 ps hold slack. T0 passed read/setup checks but had -10 ps hold
+slack on the external write-address-to-cell path. The composed
+timing gate stopped there. An isolated ECO removes fillers before
+hold optimization, then repeats detailed routing, RC extraction and
+physical checks without replacing the original checkpoint. It is
+under `work/history-t0-hold-eco-20261117-r1/`.
+
+The structured trace producer passed 32 native scenarios, 15
+cross-checks, the finite 14-case checksum gate and 68 Python tests
+with the C++ suite. With tracing enabled, staged native summaries,
+termination and stdout are byte-identical to the prior producer.
+In each arm token 23 captured at 188,000 ps, then all three undo
+operations occurred on that tick and canceled that token. No row
+response or speculative append used the canceled hash. The
+lease trace also retains an unfinished request at its exclusive
+capture bound. The observation resolves the old trace ambiguity
+without treating an older undo as an executed prediction.
+The strict clock-grid audit checked every latch one cycle after its
+request. The 14,495 recurrent and 14,482 lease responses in the
+captured windows all occurred one cycle after their latch. This
+reused the existing capture and is retained in
+`work/history-stage-clock-audit-20261117-r1/`.
+
+Both scan-free staged remaps completed. Mapped area is 164,120.054
+µm² for recurrent and 159,185.952 µm² for lease. At 8.100 ns,
+overall setup slack is +266 ps and +298 ps, and returned-row to
+state slack is +3,795 ps and +3,555 ps, respectively, with the
+50 ps reference input arrival. The first fresh common die is
+528.389 µm per side. Actual utilization and paired CPPR STA are
+still in progress.
+
+The first T0 ECO stopped on an unsupported plural filler command.
+The installed tool supports `delete_filler`. The fresh retry
+completed placement and routing, but its external write hold
+remained at -11 ps. The original restored checkpoint had two
+violating sinks on the same input bit, `write_addr_i[2]`. A
+separate ECO inserts one data-pin repeater at each sink, then
+rechecks extraction, setup, hold, connectivity, DRC and the
+die-utilization rule. Both failed attempts remain available.
+The first targeted command treated escaped bus-pin names as braced
+list elements and did not insert repeaters. A fresh invocation
+passes each pin as a single Tcl string. The original two violations
+and all retry artifacts are preserved.
+
+The prospective benchmark manifest was rechecked without running
+the held-out programs. All 16 locked files matched their recorded
+SHA-256 digests.

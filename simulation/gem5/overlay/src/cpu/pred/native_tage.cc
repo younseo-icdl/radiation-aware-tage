@@ -528,13 +528,18 @@ NativeTAGE::NativeTAGE(const gem5::NativeTAGEParams &p)
     }
 }
 NativeTAGE::~NativeTAGE() {
-    discardPendingQuery();
+    clearPendingQuery();
     if (trace_) gzclose(trace_);
 }
-void NativeTAGE::discardPendingQuery() {
+void NativeTAGE::clearPendingQuery() {
     if (query_hash_latch_.scheduled()) deschedule(query_hash_latch_);
     pending_=false;
     pending_hash_captured_=false;
+}
+void NativeTAGE::cancelPendingQuery() {
+    if (query_pipeline_)
+        core.activityQueryStage("query_cancel",pending_token_,pending_pc_);
+    clearPendingQuery();
 }
 void NativeTAGE::latchQueryHash() {
     if (!pending_ || pending_hash_captured_)
@@ -544,7 +549,7 @@ void NativeTAGE::latchQueryHash() {
     pending_operands_=core.captureOperands(0,pending_pc_);
     pending_fault_count_=core.appliedFaults();
     pending_hash_captured_=true;
-    core.activityQuery(pending_pc_);
+    core.activityQueryStage("hash_capture",pending_token_,pending_pc_);
     if (++staged_captures == 1) {
         first_staged_capture_tick=gem5::curTick();
         first_staged_hash_identity=14695981039346656037ULL;
@@ -587,7 +592,8 @@ bool NativeTAGE::predict(gem5::ThreadID tid, gem5::Addr pc, bool conditional, vo
         auto *bi=new TageBranchInfo(core,pc,true);
         history=bi;
         predicted=core.predictWithOperands(tid,pc,bi->tageBranchInfo,pending_operands_);
-        discardPendingQuery();
+        core.activityQueryStage("row_response",pending_token_,pc);
+        clearPendingQuery();
         next_query_tick_=gem5::curTick();
         if (++staged_responses == 1)
             first_staged_response_tick=gem5::curTick();
@@ -624,7 +630,7 @@ bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
         if (token && token==pending_token_ && (!pending_ || pending_generation_!=core.historyGeneration())) {
             if (pending_) {
                 ++staged_retries;
-                discardPendingQuery();
+                cancelPendingQuery();
             }
             token=0;
         }
@@ -648,6 +654,7 @@ bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
         if (query_pipeline_) {
             pending_generation_=core.historyGeneration();
             schedule(query_hash_latch_,gem5::curTick()+cycle_ticks_);
+            core.activityQueryStage("query_request",pending_token_,pc);
             if (!delayed_requests)
                 first_staged_issue_tick=gem5::curTick();
         }
@@ -663,7 +670,7 @@ bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
 void NativeTAGE::seuCancelPending(gem5::ThreadID) {
     if (pending_) {
         ++canceled_requests;
-        discardPendingQuery();
+        cancelPendingQuery();
     }
 }
 bool NativeTAGE::seuCanRetire(gem5::ThreadID tid, void *history) {

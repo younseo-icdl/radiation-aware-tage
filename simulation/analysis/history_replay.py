@@ -10,6 +10,8 @@ from .history_activity import check_trace
 
 def replay(stream, period):
     summary = check_trace(stream)
+    if 'staged_queries' in summary:
+        raise ValueError('a staged activity capture needs the registered query replay interface')
     conflicts = set(summary['conflicting_operations']) - {'publication_shares_edge_with_work'}
     if conflicts or period < 2 or summary['capture_end_tick_exclusive'] % period:
         raise ValueError('trace requires scheduling or does not end on the chosen clock grid')

@@ -86,6 +86,9 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
         historyActivity("publish",0,0,0);
     }
     void activityQuery(gem5::Addr pc) { historyActivity("query",0,pc,0); }
+    void activityQueryStage(const char *operation, uint32_t token, gem5::Addr pc) {
+        historyActivity(operation,token,pc,0);
+    }
     void activityRelease(const Base::BranchInfo *bi);
     void updateGHist(gem5::ThreadID, uint64_t, uint8_t) override;
     void updateHistories(gem5::ThreadID, gem5::Addr, bool, bool, gem5::Addr,
@@ -141,7 +144,8 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     void writeTrace(const NativeSample *, const Retired *, gem5::Addr, bool, bool,
                     gem5::Addr, const Base::BranchInfo &);
     void latchQueryHash();
-    void discardPendingQuery();
+    void clearPendingQuery();
+    void cancelPendingQuery();
     static NativeTAGEBase &checkedCore(gem5::branch_prediction::TAGEBase *);
 
   public:

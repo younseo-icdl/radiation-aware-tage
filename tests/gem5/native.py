@@ -178,9 +178,21 @@ def main():
                 if name not in pipeline_faults:
                     with (out/'history_activity.csv').open() as f:
                         assert next(f).strip() == f'# capture_end_tick={capture_end}'
-                        query_ticks = [int(x['tick']) for x in csv.DictReader(f) if x['operation']=='query']
+                        activity = list(csv.DictReader(f))
+                    query_ticks = [int(x['tick']) for x in activity
+                                   if x['operation'] in ('query','hash_capture')]
                     assert query_ticks[0] == capture_tick
                     assert min(b-a for a,b in zip(query_ticks,query_ticks[1:])) >= args.cycle_ticks
+                    if any(x['operation']=='query_request' for x in activity):
+                        review = out/'STAGED_ACTIVITY.json'
+                        subprocess.run([sys.executable, '-m', 'simulation.analysis.history_activity',
+                                        str(out/'history_activity.csv'), '--output', str(review),
+                                        '--period-ticks', str(args.cycle_ticks)],
+                                       cwd=ROOT, check=True, capture_output=True)
+                        result = json.loads(review.read_text())
+                        assert 'staged_queries' in result
+                        assert result['peak_per_tick']['hash_capture'] == 1
+                        assert result['peak_per_tick']['row_response'] == 1
             if name in intervals:
                 model, cycles = intervals[name]
                 assert state.get('conditional_query_interval_cycles', 0) == cycles
@@ -243,8 +255,10 @@ def main():
                                  if line.strip() and not line.startswith('-') and len(line.split())>=2)
                     assert bpu_misses == int(stats['system.cpu.branchPred.mispredicted_0::total'])
             row['status'] = 'PASS'
-        except (OSError, ValueError, AssertionError, subprocess.TimeoutExpired) as error:
+        except (OSError, ValueError, AssertionError, subprocess.SubprocessError) as error:
             row['error'] = type(error).__name__ + ': ' + str(error)
+            if isinstance(error, subprocess.CalledProcessError) and error.stderr:
+                row['error'] += ': ' + error.stderr.decode(errors='replace').strip()
         return row
 
     with ThreadPoolExecutor(max_workers=4) as pool:

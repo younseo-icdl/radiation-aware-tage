@@ -5,9 +5,9 @@ from simulation.analysis.history_activity import check_trace
 
 
 class HistoryActivityTests(unittest.TestCase):
-    def check(self, rows):
+    def check(self, rows, period=None):
         return check_trace(io.StringIO(
-            '# capture_end_tick=100\ntick,operation,owner,value,auxiliary\n'+rows))
+            '# capture_end_tick=100\ntick,operation,owner,value,auxiliary\n'+rows), period)
 
     def test_restore_correction_and_release(self):
         result = self.check('1,query,0,64,0\n1,append,1,0,1\n'
@@ -38,3 +38,25 @@ class HistoryActivityTests(unittest.TestCase):
             self.check('1,append,1,0,0\n2,service_start,0,4,4096\n')
         with self.assertRaisesRegex(ValueError, 'crossed'):
             self.check('1,service_start,0,4,4096\n4,query,0,64,0\n')
+
+    def test_staged_capture_cancels_after_same_tick_undo(self):
+        result = self.check('1,append,1,0,1\n2,query_request,10,64,0\n'
+                            '3,hash_capture,10,64,0\n3,undo,1,1,0\n3,query_cancel,10,64,0\n'
+                            '4,query_request,11,68,0\n5,hash_capture,11,68,0\n'
+                            '6,row_response,11,68,0\n6,append,2,1,1\n', period=1)
+        self.assertEqual(result['status'], 'NO_OBSERVED_EDGE_CONFLICT')
+        staged = result['staged_queries']
+        self.assertEqual(staged['canceled_after_same_tick_capture_and_mutation'], 1)
+        self.assertEqual(staged['row_response_capture_latency_tick_counts'], {1: 1})
+        self.assertIsNone(staged['pending_at_capture_end'])
+
+    def test_staged_response_needs_live_token_and_append(self):
+        pending = '1,query_request,10,64,0\n2,hash_capture,10,64,0\n'
+        with self.assertRaisesRegex(ValueError, 'no matching request'):
+            self.check(pending+'3,row_response,11,64,0\n')
+        with self.assertRaisesRegex(ValueError, 'before a recorded response appended'):
+            self.check(pending+'3,row_response,10,64,0\n')
+        with self.assertRaisesRegex(ValueError, 'invalidated hash'):
+            self.check(pending+'2,append,1,0,0\n3,row_response,10,64,0\n')
+        with self.assertRaisesRegex(ValueError, 'registered edge'):
+            self.check('5,query_request,10,64,0\n15,hash_capture,10,64,0\n', period=5)
