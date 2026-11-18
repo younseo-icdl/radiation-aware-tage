@@ -2,6 +2,9 @@
 `timescale 1ps/1ps
 module history_pipeline_activity_tb;
     parameter integer LEASE_PERIOD=0;
+    // A clean lease trace can drive both modes. Its maintenance gaps remain
+    // idle input cycles for SECDED, keeping the electrical stimulus identical.
+    parameter bit SECDED=0;
     reg clk_i=0, reset_i=1, cancel_i, owners_empty_i;
     reg [9:0] undo_count_i;
     reg [8:0] restore_owner_i;
@@ -24,7 +27,7 @@ module history_pipeline_activity_tb;
     wire query_valid_i=(query_token_i!=0);
     wire query_path_bit_i=query_pc_i[0];
     wire row_response_valid_i=(row_response_token_i!=0);
-    tage_history_pipeline #(.LEASE_PERIOD(LEASE_PERIOD)) dut (.*);
+    tage_history_pipeline #(.LEASE_PERIOD(LEASE_PERIOD),.SECDED(SECDED)) dut (.*);
 
 `ifdef TAGE_ROUTED_MODULE
     wire routed_stop, routed_ready, routed_valid, routed_accepted, routed_discarded, routed_direction, routed_bit;
@@ -82,7 +85,7 @@ module history_pipeline_activity_tb;
                 taken_target_valid_i,expected_direction,check_rows,expected_index,expected_tag);
             if(status==27) begin
                 #(period/2);
-                if(dut.history.publish_now!==expected_publish ||
+                if(dut.history.publish_now!==(expected_publish && !SECDED) ||
                    row_response_accepted_o!==(row_response_token_i!=0))
                     $fatal(1,"response or publication mismatch at edge %0d",edge_count);
                 if(row_response_valid_i && conditional_prediction_o!==expected_direction)
@@ -114,7 +117,7 @@ module history_pipeline_activity_tb;
                     $fatal(1,"history state mismatch at edge %0d",edge_count);
                 edge_count++;
                 responses+=(row_response_token_i!=0);
-                publications+=expected_publish;
+                publications+=expected_publish && !SECDED;
                 cancels+=cancel_i;
                 #(period-period/2-1); clk_i=0;
             end else if(!$feof(source)) $fatal(1,"malformed edge vector");

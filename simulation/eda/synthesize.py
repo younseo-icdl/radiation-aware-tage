@@ -62,6 +62,8 @@ def main():
     p.add_argument('--publish-mask', type=lambda s: int(s, 0), default=0)
     p.add_argument('--lease-period', type=int, default=0)
     p.add_argument('--lease-service-cycles', type=int, default=2)
+    p.add_argument('--secded', action='store_true',
+                   help='use per-word SECDED on the staged history S* payload')
     p.add_argument('--cpus', type=int, default=4)
     p.add_argument('--timeout', type=float, default=1200)
     p.add_argument('--output', type=Path, required=True)
@@ -77,11 +79,14 @@ def main():
             raise ValueError('publication mask must be 0..127 and applies to registered blocks')
         if a.block == 'pipeline' and (a.direct_mask or a.publish_mask != (127 if a.lease_period else 0)):
             raise ValueError('staged history uses recurrent hashes and full-bank publication when enabled')
+        if a.secded and (a.block != 'pipeline' or a.lease_period):
+            raise ValueError('SECDED applies to the staged pipeline without lease publication')
         if registered:
             values['publish_mask'] = a.publish_mask
             values['lease_period'] = a.lease_period
             values['lease_service_cycles'] = a.lease_service_cycles
             values['pipeline'] = int(a.block == 'pipeline')
+            values['secded'] = int(a.secded)
         if (a.block == 'provider' or a.block in ROW_BLOCKS) and a.direct_mask:
             raise ValueError('provider and row store boundaries have no direct bank mask')
         if (not 0 <= a.lease_period <= 65535 or
@@ -108,7 +113,7 @@ def main():
         shutil.copy2(ROOT/'tage/rtl/tage_history_state.sv', out/'inputs/tage_history_state.sv')
         shutil.copy2(ROOT/'tage/rtl/tage_history_lease.sv', out/'inputs/tage_history_lease.sv')
     if a.block == 'pipeline':
-        for name in ('tage_history_pipeline.sv', 'tage_history_provider.sv'):
+        for name in ('tage_history_pipeline.sv', 'tage_history_provider.sv', 'tage_secded.sv'):
             shutil.copy2(ROOT/'tage/rtl'/name, out/'inputs'/name)
     shutil.copy2(Path(__file__).with_name(script), out/'flow'/script)
     (out/'site.tcl').write_text(''.join('set {} {}\n'.format(k, tcl_word(v)) for k,v in values.items()))

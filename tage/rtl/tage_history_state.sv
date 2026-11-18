@@ -7,7 +7,8 @@ module tage_history_state #(
     parameter logic [6:0] DIRECT_BANK_MASK = 7'h00,
     parameter logic [6:0] PUBLISH_BANK_MASK = 7'h00,
     parameter integer LEASE_PERIOD = 0,
-    parameter integer LEASE_SERVICE_CYCLES = 2
+    parameter integer LEASE_SERVICE_CYCLES = 2,
+    parameter bit SECDED = 0
 ) (
     input wire clk_i, reset_i, enable_i,
     input wire [9:0] undo_count_i,       // 0..512, youngest owners first
@@ -36,17 +37,28 @@ module tage_history_state #(
     reg [199:0] folds;
     reg [15:0] path;
     reg [15:0] path_checkpoint [0:511];
-    wire publish_now;
+    wire publish_now, protection_stop;
+    wire advance_state=enable_i && !protection_stop;
+    wire [199:0] clean_folds;
+    wire [15:0] clean_path;
+    wire [129:0] corrected_raw, raw_error;
+    wire repair_raw;
+    wire [9:0] raw_error_address;
+    wire [22:0] due;
+    wire [129:0] prefix_raw [0:3];
+    wire [199:0] prefix_fold [0:3];
+    wire [15:0] prefix_path [0:3];
     if(LEASE_PERIOD!=0) begin: lease
         tage_history_lease #(.PERIOD(LEASE_PERIOD),.SERVICE_CYCLES(LEASE_SERVICE_CYCLES)) controller(
             .clk_i(clk_i),.reset_i(reset_i),.owners_empty_i(owners_empty_i),
-            .append_count_i(enable_i ? append_count_i : 2'b00),
+            .append_count_i(advance_state ? append_count_i : 2'b00),
             .stop_admission_o(stop_admission_o),.publish_o(publish_now));
     end else begin: external_publication
-        assign publish_now=enable_i && publish_i;
-        assign stop_admission_o=1'b0;
+        assign publish_now=advance_state && publish_i;
+        assign stop_admission_o=protection_stop;
     end
     wire [129:0] before_raw, undone_raw;
+    wire [129:0] stored_raw, retained_raw;
     wire [9:0] undone_head=head+undo_count_i;
     // Share each alignment network across contiguous ages.
     wire [1023:0] old_align [0:10], new_align [0:10];
@@ -59,8 +71,50 @@ module tage_history_state #(
         assign new_align[stage+1]=undone_head[stage] ?
             {new_align[stage][STEP-1:0],new_align[stage][1023:STEP]} : new_align[stage];
     end
-    assign before_raw=old_align[10][129:0];
-    assign undone_raw=new_align[10][129:0];
+    assign stored_raw=old_align[10][129:0];
+    assign retained_raw=new_align[10][129:0];
+    assign before_raw=corrected_raw;
+    if(SECDED) begin: ecc_raw
+        logic [8:0] check;
+        logic failed;
+        wire [8:0] checked, next_check;
+        wire [6:0] error_age;
+        wire [9:0] restored_age=raw_error_address-undone_head;
+        tage_secded_decode #(.WIDTH(130)) read_raw(.data_i(stored_raw),.check_i(check),
+            .data_o(corrected_raw),.check_o(checked),.data_error_o(raw_error),.due_o(due[21]));
+        tage_secded_encode #(.WIDTH(130)) encode_raw(
+            .data_i(prefix_raw[append_count_i]),.check_o(next_check));
+        for(genvar b=0;b<7;b=b+1) begin: error_address
+            wire [129:0] selected;
+            for(genvar i=0;i<130;i=i+1) begin: age
+                assign selected[i]=((i & (1<<b))!=0) ? raw_error[i] : 1'b0;
+            end
+            assign error_age[b]=|selected;
+        end
+        assign raw_error_address=head+{3'b0,error_age};
+        assign repair_raw=!reset_i && !protection_stop && (|raw_error);
+        // The retained ages outside the currently protected window carry no
+        // SECDED guarantee. Forward a correction if undo still contains it.
+        assign undone_raw=undo_count_i==0 ? before_raw :
+            retained_raw ^ (((|raw_error) && restored_age<130) ?
+                             (130'b1<<restored_age[7:0]) : 130'b0);
+        assign protection_stop=failed || (|due);
+        always @(posedge clk_i) begin
+            if(reset_i) begin check<=0;failed<=0;end
+            else begin
+                if(|due) failed<=1;
+                if(!protection_stop) check<=advance_state ? next_check : checked;
+            end
+        end
+    end else begin: no_ecc_raw
+        assign corrected_raw=stored_raw;
+        assign raw_error=0;
+        assign raw_error_address=0;
+        assign repair_raw=0;
+        assign undone_raw=retained_raw;
+        assign protection_stop=0;
+        assign due[21]=0;
+    end
     function automatic integer hist_length(input integer b);
         case(b)
             0:hist_length=5; 1:hist_length=9; 2:hist_length=15;
@@ -94,7 +148,23 @@ module tage_history_state #(
             localparam integer F=offset(b)+(kind==0?0:(kind==1?9:9+T));
             wire [W-1:0] old_phi=canonical(before_raw,L,W);
             wire [W-1:0] new_phi=canonical(undone_raw,L,W);
-            wire [W-1:0] residual=folds[F+:W]^old_phi;
+            if(SECDED) begin: ecc
+                localparam integer R=tage_secded_geometry::parity_width(W);
+                logic [R:0] check;
+                wire [R:0] checked, next_check;
+                tage_secded_decode #(.WIDTH(W)) read_fold(.data_i(folds[F+:W]),
+                    .check_i(check),.data_o(clean_folds[F+:W]),.check_o(checked),
+                    .data_error_o(),.due_o(due[b*3+kind]));
+                tage_secded_encode #(.WIDTH(W)) encode_fold(
+                    .data_i(prefix_fold[append_count_i][F+:W]),.check_o(next_check));
+                always @(posedge clk_i)
+                    if(reset_i) check<=0;
+                    else if(!protection_stop) check<=advance_state ? next_check : checked;
+            end else begin: no_ecc
+                assign clean_folds[F+:W]=folds[F+:W];
+                assign due[b*3+kind]=0;
+            end
+            wire [W-1:0] residual=clean_folds[F+:W]^old_phi;
             // Rotate by each set count bit. Modular reduction happens at
             // elaboration, so the implementation contains no divider.
             wire [W-1:0] rotate [0:10];
@@ -107,16 +177,27 @@ module tage_history_state #(
                     assign rotate[step+1]=undo_count_i[step] ?
                         {rotate[step][SHIFT-1:0],rotate[step][W-1:SHIFT]} : rotate[step];
             end
-            assign undone_folds[F+:W]=undo_count_i==0?folds[F+:W]:(new_phi^rotate[10]);
+            assign undone_folds[F+:W]=undo_count_i==0?clean_folds[F+:W]:(new_phi^rotate[10]);
             assign canonical_folds[F+:W]=PUBLISH_BANK_MASK[b] ? old_phi : folds[F+:W];
         end
     end
-    wire [129:0] prefix_raw [0:3];
-    wire [199:0] prefix_fold [0:3];
-    wire [15:0] prefix_path [0:3];
     assign prefix_raw[0]=undone_raw;
     assign prefix_fold[0]=undone_folds;
-    assign prefix_path[0]=undo_count_i==0?path:path_checkpoint[restore_owner_i];
+    assign prefix_path[0]=undo_count_i==0?clean_path:path_checkpoint[restore_owner_i];
+    if(SECDED) begin: ecc_path
+        logic [5:0] check;
+        wire [5:0] checked, next_check;
+        tage_secded_decode #(.WIDTH(16)) read_path(.data_i(path),.check_i(check),
+            .data_o(clean_path),.check_o(checked),.data_error_o(),.due_o(due[22]));
+        tage_secded_encode #(.WIDTH(16)) encode_path(
+            .data_i(prefix_path[append_count_i]),.check_o(next_check));
+        always @(posedge clk_i)
+            if(reset_i) check<=0;
+            else if(!protection_stop) check<=advance_state ? next_check : checked;
+    end else begin: no_ecc_path
+        assign clean_path=path;
+        assign due[22]=0;
+    end
     for(genvar a=0;a<3;a=a+1) begin: append
         assign prefix_raw[a+1]={prefix_raw[a][128:0],append_bits_i[a]};
         assign prefix_path[a+1]={prefix_path[a][14:0],append_path_bits_i[a]};
@@ -145,7 +226,7 @@ module tage_history_state #(
     wire [2:0] write_lane;
     wire [9:0] write_address [0:2];
     for(genvar a=0;a<3;a=a+1) begin: write_port
-        assign write_lane[a]=enable_i && !reset_i && !(PUBLISH_BANK_MASK!=0 && publish_now)
+        assign write_lane[a]=advance_state && !reset_i && !(PUBLISH_BANK_MASK!=0 && publish_now)
             && a<append_count_i;
         assign write_address[a]=undone_head-(a+1);
     end
@@ -157,6 +238,7 @@ module tage_history_state #(
         always @(posedge clk_i)
             if(reset_i) raw_mem[row]<=0;
             else if(|selected) raw_mem[row]<=|(selected & append_bits_i);
+            else if(repair_raw && raw_error_address==row) raw_mem[row]<=~raw_mem[row];
     end
     for(genvar row=0;row<512;row=row+1) begin: checkpoint_row
         wire [2:0] selected;
@@ -172,10 +254,13 @@ module tage_history_state #(
     always @(posedge clk_i) begin
         if(reset_i) begin head<=0;folds<=0;path<=0;end
         else if(PUBLISH_BANK_MASK!=0 && publish_now) folds<=canonical_folds;
-        else if(enable_i) begin
+        else if(advance_state) begin
             head<=undone_head-append_count_i;
             folds<=prefix_fold[append_count_i];
             path<=prefix_path[append_count_i];
+        end else if(SECDED && !protection_stop) begin
+            folds<=clean_folds;
+            path<=clean_path;
         end
     end
 `ifdef TAGE_STATE_DEBUG

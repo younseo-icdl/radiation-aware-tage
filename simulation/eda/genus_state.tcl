@@ -18,11 +18,12 @@ proc run_state_synthesis {} {
     }
     set rtl {inputs/tage_history_hash.sv inputs/tage_history_lease.sv inputs/tage_history_state.sv}
     if {$pipeline} {
+        set rtl [linsert $rtl 0 inputs/tage_secded.sv]
         lappend rtl inputs/tage_history_provider.sv inputs/tage_history_pipeline.sv
     }
     read_hdl -sv $rtl
     if {$pipeline} {
-        elaborate tage_history_pipeline -parameters [list $lease_period $lease_service_cycles]
+        elaborate tage_history_pipeline -parameters [list $lease_period $lease_service_cycles $secded]
     } else {
         elaborate tage_history_state -parameters [list $direct_mask $publish_mask $lease_period $lease_service_cycles]
     }
