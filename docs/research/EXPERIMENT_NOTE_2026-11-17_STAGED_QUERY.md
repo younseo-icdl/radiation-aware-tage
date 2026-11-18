@@ -543,3 +543,14 @@ change by rerunning the paired activity replay and checking
 full annotation before admission. It reuses the recorded
 13,850 ps replay if the clock remains unchanged. No
 held-out run was started by this change.
+
+The banked reference synthesis completed successfully. The area
+report retains all eight 512-entry banks and gives 684,885.780 µm²
+before placement. At the slow 0.9 V synthesis corner Genus
+reports 3,359 ps for the read-PC to hit path and +10,366 ps
+setup slack at 13,850 ps. These are wireload results. The
+fresh physical producer is in CTS under
+`work/history-btb-reference-route-20261118-r2/attempt1/`.
+Extracted read, write hold, DRC, connectivity and die utilization
+are pending. The flat synthesis was still using CPU time and is
+retained as an independent producer.
