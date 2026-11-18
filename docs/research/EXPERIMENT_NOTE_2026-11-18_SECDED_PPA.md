@@ -86,3 +86,21 @@ its partial logs. A fresh hierarchy-preserving ECC/lease pair
 uses 16 cores per Genus, Innovus and Voltus producer under
 `work/history-secded-ppa-20261118-r3/`. The original ECC
 mapping is retained as an independent fallback.
+
+## 16-core pair through mapping
+
+Both hierarchy-preserving maps completed. Genus mapped 64,609
+cells and 165,745.512 µm² for SECDED and 61,660 cells and
+161,671.266 µm² for lease4096. SECDED mapped cell area was
+2.52% larger at this stage. Worst Genus data paths were 12.125 ns
+and 8.134 ns respectively under the synthesis I/O assumptions.
+These are wireload paths; they do not substitute for the
+extracted late-operand timing under the shared constraints.
+
+The 16-core lease route completed at 223,445.016 µm² and
+70.377% die utilization, with DRC and both connectivity
+checks passing. The extracted common-period recheck with
+late row and target arrivals passed at 13.850 ns with
++426 ps setup and +16 ps hold slack. SECDED is routing with
+the same settings. The original automatic-ungrouping ECC
+producer was independently active.
