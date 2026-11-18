@@ -792,3 +792,34 @@ to +0.0000468%. Its +0.086650% clean cost exceeded that saving.
 The separate results note records every pair, coverage, costs,
 and the unresolved exact stdout failures for Basicmath and Patricia.
 See [the held-out report](../results/source-heldout-2026-11-18.md).
+
+Two short host-versus-gem5 probes isolated the remaining x87
+precision issue without reopening the frozen workloads. A C
+probe for the rounding idiom used by musl formatting added 0.5
+and 1.5 to a volatile long double at 2^64. With 1.5, the host
+value changed while both AtomicSimpleCPU and the staged O3
+simulator reported equality. The 0.5 control rounded away on
+all three. A separate static musl probe emitted the binary32
+results of decimal scanning using integer formatting. Three of
+four inputs differed before any floating-point formatting. For
+example, the host parsed 0.246373 as 0x3e7c4934, while gem5
+returned 0x3e7c4800. This locates a Patricia-style discrepancy
+at parsing and supports the precision explanation for the
+Basicmath-style formatting discrepancy. The probes and raw
+output are under `work/heldout-x87-precision-probe-20261118-r1/`.
+Full native behavior for the existing binaries would need
+extended-precision values carried through gem5's x87 stack
+registers and arithmetic. There was no change to either locked
+binary or the stdout gate.
+
+The separate mismatch monitor now has an equal-budget C++
+regression across every single raw and fold bit and every
+starting probe phase. Persistent isolated discrepancies were
+visible by probe seven in all 910 raw and 1,400 fold cases.
+At the first probe, 304 raw and 200 fold cases were visible.
+When the faulty raw value agreed with its canonical folds,
+zero of 910 cases were visible. These are coherent component
+snapshots. The experiment provides neither workload-specific
+oracle input nor feedback to lease4096. See the
+[online monitor note](ONLINE_MISMATCH_MONITOR.md). The C++
+suite and all 70 Python tests passed.

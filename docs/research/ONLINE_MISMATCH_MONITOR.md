@@ -18,10 +18,23 @@ logic and scheduling. A realizable implementation would also add at least
 14 score bits and a three-bit probe pointer, with corresponding exposure.
 Repeated scans seeing the same residual do not count independent events.
 
-The unit test covers deterministic bank order, saturation, decay, unchanged
-predictor state and a corrupted raw value that agrees with its newly published
-fold. The monitor is standalone and does not select a repair or change the
-frozen full-bank lease. A later development test can assess the false negative
-rate and detection delay at equal probe budget. Any policy using scores must
-include a service bound for all banks and pay the added hardware/CPU costs
-before separate held-out evaluation.
+The standalone C++ test covers deterministic bank order, saturation, decay,
+and unchanged predictor state. It also sweeps all 130 raw sites or all 200
+fold sites, starting the same seven-probe round-robin budget at each of its
+seven phases. An injected discrepancy persists across the supplied snapshots.
+The monitor receives only the current bank's consistency label.
+
+| Condition | Site and phase combinations | Detected on first probe | Detected within seven probes | Latest first detection |
+|---|---:|---:|---:|---:|
+| Raw bit changed, folds held | 910 | 304 | 910 | 7 |
+| Fold bit changed, raw held | 1,400 | 200 | 1,400 | 7 |
+| Raw bit changed, folds made consistent with it | 910 | 0 | 0 | None |
+
+The first-probe column is the coverage if an otherwise identical discrepancy
+survives only until the next probe. The seven-probe result measures persistent
+observability under matched probe budgets. Probe opportunities are supplied by
+the test. In O3 they depend on coherent snapshot availability and scheduling,
+so the table supplies no CPU-cycle latency or workload fault detection rate.
+Repeated observations can raise a score for one sustained discrepancy.
+Scores are excluded from the fixed lease. A policy that uses them still needs
+a bound on service for every bank and a measurement of its additional cost.
