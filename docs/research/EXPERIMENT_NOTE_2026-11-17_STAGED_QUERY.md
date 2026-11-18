@@ -823,3 +823,11 @@ snapshots. The experiment provides neither workload-specific
 oracle input nor feedback to lease4096. See the
 [online monitor note](ONLINE_MISMATCH_MONITOR.md). The C++
 suite and all 70 Python tests passed.
+
+The two optional glibc candidates are dynamically linked. Their
+private compatibility manifest pins both executables, Patricia's
+original input, both original stdout files, the ELF interpreter,
+libc, and libm. All eight SHA-256 checks and both archived atomic
+stdout comparisons passed. The manifest is under
+`work/heldout-libc-compat-probe-20261118-r1/` and does not replace
+the original benchmark lock.
