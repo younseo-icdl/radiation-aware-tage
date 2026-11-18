@@ -128,3 +128,20 @@ will reuse the same mapped designs, PVT, floorplan sizing procedure
 and the 65–75% die utilization requirement. Reports and producer
 status are kept in a fresh batch. Profile timing in the routed
 design will determine what can be backannotated.
+
+The first primary pair became terminal before Hybrid05. Recurrent
+ended with timeout status 124. Lease4096 ended with status -9 and
+worker assertions in the partial log. The process termination
+mechanism beyond that status is unverified. Neither produced a
+completed routed timing package. Hybrid05 was still live. The
+primary failures made the original batch ineligible, so the idle
+fallback watcher was retired and the revised batch launched
+without waiting for the remaining Hybrid05 job.
+
+The fresh `work/b1a-route-20261117-r6/` logs and producer records
+show recurrent and lease4096 started with the intended 6.5 ns
+clock and 3.25 ns half-period. The older Hybrid05 run was preserved.
+The revised batch has its own terminal density watcher for the
+matched timing and no-undo path analysis. The physical result is
+pending. The online observer producer and the directed publication
+phase check are documented in the separate history activity note.
