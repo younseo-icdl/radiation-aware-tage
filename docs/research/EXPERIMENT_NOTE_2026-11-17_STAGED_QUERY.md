@@ -763,3 +763,23 @@ admission and summary files as failed clean gates. It waits for the
 original clean archive rather than rerunning any validated clean
 work. The runner logs are in
 `work/heldout-clean-qualified-20261118-r1/`.
+
+The compatibility build also passed all 14 finite checksum cases
+and the canonical source audit. CRC32's two clean records exactly
+reproduced the original simulator's exit ticks, retirement count,
+and stdout. Its clean lease cost is +0.08665% (+371,334 cycles)
+at 13,850 ps per cycle. The patched CRC32 records were admitted
+to the fixed eight paired SOURCE tapes. Sixteen faulted cases
+are scheduled, with eight workers. Basicmath and Patricia remain
+failed under the original exact stdout rule. The admitted plan
+and results are in `heldout-source-20261118-r3/` under the
+private experiment root.
+
+A separate functional probe linked the same Basicmath and Patricia
+sources against the server's glibc. Both candidate executables
+produced the original locked output byte for byte on the x86-64
+host and in gem5 AtomicSimpleCPU. This uses the same inputs and
+provides a route for compatibility validation. It is a functional
+probe with newly linked executables. No staged O3 comparison or
+fault run has used those binaries. Artifacts and probe logs are
+under `work/heldout-libc-compat-probe-20261118-r1/`.
