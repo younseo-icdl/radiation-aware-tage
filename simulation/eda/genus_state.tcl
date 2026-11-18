@@ -6,6 +6,9 @@ proc run_state_synthesis {} {
     set_db syn_map_effort medium
     set_db syn_opt_effort medium
     read_libs $library_file
+    if {$preserve_hierarchy} {
+        set_db auto_ungroup none
+    }
     if {$pipeline} {
         # Functional enable feedback must not be inferred as a physical scan chain.
         set scan_cells {}

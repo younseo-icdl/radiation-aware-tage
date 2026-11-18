@@ -54,3 +54,20 @@ existing checksum-qualified gem5 executable also passed all 14
 finite checksum cases. Its P_ECC case validates the software
 model. The Xcelium test and trace replay establish the separate
 RTL and do not change the gem5 integration.
+
+## First lease route and synthesis retry
+
+The first fresh lease map and route completed. The placed cell
+area was 226,523.700 µm² at 71.346% die utilization. A separate
+extracted timing audit is running. The first ECC Genus process
+was still active after one hour. Its log had reached technology
+mapping and started worker processes, but the main process was
+using most of the observed CPU time. The original run remains
+live with its longer synthesis limit.
+
+A second independent pair disables automatic hierarchy ungrouping
+for both SECDED and lease. It tests a mapping alternative with
+the same logic, clock and libraries in separate producer
+directories. Neither arm mixes a mapped result from the other
+strategy for its primary pair. The independent logs and
+checkpoints are under `work/history-secded-ppa-20261118-r2/`.

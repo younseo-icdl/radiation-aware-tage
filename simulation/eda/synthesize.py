@@ -64,6 +64,8 @@ def main():
     p.add_argument('--lease-service-cycles', type=int, default=2)
     p.add_argument('--secded', action='store_true',
                    help='use per-word SECDED on the staged history S* payload')
+    p.add_argument('--preserve-hierarchy', action='store_true',
+                   help='disable automatic ungrouping for registered history synthesis')
     p.add_argument('--cpus', type=int, default=4)
     p.add_argument('--timeout', type=float, default=1200)
     p.add_argument('--output', type=Path, required=True)
@@ -81,12 +83,15 @@ def main():
             raise ValueError('staged history uses recurrent hashes and full-bank publication when enabled')
         if a.secded and (a.block != 'pipeline' or a.lease_period):
             raise ValueError('SECDED applies to the staged pipeline without lease publication')
+        if a.preserve_hierarchy and not registered:
+            raise ValueError('hierarchy override applies to registered history blocks')
         if registered:
             values['publish_mask'] = a.publish_mask
             values['lease_period'] = a.lease_period
             values['lease_service_cycles'] = a.lease_service_cycles
             values['pipeline'] = int(a.block == 'pipeline')
             values['secded'] = int(a.secded)
+            values['preserve_hierarchy'] = int(a.preserve_hierarchy)
         if (a.block == 'provider' or a.block in ROW_BLOCKS) and a.direct_mask:
             raise ValueError('provider and row store boundaries have no direct bank mask')
         if (not 0 <= a.lease_period <= 65535 or
