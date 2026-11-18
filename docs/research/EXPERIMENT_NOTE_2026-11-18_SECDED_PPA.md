@@ -25,6 +25,68 @@ uncorrectable word disables admission and state mutation until
 reset. This is the measured RTL containment behavior. A CPU
 fallback/refill implementation is outside this physical block.
 
+### What the routed RTL contains
+
+| Block or state | Implementation in both arms | Protection in lease / SECDED |
+|---|---|---|
+| Raw direction history | 1,024-bit flop ring and 10-bit head, with separate alignment for current and restored history | Lease uses the current raw130 as its source; SECDED codes the active raw130 as one word with 9 check bits |
+| Folded history | 7 banks, each with one index fold and two tag folds, 200 bits total | Lease periodically replaces all 21 folds; SECDED codes each fold separately with 106 check bits in total |
+| Path history | Current 16-bit path and 512 × 16-bit saved path checkpoints | SECDED adds 6 check bits to the current path; the path checkpoint array is outside both protection mechanisms |
+| Undo and append | Restore up to 512 history entries and accept up to three chronological appends through the external transaction inputs | ECC forwards a corrected active raw bit into the restored view when present; an append has priority if its write collides with repair |
+| Query and provider | One pending registered query carrying PC, token, owner and path bit, with seven indices and seven tags; select from externally returned rows, then gate the speculative append direction with external target-valid | Lease can stop admission for maintenance; ECC supplies corrected history before hashing and can stop admission on a detected uncorrectable error |
+
+The protected SECDED payload is 346 logical bits. The measured
+block also contains the retained raw ring, head, path checkpoints,
+the pending row request, and protection control. Historical bits
+outside the active raw130 window, checkpoint storage, head and
+query/control registers have no SECDED code in this implementation.
+The routed hierarchy excludes the tagged prediction tables and
+their read/write storage, the base predictor storage, BTB/RAS
+and indirect-target logic, owner allocation, and the rest of
+the CPU. Returned rows, base prediction, and target validity are
+inputs to the measured provider-selection path.
+
+### Differences in the implemented paths
+
+**Lease4096.** On ordinary edges the block uses incremental folds.
+An append counter reaches 4,096 and stops new query admission.
+The controller waits for the external owner-empty signal and
+for the local pending request to clear. Two service cycles after
+service starts it replaces the 200 fold bits using the current
+aligned raw history. Recomputing from a corrupted raw source
+can retain the effect of the raw error. The maintenance control
+includes the age counter, service timer, and publication
+selection. Normal prediction uses the same staged interface as
+SECDED. Parts of the combinational fold logic also serve undo
+and can switch between publications.
+
+**SECDED.** Read logic evaluates the syndrome and overall parity
+for 23 shortened extended-Hamming codewords. A single-bit error
+in covered data can be corrected before use and repaired in
+storage. Check-bit errors can also be repaired. State updates
+encode the final values, including a new raw codeword when the
+active window advances or moves on undo. The detection path
+asserts the shared admission stop on a detected uncorrectable
+word and latches that condition until reset. This block does not
+implement the software baseline's CPU fallback/refill sequence.
+
+### Engineering conclusions
+
+- **Lease area and timing.** Lease placed cell area is 223,445 µm²
+  compared with 233,071 µm² for SECDED. Lease meets 13.850 ns
+  with +426 ps setup slack. SECDED misses it by 988 ps on a
+  returned row-tag to raw check-bit register path. Both meet
+  14.900 ns. This establishes a shorter timing requirement for
+  the measured lease implementation. Overall design complexity
+  was not independently scored.
+- **SECDED correction and clean power.** SECDED corrects covered
+  single-bit errors before the corresponding data is used, including
+  a current raw history bit. At 14.900 ns on the common clean
+  input trace it consumes 1.829 mW versus 1.999 mW for lease,
+  an 8.50% reduction. This is total power for the routed history
+  block. The clean trace does not exercise injected repair
+  writeback or measure full CPU energy.
+
 ## First gates and measurement conditions
 
 Xcelium passed the directed raw/fold/path and check-bit read and
