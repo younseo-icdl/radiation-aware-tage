@@ -887,3 +887,26 @@ The local `TAGE_FourWay_GPDK45_PPA_r2.zip` evidence bundle includes
 20 raw power reports, the selected route and STA reports, the activity
 tables, and the figure source. Both PNGs reproduced byte for byte from
 a fresh extraction. The CPU confirmation cohort continues independently.
+
+## Storage and completion figure validation
+
+The storage figure separates the 346 active payload bits and their
+check or replica bits from the incremental protection control and
+the full RTL declaration. It counts the raw ring once. Lease4096
+adds 15 control bits. SECDED halt adds 121 check bits and one
+control bit, and refill adds another 11 control bits. TMR adds
+692 replica bits. The exported storage CSV also reports synthesized
+flip-flops and the smaller native fault target catalog separately.
+
+The area-versus-completion exporter requires the implemented CPU
+producer to cite the exact clock and selected-route evidence from
+the PPA manifest. It checks the frozen grid digest and every
+implemented run and pair identity, timing, and method configuration.
+The plot uses verified completions and displays the observed seed
+range. The companion CSV retains the correct, valid, and scheduled
+denominators and leaves missing conditional times blank. A synthetic
+fixture exercised 60 cells and verified seven blank times with zero
+correct completions. Input labeled with the pilot's matched timing
+failed the join. The synthetic timing fixture is excluded from
+measurement evidence. The measured area-versus-completion figure
+awaits the complete implemented-clock CPU ledger.
