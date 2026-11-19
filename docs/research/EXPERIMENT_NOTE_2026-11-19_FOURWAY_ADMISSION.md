@@ -492,3 +492,26 @@ direction MPKI deltas against disabled, along with each arm's
 degradation from its own clean baseline. Failures remain in the
 completion denominator. The grid passed a structural dry run. No
 interval outcome has been produced by the follow-up.
+
+## Recovery and unequal terminal exposure
+
+`simulation.analysis.protection_evidence` verifies completed
+five-arm records against the actual program output, terminal
+direction statistics, native configuration and delivered XOR
+trace. It recovers logical ages from each arm's manifest and
+counts K1 and K2 events and TMR replica placements separately.
+It checks that all arms observed prefixes of the same logical
+tape and reports the common prefix through the earliest stop
+and the later events each continuing arm received.
+
+For pilot CRC32 pair `planned-1493841e96a55462` at 8,000
+events/s, SECDED halt stopped after 47 events and recorded one
+uncorrectable word. Other arms completed with verified stdout
+after 47,421 to 47,449 events. SECDED refill completed after
+47,448 events, with 1,953 refill resets and 1,951 completed
+refill episodes. The counts are per observed word or protocol
+action, so a refill count need not equal a K2 count. The pilot
+example demonstrates unequal terminal exposure and recovery
+behavior under a shared tape. The study compares correct
+completion rates and assigns no completion time to a detected
+stop.
