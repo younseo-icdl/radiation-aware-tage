@@ -750,3 +750,20 @@ the qualified Lease4096 standalone check passed with +1,109 ps
 setup and +19 ps hold, and the repaired TMR check passed with
 +919 ps setup and +2 ps hold. The halt-only SECDED route was
 started in the available EDA slot while refill synthesis continued.
+
+## Separate single-bit diagnostic
+
+The K1-only diagnostic is frozen at 2,000 events/s for all six
+workloads, with eight independent paired seeds per workload.
+This common rate supports direct comparison with the corresponding
+primary-law cell while retaining the two exposure laws separately.
+The grid contains 240 new faulted executions and 30 references to
+the original clean measurements. The seed namespace was checked
+against both the pilot and primary grids. No full four-rate K1
+sweep is claimed.
+
+The diagnostic, lease interval ablation and bounded workload
+causality replay were queued behind the primary comparison and
+will run in sequence. The K1 and interval producers use at most
+16 jobs. The residue binary has passed the on/off equivalence
+check and all 14 checksum cases.
