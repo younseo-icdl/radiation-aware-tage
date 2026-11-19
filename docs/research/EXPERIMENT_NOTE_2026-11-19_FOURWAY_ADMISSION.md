@@ -387,3 +387,37 @@ provider, lease, SECDED and refill RTL sources. The default
 elaboration selects Lease4096. Set the testbench parameters
 `LEASE_PERIOD=0` and `SECDED=1` with `-defparam` for halt, and
 also define `TAGE_HISTORY_REFILL` for refill.
+
+### Fixed per-bit RTL binding and delivery check
+
+`simulation.eda.rtl_storage_catalog` emits one binding per declared
+storage bit at the exact history-pipeline boundary. A probe first
+initializes the unreset path checkpoints and query-packet registers
+through ordinary inputs, then flips and restores every listed bit
+at RTL. Xcelium verified 9,636 bindings for unprotected, 9,651
+for Lease4096, 9,758 for SECDED halt, 9,769 for SECDED refill and
+10,328 for TMR. The physical raw-ring address and bank-local
+replica/check address are stable despite the current history head.
+
+`simulation.eda.rtl_storage_tape generate` generates the union of
+physical bit keys at common per-bit K1 intensity and filters it for
+each variant. The declared 500 ps arrival grid is independent of the
+13,850 ps RTL period. Different K1 records on the same tick are
+delivered and checked separately. The matched Xcelium fixture passed
+five clean and five faulted replays of 8,192 edges each. The
+accelerated delivery-check intensity was 150 flips per bit-second
+and the shared seed was 20261119071. Exact timestamp, storage
+identity and read-back audits verified respectively 155, 155, 156,
+156 and 168 fault deliveries in the same arm order. The fixed
+synthetic transactions exercise block responses. Workload MPKI,
+completion time, control-field exposure in gem5 and any physical
+chip upset rate require other evidence.
+
+For replay, generate the tape with
+`python -m simulation.eda.rtl_storage_tape generate OUTPUT --seed
+20261119071 --horizon-ps 113459200 --intensity 150`. Use the
+previous Xcelium top and options with `+storage_tape=ARM_TAPE` and
+`+storage_edges=8192`. For unprotected set `LEASE_PERIOD=0` and
+for TMR set `LEASE_PERIOD=0` and `TMR=1`. Use `+storage_catalog=CATALOG`
+for the independent binding check. Audit each transcript with
+`python -m simulation.eda.rtl_storage_tape audit ARM_TAPE CONSOLE_LOG`.
