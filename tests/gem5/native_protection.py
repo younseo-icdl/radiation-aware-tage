@@ -23,18 +23,21 @@ class Case:
     repaired_words: int = 0
     halt: bool = False
     lease: bool = False
+    refills: int = 0
 
 
 CASES = (
     Case('ordinary_clean'),
     Case('rebuild_clean', lease=True),
     Case('ecc_clean', 'ecc_halt'),
+    Case('refill_clean', 'ecc_refill'),
     Case('tmr_clean', 'tmr'),
     Case('ecc_data_check_repair', 'ecc_halt',
          '500001 R17\n7000001 C21:0\n13000001 R17\n8000000000 R17\n', 3, 3),
     Case('ecc_distinct_words', 'ecc_halt', '500001 R17;W0:0\n', 1, 2),
     Case('ecc_same_word_double', 'ecc_halt', '500001 R17;R18\n', 1, halt=True),
     Case('ecc_same_tick_separate_events', 'ecc_halt', '500001 R17\n500001 R18\n', 2, halt=True),
+    Case('ecc_committed_refill', 'ecc_refill', '500001 R17;R18\n', 1, refills=1),
     Case('tmr_same_replica_double_and_repair', 'tmr',
          '500001 T1:21:17;T1:21:18\n7000001 T2:21:17\n13000001 R17\n', 3, 3),
     Case('tmr_distinct_bits_two_replicas', 'tmr', '500001 T1:21:17;T2:21:18\n', 1, 1),
@@ -94,8 +97,14 @@ def run(case, args):
     if case.mode != 'none':
         if (native['protection_repair_words'] != case.repaired_words or
                 native['history_protection_halted'] != case.halt or
-                bool(native['protection_due_words']) != case.halt):
+                bool(native['protection_due_words']) != (case.halt or bool(case.refills))):
             raise ValueError(f'{case.name}: repair or stop counters mismatch')
+    if case.mode == 'ecc_refill':
+        if (native['refill_resets'] != case.refills or native['refill_completed'] != case.refills or
+                native['refill_publications'] < 130*case.refills or
+                native['refill_port_reservations'] < native['refill_publications'] or
+                native['refill_remaining']):
+            raise ValueError(f'{case.name}: committed refill accounting mismatch')
     return {'case': case.name, 'status': expected_status, 'stop_tick': native['tick'],
             'applied_events': len(rows), 'retired_pc_identity': native['retired_pc_identity'],
             'retired_instructions': native['retired_instructions'],
@@ -129,13 +138,15 @@ def main():
         Case('tmr_repair_before_hash', 'tmr', f'{tick} W0:0\n', 1, 1),
     )
     boundary_results = [run(case, args) for case in boundary_cases]
-    for measured in [by_name['ecc_clean'], by_name['tmr_clean'], *boundary_results]:
+    for measured in [by_name['ecc_clean'], by_name['refill_clean'], by_name['tmr_clean'], *boundary_results]:
         if any(measured[key] != reference[key] for key in
                ('stop_tick','retired_pc_identity','retired_instructions')):
             raise ValueError(f"{measured['case']}: protected timing or instructions changed")
     if any(row['first_hash_identity'] != reference['first_hash_identity'] for row in boundary_results):
         raise ValueError('staged hash captured a corrupt operand before repair')
     results.extend(boundary_results)
+    results.append(run(Case('ecc_refill_cancels_pending_hash', 'ecc_refill',
+                            f'{tick} W0:0;W0:1\n', 1, refills=1), args))
     (args.output/'DIRECTED.json').write_text(json.dumps(results,indent=2)+'\n')
     print(json.dumps(results, indent=2))
 

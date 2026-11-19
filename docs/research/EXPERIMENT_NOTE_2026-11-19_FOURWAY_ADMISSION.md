@@ -82,11 +82,23 @@ matched ordinary TAGE at 1,529,538,600 ticks and 233,030 retired
 instructions. A fault at the exact first hash-capture tick
 was repaired before hashing in both variants. The raw outcomes
 are in `work/fourway-20261119.B5Hhgo/directed-native/DIRECTED.json`.
-The initial gate also checked post-exit censoring. Add explicit
-rollback and refill-boundary probes before admitting the pilot. Native refill still needs an old-epoch
-drain, committed-only refill progress, base predictor training,
-and a post-refill owner drain before tagged lookup resumes.
-Do not count speculative appends as committed refill progress.
+The initial gate also checked post-exit censoring.
+
+A second native producer implements ECC+refill. It drains the old
+owners and pending query before resetting selected history, suppresses
+speculative history writes during bimodal fallback, and publishes from
+committed branch outcomes through a one-reservation-per-cycle port.
+After the first 130 committed appends, admission closes and the
+fallback owners drain before tagged lookup resumes. Branches already
+in flight may publish during that last drain.
+
+All 16 native scenarios passed, including both deliberate ECC halt
+outcomes and two refill cases. The refill cases each restarted once,
+matched the checksum and the 233,030 retired-instruction baseline,
+and published 131 committed updates with 131 reservations. One case
+injected DUE at the pending-hash capture tick and verified recovery
+after cancellation. The complete second gate is in
+`work/fourway-20261119.B5Hhgo/directed-refill/DIRECTED.json`.
 
 ## Campaign order
 

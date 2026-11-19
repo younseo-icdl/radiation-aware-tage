@@ -26,7 +26,7 @@ def main():
                         help='Capture the actual returned tagged/base rows and BPU target validity')
     parser.add_argument('--direct', action='store_true', help='Direct own-history query folds')
     parser.add_argument('--direct-bank-mask', type=lambda s:int(s,0), default=0)
-    parser.add_argument('--history-protection', choices=('none', 'ecc_halt', 'tmr'), default='none')
+    parser.add_argument('--history-protection', choices=('none', 'ecc_halt', 'ecc_refill', 'tmr'), default='none')
     parser.add_argument('--lease-period', type=int, default=0,
                         help='Actual raw appends (including speculation/unconditional) per rebase')
     parser.add_argument('--lease-service-cycles', type=int, default=2,
@@ -73,6 +73,8 @@ def main():
     if args.history_protection != 'none' and (
             not args.query_pipeline or args.lease_period or args.activity_end_tick):
         parser.error('native protection requires the staged recurrent query path')
+    if args.history_protection == 'ecc_refill' and not args.single_training_port:
+        parser.error('committed refill requires native retirement admission')
     if args.capture_staged_rows and (not args.query_pipeline or not args.activity_end_tick):
         parser.error('returned-row capture requires bounded staged history activity')
     output = Path(m5.options.outdir).resolve()

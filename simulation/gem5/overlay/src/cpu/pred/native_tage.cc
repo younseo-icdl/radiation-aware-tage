@@ -45,7 +45,8 @@ NativeTAGEBase::NativeTAGEBase(const gem5::NativeTAGEBaseParams &p)
     if(direct_bank_mask>127 || (lease.enabled() && effective_direct_mask()))
         throw std::invalid_argument("invalid mask or unadmitted combined lease/hybrid");
     if (history_protection_ != "none" &&
-        ((history_protection_ != "ecc_halt" && history_protection_ != "tmr") ||
+        ((history_protection_ != "ecc_halt" && history_protection_ != "ecc_refill" &&
+          history_protection_ != "tmr") ||
          lease.enabled() || effective_direct_mask() || !p.origin_file.empty() ||
          !p.history_activity_file.empty() || !speculativeHistUpdate))
         throw std::invalid_argument("native protection requires recurrent speculative history");
@@ -148,7 +149,7 @@ void NativeTAGEBase::init() {
     sites_ = sites();
     words_ = history_words();
     if (history_protection_ != "none") {
-        auto scheme = history_protection_ == "ecc_halt" ? Scheme::ECC : Scheme::TMR;
+        auto scheme = history_protection_ == "tmr" ? Scheme::TMR : Scheme::ECC;
         protection_ = std::make_unique<HistoryController>(*this, scheme);
         for (const auto &site : protection_->additional_sites()) {
             if (site.structure == "secded_check") {
@@ -301,15 +302,43 @@ bool NativeTAGEBase::protectionReady() {
     if (!protection_dirty_)
         return true;
     protection_dirty_ = false;
+    if (refill_phase_ == RefillPhase::DrainBefore)
+        return true;  // The invalid old epoch is about to be discarded.
     if (protection_->scheme == Scheme::ECC) {
         if (protection_->check_ecc_halt()) {
-            protection_halted_ = true;
-            gem5::exitSimLoopNow("native history SECDED detected uncorrectable error", 0);
+            if (history_protection_ == "ecc_refill") {
+                refill_phase_ = RefillPhase::DrainBefore;
+            } else {
+                protection_halted_ = true;
+                gem5::exitSimLoopNow("native history SECDED detected uncorrectable error", 0);
+            }
         }
     } else {
         protection_->check();
     }
     return !protection_halted_;
+}
+void NativeTAGEBase::advanceRefillDrain(bool empty) {
+    ++refill_drain_checks_;
+    if (!empty)
+        return;
+    if (refill_phase_ == RefillPhase::DrainBefore) {
+        reset_selected_history();
+        protection_->after_speculative_history_write();
+        refill_remaining_ = maxHist;
+        refill_base_only_ = true;
+        refill_phase_ = RefillPhase::Refill;
+        tagged_enabled(false);
+        ++refill_resets_;
+    } else if (refill_phase_ == RefillPhase::DrainAfter) {
+        refill_base_only_ = false;
+        refill_phase_ = RefillPhase::Normal;
+        tagged_enabled(true);
+        ++refill_completed_;
+    } else {
+        throw std::logic_error("refill drain without a pending transition");
+    }
+    noteHistoryChange();
 }
 std::set<uint64_t> NativeTAGEBase::originLabels(int head) const {
     std::set<uint64_t> result;
@@ -369,15 +398,32 @@ void NativeTAGEBase::updateHistories(gem5::ThreadID tid, gem5::Addr pc, bool spe
     bool previous = conditional_context_;
     conditional_context_ = bi->condBranch;
     if(activityOpen()) activity_append_context_=bi;
-    Base::updateHistories(tid, pc, speculative, taken, target, inst, bi);
-    if (protection_ && speculative)
-        protection_->after_speculative_history_write();
+    if (refill_base_only_ && !speculative) {
+        if (refillPublishing()) {
+            Base::updatePathAndGlobalHistory(tid, branchTypeExtra(inst), taken, pc, target, bi);
+            threadHistory[tid].nonSpecPathHist = threadHistory[tid].pathHist;
+            protection_->after_speculative_history_write();
+            ++refill_publications_;
+            if (refill_remaining_ && --refill_remaining_ == 0)
+                refill_phase_ = RefillPhase::DrainAfter;
+        }
+    } else {
+        Base::updateHistories(tid, pc, speculative, taken, target, inst, bi);
+        if (protection_ && speculative && !refill_base_only_)
+            protection_->after_speculative_history_write();
+    }
     activity_append_context_=nullptr;
     conditional_context_ = previous;
     ++source_epoch;
     observeOrigins("history_callback");
 }
 void NativeTAGEBase::restoreHistState(gem5::ThreadID tid, Base::BranchInfo *bi) {
+    if (refill_base_only_) {
+        if (bi->nGhist)
+            throw std::logic_error("stale speculative append survived the refill drain");
+        bi->modified = false;
+        return;
+    }
     const bool modified = bi->modified;
     if(gem5::curTick()!=restore_tick_) {restore_tick_=gem5::curTick();restores_this_tick_=0;}
     if(bi->modified) restores_this_tick_+=bi->nGhist;
@@ -394,6 +440,18 @@ void NativeTAGEBase::restoreHistState(gem5::ThreadID tid, Base::BranchInfo *bi) 
         noteHistoryChange();
     ++source_epoch;
     observeOrigins("restore");
+}
+void NativeTAGEBase::updatePathAndGlobalHistory(gem5::ThreadID tid, int type, bool taken,
+        gem5::Addr pc, gem5::Addr target, Base::BranchInfo *bi) {
+    if (!refill_base_only_)
+        Base::updatePathAndGlobalHistory(tid, type, taken, pc, target, bi);
+}
+void NativeTAGEBase::condBranchUpdate(gem5::ThreadID tid, gem5::Addr pc, bool taken,
+        Base::BranchInfo *bi, int nrand, gem5::Addr target, bool pred, bool pre) {
+    if (refill_base_only_)
+        fallback_update(pc, taken, bi, nrand);
+    else
+        Base::condBranchUpdate(tid, pc, taken, bi, nrand, target, pred, pre);
 }
 NativeSample NativeTAGEBase::sample(const Base::BranchInfo &bi, uint64_t id) const {
     NativeSample s;
@@ -536,7 +594,12 @@ void NativeTAGEBase::dumpResearch() {
             << ",\"protection_corrected_words\":" << p.corrected
             << ",\"protection_due_words\":" << p.due
             << ",\"protection_repair_words\":" << p.repair_words
-            << ",\"protection_replica_repairs\":" << p.replica_repairs;
+            << ",\"protection_replica_repairs\":" << p.replica_repairs
+            << ",\"refill_resets\":" << refill_resets_
+            << ",\"refill_completed\":" << refill_completed_
+            << ",\"refill_publications\":" << refill_publications_
+            << ",\"refill_remaining\":" << refill_remaining_
+            << ",\"refill_drain_checks\":" << refill_drain_checks_;
     }
     if (owner) out << ",\"lookups\":" << owner->lookups << ",\"committed_updates\":" << owner->commit_updates
         << ",\"prediction_output_forced_base\":" << (owner->force_base ? "true" : "false")
@@ -578,6 +641,9 @@ void NativeTAGEBase::dumpResearch() {
         out << ",\"conditional_training_port_capacity\":1"
             << ",\"conditional_training_port_reservations\":" << owner->training_port_reservations
             << ",\"conditional_training_port_waits\":" << owner->training_port_waits;
+    if (owner && history_protection_ == "ecc_refill")
+        out << ",\"refill_port_reservations\":" << owner->refill_port_reservations
+            << ",\"refill_port_waits\":" << owner->refill_port_waits;
     out << ",\"RNG_observation\":\"upstream TAGE::update unchanged; observer draws none; full RNG not exported\"}\n";
 }
 
@@ -645,7 +711,7 @@ void NativeTAGE::cancelPendingQuery() {
     clearPendingQuery();
 }
 void NativeTAGE::latchQueryHash() {
-    if (!core.protectionReady())
+    if (!core.protectionReady() || core.refillDraining())
         return;
     if (!pending_ || pending_hash_captured_)
         throw std::logic_error("hash latch has no matching request");
@@ -738,7 +804,7 @@ bool NativeTAGE::predict(gem5::ThreadID tid, gem5::Addr pc, bool conditional, vo
 bool NativeTAGE::seuPredictionRequest(gem5::ThreadID tid, gem5::Addr pc,
                                     bool conditional, uint32_t &token) {
     if (tid) throw std::invalid_argument("query admission single thread");
-    if(core.lease.due()) return false;
+    if(core.lease.due() || core.refillDraining()) return false;
     if (conditional && query_ii_cycles_ && gem5::curTick()<next_query_tick_) {
         ++query_interval_wait_calls;
         return false;
@@ -794,6 +860,11 @@ void NativeTAGE::seuCancelPending(gem5::ThreadID) {
     }
 }
 bool NativeTAGE::seuCanRetire(gem5::ThreadID tid, void *history) {
+    if (history && core.refillPublishing() && refill_port_reservations &&
+        last_refill_reservation_tick == gem5::curTick()) {
+        ++refill_port_waits;
+        return false;
+    }
     if (!single_training_port_ || !history ||
         !static_cast<const TageBranchInfo *>(history)->tageBranchInfo->condBranch)
         return true;
@@ -806,6 +877,12 @@ bool NativeTAGE::seuCanRetire(gem5::ThreadID tid, void *history) {
     return true;
 }
 void NativeTAGE::seuReserveRetire(gem5::ThreadID tid, void *history) {
+    if (history && core.refillPublishing()) {
+        if (tid || (refill_port_reservations && last_refill_reservation_tick == gem5::curTick()))
+            throw std::logic_error("committed refill exceeded retirement port capacity");
+        ++refill_port_reservations;
+        last_refill_reservation_tick = gem5::curTick();
+    }
     if (!single_training_port_ || !history ||
         !static_cast<const TageBranchInfo *>(history)->tageBranchInfo->condBranch)
         return;
@@ -816,6 +893,11 @@ void NativeTAGE::seuReserveRetire(gem5::ThreadID tid, void *history) {
 }
 bool NativeTAGE::seuFrontendBlocked(gem5::ThreadID tid, bool empty) {
     if(tid) throw std::invalid_argument("lease frontend single thread");
+    if (core.refillDraining()) {
+        seuCancelPending(tid);
+        core.advanceRefillDrain(empty && live_.empty() && !pending_);
+        return true;
+    }
     if (query_pipeline_ && core.lease.due())
         seuCancelPending(tid);
     bool ready=core.lease.service(gem5::curTick(),empty && live_.empty() && !pending_,

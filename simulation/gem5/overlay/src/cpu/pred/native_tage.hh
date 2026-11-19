@@ -50,6 +50,12 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     std::unordered_map<std::string, size_t> protection_sites_;
     bool protection_dirty_ = false;
     bool protection_halted_ = false;
+    enum class RefillPhase { Normal, DrainBefore, Refill, DrainAfter };
+    RefillPhase refill_phase_ = RefillPhase::Normal;
+    bool refill_base_only_ = false;
+    unsigned refill_remaining_ = 0;
+    uint64_t refill_resets_ = 0, refill_completed_ = 0, refill_publications_ = 0;
+    uint64_t refill_drain_checks_ = 0;
     std::string schedule_path_, event_path_, summary_path_, manifest_path_;
     std::ofstream events_, origins_;
     std::ofstream maintenance_;
@@ -80,6 +86,10 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     void historyActivity(const char *op, uint64_t owner, uint64_t value, uint64_t auxiliary);
     void noteHistoryChange();
     void calculateIndicesAndTags(gem5::ThreadID, gem5::Addr, Base::BranchInfo *) override;
+    void updatePathAndGlobalHistory(gem5::ThreadID, int, bool, gem5::Addr, gem5::Addr,
+                                    Base::BranchInfo *) override;
+    void condBranchUpdate(gem5::ThreadID, gem5::Addr, bool, Base::BranchInfo *, int,
+                          gem5::Addr, bool, bool) override;
 
   public:
     QuiescentLease lease;
@@ -92,6 +102,13 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     void startup() override;
     void dumpResearch();
     bool protectionReady();
+    bool refillDraining() const {
+        return refill_phase_ == RefillPhase::DrainBefore || refill_phase_ == RefillPhase::DrainAfter;
+    }
+    bool refillPublishing() const {
+        return refill_phase_ == RefillPhase::Refill || refill_phase_ == RefillPhase::DrainAfter;
+    }
+    void advanceRefillDrain(bool empty);
     void armLeasePublication();
     void publishLeaseFolds() {
         publish_own_folds(*this,words_);
@@ -187,6 +204,8 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     bool queryPipeline() const { return query_pipeline_; }
     bool singleTrainingPort() const { return single_training_port_; }
     uint64_t training_port_reservations=0, training_port_waits=0;
+    uint64_t refill_port_reservations=0, refill_port_waits=0;
+    gem5::Tick last_refill_reservation_tick=0;
     uint64_t staged_responses=0, staged_retries=0, staged_operand_holds=0;
     uint64_t staged_responses_after_fault=0, staged_responses_with_changed_hash=0;
     uint64_t staged_captures=0, first_staged_hash_identity=0;

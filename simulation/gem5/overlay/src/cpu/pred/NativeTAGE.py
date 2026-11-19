@@ -13,7 +13,7 @@ class NativeTAGEBase(TAGEBase):
     summary_file = Param.String('', 'Architectural-exit observations')
     manifest_file = Param.String('', 'Supported logical targets; not a whole-state certificate')
     origin_file = Param.String('', 'Original raw-bit provenance under append/undo/rollover')
-    history_protection = Param.String('none', 'Active history protection: none, ecc_halt, or tmr')
+    history_protection = Param.String('none', 'Active history protection: none, ecc_halt, ecc_refill, or tmr')
     direct_queries = Param.Bool(False, 'Derive consumed folds directly from current raw history')
     direct_bank_mask = Param.Unsigned(0, 'Static whole-bank direct mask, bits0..6')
     lease_period = Param.Unsigned(0, 'Actual speculative raw appends between quiescent rebases; zero disables')
