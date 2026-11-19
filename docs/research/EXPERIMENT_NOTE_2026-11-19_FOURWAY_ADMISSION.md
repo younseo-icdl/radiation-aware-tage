@@ -767,3 +767,24 @@ causality replay were queued behind the primary comparison and
 will run in sequence. The K1 and interval producers use at most
 16 jobs. The residue binary has passed the on/off equivalence
 check and all 14 checksum cases.
+
+## First four common-die geometries
+
+All four rows below passed internal DRC, signal connectivity,
+power/ground connectivity and the 65–75% utilization gate on the
+same 317,498.436 µm² die. The TMR row uses the repaired route.
+
+| Protection | Placed cell area (µm²) | Die utilization |
+| --- | ---: | ---: |
+| Unprotected TAGE | 219,765.438 | 69.218% |
+| Lease4096 | 222,730.920 | 70.152% |
+| SECDED halt | 227,828.088 | 71.757% |
+| TMR | 228,084.246 | 71.838% |
+
+Lease4096 uses 1.35% more placed area than unprotected TAGE and
+2.24% and 2.35% less than SECDED halt and TMR, respectively, in
+these early routes. All rows include the common ring, path
+checkpoints and query packet. SECDED refill remains in synthesis.
+The halt route's 14,900 ps extracted recheck and raw Innovus image
+exports for these four geometries were started. The final comparison
+will use the selected five routes and qualified activity reports.
