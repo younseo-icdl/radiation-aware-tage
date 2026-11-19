@@ -194,10 +194,12 @@ def main():
                     targets=dict(runtime_half_width_pp=targets[0],mpki_half_width=targets[1]),
                     rationale=args.rationale, namespace=args.namespace if frozen else None)
         if frozen:
-            with (args.output/'confirmatory.csv').open('x',newline='') as stream:
+            grid=args.output/'confirmatory.csv'
+            with grid.open('x',newline='') as stream:
                 writer=csv.DictWriter(stream,fieldnames=frozen[0])
                 writer.writeheader()
                 writer.writerows(frozen)
+            report['frozen_grid_sha256']=hashlib.sha256(grid.read_bytes()).hexdigest()
         (args.output/'precision.json').write_text(json.dumps(report,indent=2)+'\n')
     except (OSError,ValueError,KeyError,ZeroDivisionError) as error:
         parser.error(str(error))

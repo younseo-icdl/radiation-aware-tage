@@ -282,6 +282,13 @@ disjoint ranges for further seeds, rates and fault laws. Both fault
 laws share a single declared clean control per workload and mode.
 No confirmatory budget has been selected from partial pilot data.
 
+The freeze ledger records the SHA-256 digests of both the pilot results
+and the emitted confirmation grid. Before starting the matched-clock
+campaign, the runner checks those digests, verifies seed independence,
+rechecks simulator and workload provenance, and runs clean admission
+before scheduling faulted pairs. The proposed primary grid passed a
+structural dry run with 990 rows and 192 distinct fault seeds.
+
 SciPy 1.18.1 was installed in the project environment with the
 existing NumPy 2.5.5. The handoff's BCa helper generated a finite
 pointwise interval on a nondegenerate eight-pair test input.
