@@ -328,3 +328,32 @@ events. SHA-1 finished 1,575 cycles earlier despite 10,138 blocked fetch
 cycles, illustrating why subtracting the blocked count from completion
 cycles does not identify a residual causal effect. Faulted pairs and
 fold-residue lifetimes require separate evidence.
+
+## Physical storage inventory and exposure scope
+
+`simulation.eda.storage_inventory` enumerates the sequential instances
+in each Genus netlist using the Liberty flop definitions and reconciles
+the total mapped cell count with the Genus top-level area report. It
+records separate RTL declaration counts, synthesized FF counts,
+and the logical fault catalog that the native simulator actually
+accepts. The optional mapped register CSV keeps each instance and
+storage category inspectable.
+
+The first two new matched GPDK45 netlists contain 9,636 FFs for
+unprotected TAGE and 10,328 FFs for TMR. Both include a 1,024-bit
+physical raw ring, 10-bit head, 200 fold bits, 16 path bits, 8,192
+checkpoint bits, and 194 query-packet bits. TMR adds 692 FFs for
+two separately stored replicas of the 346-bit active payload. In the
+native simulator, those two arms expose 346 and 1,038 bits
+respectively, because the native catalog covers the active raw
+window and recurrent folds/path plus the two TMR replicas.
+
+The earlier Lease4096 and halt-only SECDED netlists also served as
+parser regression inputs. They contain 15 lease-control FFs (13 age
+and 2 service timer) and 122 SECDED FFs (121 check and one sticky
+failure), respectively. Of those, the current native catalog can
+inject the 13 lease-age bits and 121 SECDED check bits. The timer,
+sticky failure, refill controller, retained raw storage, head,
+checkpoints and query packet require separate mapping before a
+full physical-inventory exposure claim. The earlier netlists are
+separate from the new routed comparison.
