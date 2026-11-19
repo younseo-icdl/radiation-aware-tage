@@ -357,3 +357,33 @@ sticky failure, refill controller, retained raw storage, head,
 checkpoints and query packet require separate mapping before a
 full physical-inventory exposure claim. The earlier netlists are
 separate from the new routed comparison.
+
+The Xcelium RTL fixture in
+`tests/rtl/history_control_upsets_tb.sv` also exercised direct
+storage upsets through `simulation/eda/storage_xor.c`. The VPI
+function deposits an XOR into one selected bit, reads it back
+immediately, and leaves the HDL process responsible for the next
+edge. It rejects an unknown or inaccessible bit. The three fixture
+elaborations checked both values of each declared protection
+control bit. The SECDED sticky failure was checked in both policy
+arms.
+
+| RTL arm | Directed result |
+| --- | --- |
+| Lease4096 | Setting the age MSB triggered drain with a live owner. Flipping the running timer from 2 to 3 delayed publication by one edge. |
+| SECDED halt | Setting the sticky failure bit blocked new queries and the halt persisted until reset. |
+| SECDED refill | The sticky failure initiated refill. Flipping the remaining count from 130 to 2 reduced the refill to two committed writes before fallback drain. |
+
+The 64-bit Xcelium build ran at a 13,850 ps simulation period in
+each fixture. These tests establish delivery and directed block
+behavior in RTL. They do not change the fixed per-bit CPU exposure
+catalog or establish hardware timing.
+
+To reproduce, compile `storage_xor.c` as a shared library using
+the simulator's VPI headers. Run Xcelium with `-sv -access +rwc
+-loadvpi STORAGE_XOR_SO:register_storage_xor -top
+history_control_upsets_tb` and the history pipeline, state, hash,
+provider, lease, SECDED and refill RTL sources. The default
+elaboration selects Lease4096. Set the testbench parameters
+`LEASE_PERIOD=0` and `SECDED=1` with `-defparam` for halt, and
+also define `TAGE_HISTORY_REFILL` for refill.
