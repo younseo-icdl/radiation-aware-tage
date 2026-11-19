@@ -292,3 +292,39 @@ structural dry run with 990 rows and 192 distinct fault seeds.
 SciPy 1.18.1 was installed in the project environment with the
 existing NumPy 2.5.5. The handoff's BCa helper generated a finite
 pointwise interval on a nondegenerate eight-pair test input.
+
+## Clean pilot and lease fetch accounting
+
+All 15 clean controls completed correctly. For each workload, both
+SECDED modes and TMR matched unprotected TAGE in completion tick,
+retired instructions and committed direction counts. The 180
+scheduled faulted runs were then admitted with at most 16 jobs.
+Detected stops from SECDED halt are valid reliability outcomes.
+
+The native configured run uses one thread and one fetch attempt per
+cycle. The lease-gating check happens after the fetch cache and
+interrupt early returns and before the instruction fetch loop. A
+blocked check takes either the restore-owner drain branch or the
+quiescent service branch. The two counts partition the blocked
+fetch opportunities. The service CSV independently records start,
+publication and any in-flight interval censored at architectural exit.
+
+`python -m simulation.analysis.lease_stalls RUN_ROOT UNPROTECTED_RECORD LEASE_RECORD`
+rechecks the run configuration hashes, stdout, terminal statistics and
+lease event ledger. It emits the conditional paired direction and time
+deltas and the exclusive fetch counts. In the clean pilot:
+
+| Workload | Lease minus unprotected cycles | Direction misses delta | Direction MPKI delta | Drain fetch cycles | Service fetch cycles |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Quicksort | +37,380 | +418 | +0.01647 | 28,771 | 5,206 |
+| SHA-1 | −1,575 | 0 | 0 | 9,736 | 402 |
+| CRC32 | +371,334 | 0 | 0 | 299,836 | 65,350 |
+
+CRC32's clean completion cost was 0.087% with unchanged committed
+direction outcomes. The 365,186 blocked fetch cycles show how often
+maintenance denied a fetch opportunity. The CPU backend can continue
+during these cycles, and shifting fetch can change the timing of other
+events. SHA-1 finished 1,575 cycles earlier despite 10,138 blocked fetch
+cycles, illustrating why subtracting the blocked count from completion
+cycles does not identify a residual causal effect. Faulted pairs and
+fold-residue lifetimes require separate evidence.
