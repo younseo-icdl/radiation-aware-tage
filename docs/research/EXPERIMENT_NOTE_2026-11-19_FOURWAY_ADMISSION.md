@@ -712,3 +712,41 @@ violation on TMR with the same 71.838% die utilization and clean
 signal and power/ground connectivity. The first Lease4096 route
 passed the geometry checks at 70.152% utilization. Extracted
 timing at the common candidate clock is in progress.
+
+## Pilot direction and fetch accounting across all paired seeds
+
+The completed pilot supplies 39 unprotected/Lease4096 pairs,
+including three clean controls. The audit checked terminal
+direction statistics and the lease service ledger for every pair.
+The clean unprotected direction MPKI was 6.948 on Quicksort,
+0.031 on SHA-1, and 0.052 on CRC32. CRC32 executed 80.1 million
+conditional branches but recorded only 26,216 direction misses
+in its clean run. Quicksort recorded 176,321 in 6.84 million.
+
+The table gives means of four paired seeds at 2,000 events/s.
+The signed differences are Lease4096 minus unprotected TAGE.
+
+| Workload | Direction misses | Completion cycles | Drain fetch cycles | Service fetch cycles | Blocked fetch opportunities / unprotected cycles |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Quicksort | −697,439 | −6,819,189 | 28,934 | 5,226 | 0.087% |
+| CRC32 | −14,548 | +209,871 | 300,007 | 65,350 | 0.085% |
+| SHA-1 | −25,245 | −141,911 | 9,466 | 404 | 0.152% |
+
+The similar normalized maintenance burden of Quicksort and CRC32
+at this rate coincides with very different direction-miss changes.
+CRC32's paired runtime reduction was −0.082%, −0.049%, and
+−0.020% at 20, 2,000, and 8,000 events/s even as its direction
+MPKI improved at all three rates. These observations support
+different prediction benefits rather than different normalized
+maintenance burdens as a promising explanation. The fetch blocks
+can overlap useful backend work. The measurements do not assign
+an exact cycle cost to each miss or identify specific damaged
+branches. The four-seed pilot remains descriptive.
+
+All 30 primary confirmation clean observations have verified
+stdout. The 15 newly run cells cover Basicmath, Patricia and
+Dijkstra, and the faulted primary phase has started. At 14,900 ps,
+the qualified Lease4096 standalone check passed with +1,109 ps
+setup and +19 ps hold, and the repaired TMR check passed with
++919 ps setup and +2 ps hold. The halt-only SECDED route was
+started in the available EDA slot while refill synthesis continued.
