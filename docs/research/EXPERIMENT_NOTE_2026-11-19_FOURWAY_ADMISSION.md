@@ -582,3 +582,22 @@ figures. A fresh extraction regenerated both the seed and paired
 figure CSVs byte for byte. The package excludes Cadence libraries,
 checkpoints and benchmark input distributions. This packaging check
 is separate from the final comparison handoff.
+
+## Quicksort and CRC32 causal replay selection
+
+The workload residue replay selects the smallest locked numeric seed
+for each named workload at 2,000 events/s under the primary SOURCE law.
+It uses the unprotected and Lease4096 arms of that pair and the exact
+archived tape. The observation window starts at the first scheduled
+event and spans at most 2 ms. The terminal outcome and applied-event
+prefix are checked against the original controlled run. If the pair
+does not share exposure to the first event, the trace is unavailable
+for that seed. No replacement seed is selected after outcomes.
+
+The observer runs only after the directed trace-on/trace-off gates
+and all 14 checksum regression cases have passed with its binary.
+The follow-up combines the bounded per-bank residue observations
+with prediction deltas and the exclusive drain/service counts
+from the original comparison. Its seed selection passed a dry run
+against the proposed grid. Actual residue measurements await the
+frozen controlled run ledger.
