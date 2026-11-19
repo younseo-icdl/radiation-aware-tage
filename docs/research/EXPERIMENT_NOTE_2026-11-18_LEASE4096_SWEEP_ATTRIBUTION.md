@@ -186,3 +186,25 @@ reference in percentage points, direction MPKI, BPU MPKI, O3 commit MPKI,
 and both completion cycles and simulated seconds.
 Run `python3 analysis/analyze.py --output /tmp/lease4096-pairs.csv`
 from the extracted handoff to regenerate it.
+
+## Presentation figures and routed layout images
+
+The presentation handoff includes one plot per workload and a six-page PDF.
+Each plot shows TAGE direction accuracy, direction MPKI, and gem5 program
+completion cycles at all sampled rates. The dashed references and the
+zero-rate markers are the two clean runs. Marker shapes identify paired
+seed indices. Within-rate offsets reveal overlap. The solid lines join
+per-rate medians. Each new rate has two matched seeds, and the reused
+2,000 events/s anchor has eight. The common horizontal axis uses
+log10(1 + rate) spacing to retain the zero-rate point.
+
+Cadence Innovus 23.18-s051_1 restored the existing GPDK45 post-route
+checkpoints and exported full views, placement-focused views, and the
+same 92 × 92 µm routing detail for each design. The matched Lease4096
+and SECDED views come from the final route pair documented in
+[the routed PPA note](EXPERIMENT_NOTE_2026-11-18_SECDED_PPA.md).
+The ordinary recurrent view comes from
+`work/history-query-pipeline-route-20261117-r2/attempt2/recurrent/outputs/routed.inn`
+and illustrates the baseline from a different routing experiment.
+The PNGs represent the staged history subsystem's research layouts.
+The checkpoints were opened without changing placement or routing.
