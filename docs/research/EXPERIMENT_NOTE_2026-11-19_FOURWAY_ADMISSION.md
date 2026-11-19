@@ -601,3 +601,21 @@ with prediction deltas and the exclusive drain/service counts
 from the original comparison. Its seed selection passed a dry run
 against the proposed grid. Actual residue measurements await the
 frozen controlled run ledger.
+
+## Presentation preservation check
+
+The supplied editable deck and PDF each contain 95 pages in the
+declared presentation order. The local update tool resolves the
+PPTX slide relationships so it can replace a measured evidence
+page and its speaker notes in place. Both formats receive the same
+source PNG. Untouched PPTX parts, including charts and workbooks,
+are checked byte for byte. The internal single-page trial rendered
+six unchanged PDF pages identically, including the architecture,
+routed-layout and earlier comparison pages. Both trial outputs
+preserved the 95-page order.
+
+PyMuPDF 1.28.2 was installed in a private presentation dependency
+directory for the PDF update and render check. The trial used a
+marked partial-pilot figure to verify the update path. Final
+presentation content depends on the completed run and routed
+evidence.
