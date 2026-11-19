@@ -205,3 +205,34 @@ connectivity and TMR register retention after route. The extracted
 timing recheck uses common row and target-arrival bounds and CPPR.
 The clean power step uses the qualified shared clock and requires
 complete flop-output and net activity annotation.
+
+## Fixed per-bit tape admission
+
+The native catalog tool constructs a semantic union from the run
+manifests and drives a K1 Poisson stream at the requested intensity
+per union site. Each arm receives the subset of events that hit a
+present site, at the same original absolute tick. This gives each
+exposed site the same marginal intensity and each arm the expected
+event rate of intensity times catalog size. Coincident timestamp
+records remain distinct. There is no assumed physical adjacency.
+The tool preserves union, per-arm and manifest hashes and audits
+the exact applied prefix, storage IDs, XOR values and censored tail.
+
+The directed checksum run used five real manifests and reached
+all added storage classes that this catalog exposes. It verified
+17, 18, 25, 52 and 25 injected events in ordinary, Lease4096,
+SECDED halt, TMR and SECDED refill, respectively. The Lease4096
+run included two age-counter flips, each SECDED arm included
+nine check-bit flips, and TMR included 36 replica flips. All
+five programs completed correctly. This is a tape and delivery
+test and does not estimate workload performance.
+
+The current native follow-up catalog contains 346, 359, 467,
+1,038 and 467 sites in the same order. The exact scopes are
+active history, supported check and replica storage, and the
+lease age counter. Timer, stop-latch and refill-controller
+fault interfaces are still needed for broader control exposure.
+Inactive ring state, checkpoints and pending query state also
+require separate mapping. The current catalog must not be used
+as a whole-history-block physical fault inventory. The private
+admission logs are under `work/fourway-20261119.B5Hhgo/catalog-smoke.X0N9AK/`.
