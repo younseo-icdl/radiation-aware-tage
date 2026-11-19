@@ -619,3 +619,19 @@ directory for the PDF update and render check. The trial used a
 marked partial-pilot figure to verify the update path. Final
 presentation content depends on the completed run and routed
 evidence.
+
+## Identical clean controls are reused
+
+The matched-clock confirmation runner can now reuse the completed
+pilot clean observations. It rechecks each original terminal status,
+stdout digest, retired and direction counts, zero event delivery,
+clock, protection interval and configuration digest. Reference rows
+retain their measured run ID and point to the original record digest.
+The planned cell ID and measurement role are recorded independently.
+The same observation can also support both fault-law comparisons.
+
+The actual pilot files qualified all 15 clean observations across
+Quicksort, SHA-1, and CRC32. The proposed 30 clean confirmation
+cells therefore require 15 new runs for the three other workloads.
+A separate implemented-clock cohort with a different period still
+requires fresh clean observations.
