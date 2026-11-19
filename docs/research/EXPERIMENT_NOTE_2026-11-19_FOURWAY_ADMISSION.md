@@ -568,3 +568,17 @@ The existing halt-only SECDED route produced three distinct,
 nonblank PNGs as a capture regression. The new five-arm image export
 uses the selected matched routes only. The first matched Innovus
 producer, unprotected TAGE, has started on the common die.
+
+## Handoff archive verification
+
+The local archive builder uses an explicit member list and records a
+SHA-256 digest and byte count per file. It verifies the archived
+contents before publishing the ZIP, with separate plan and observed
+ledgers. The partial-pilot packaging check included 373 verified
+members. Its contents include tracked source and implementation
+patches, pilot statistics/stdout, terminal records and fault tapes,
+baseline reproduction evidence, the analysis scripts and the preview
+figures. A fresh extraction regenerated both the seed and paired
+figure CSVs byte for byte. The package excludes Cadence libraries,
+checkpoints and benchmark input distributions. This packaging check
+is separate from the final comparison handoff.
