@@ -679,3 +679,36 @@ violation. The route is retained as a failed geometry attempt.
 A localized routing ECO is queued from a separate copy of its
 checkpoint. The repair must pass fresh DRC, connectivity, area
 and timing checks before entering the matched comparison.
+
+## Pilot closed and primary confirmation frozen
+
+All 195 planned pilot executions have terminal evidence. Across
+clean and faulted conditions, unprotected TAGE, Lease4096, SECDED
+refill and TMR each completed 39 runs with matching stdout.
+SECDED halt had nine correct completions and 30 detected stops.
+The 15 clean controls passed. These are pilot counts across the
+declared three workloads and rates. The primary-law TMR events
+select only one replica per event.
+
+The pilot used 32.08 summed gem5 host hours. For the pilot-overlap
+cells, planning projects 61.7, 120.8, 239.1 and 475.8 host hours
+at 8, 16, 32 and 64 seeds. The 16-seed plan meets the planning
+targets for 47 of 55 estimable endpoints and avoids projected
+joint-completion shortages in that set. The 8-seed plan meets
+40 targets, while 32 seeds meet 49. The 64-seed plan still misses
+five. Seventeen endpoints lack pilot variability estimates.
+
+The primary law now has 16 independent seeds per rate and workload,
+with 1,950 planned cells across all six workloads. Fifteen clean
+cells reference the original pilot executions, leaving 1,935 fresh
+runs. The seed budget was frozen uniformly before confirmation.
+The separate K1 diagnostic and implemented-clock cohort are
+independent of this ledger. The primary runner was admitted and
+queued behind the bounded observer checksum regression so the
+aggregate gem5 process count stays within 16.
+
+The separate routing ECO cleared the single Metal1 spacing
+violation on TMR with the same 71.838% die utilization and clean
+signal and power/ground connectivity. The first Lease4096 route
+passed the geometry checks at 70.152% utilization. Extracted
+timing at the common candidate clock is in progress.
