@@ -788,3 +788,13 @@ checkpoints and query packet. SECDED refill remains in synthesis.
 The halt route's 14,900 ps extracted recheck and raw Innovus image
 exports for these four geometries were started. The final comparison
 will use the selected five routes and qualified activity reports.
+
+The extracted 14,900 ps reports now pass the shared arrival and
+CPPR checks for all four completed routes. SECDED halt has +130 ps
+setup and +26 ps hold slack. The five-arm operating period still
+depends on the refill implementation.
+
+The native Innovus export produced twelve verified PNG files for
+these four checkpoints. The final export can reuse a capture only
+when its checkpoint, routed netlist, producer record, capture Tcl,
+detail dimensions and image digests match the selected route.
