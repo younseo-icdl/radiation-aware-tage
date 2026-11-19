@@ -812,3 +812,18 @@ actual selected checkpoints and common extracted clock to pass the
 provenance checks before launching. It uses the frozen six-workload
 grid, retains the source arrival law in absolute time, and reruns
 the clean gate when the implemented period differs.
+
+## All five common-die geometries qualify
+
+The routed SECDED refill block occupies 233,604.468 µm² at
+73.577% die utilization. The common-die gate selected all five
+routes with clean DRC and signal and power/ground connectivity.
+Lease4096's selected placed area is 4.65% lower than SECDED
+refill's, under the same 317,498.436 µm² die contract.
+
+At 14,900 ps, SECDED refill has −383 ps setup and +1 ps hold
+slack. The failing setup path starts at a returned row tag input
+and ends at a raw-history SECDED check register. The other four
+arms passed at this period. The next shared-clock recheck is
+16,000 ps. No refill period or power is inferred from halt-only
+SECDED results.
