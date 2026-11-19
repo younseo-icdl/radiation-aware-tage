@@ -649,3 +649,19 @@ direction MPKI is queued behind the complete pilot. The suggested
 seed count applies only to estimable pilot endpoints. The jointly
 correct performance analysis, all-seed completion analysis and
 frozen run selection remain separate.
+
+## First common-die route observation
+
+The unprotected Innovus route completed on the common 317,498.436 µm²
+die. It occupied 219,765.438 µm² of placed cell area, or 69.218%
+die utilization. The internal DRC, signal-connectivity and
+power/ground-connectivity checks passed. This route is eligible
+for the matched geometry comparison.
+
+At the 13,850 ps period, standalone extracted STA using CPPR for
+both edges and the shared row/target arrival constraints observed
+global setup slack of −17 ps and hold slack of +19 ps. The worst
+setup report went to the raw ring write path. This first routed
+arm did not qualify at that period. The next period is being
+checked, and common clock selection still requires the other
+four implementations.
