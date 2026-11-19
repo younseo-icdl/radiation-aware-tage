@@ -798,3 +798,17 @@ The native Innovus export produced twelve verified PNG files for
 these four checkpoints. The final export can reuse a capture only
 when its checkpoint, routed netlist, producer record, capture Tcl,
 detail dimensions and image digests match the selected route.
+
+SECDED refill synthesis passed with 9,769 mapped flip-flops,
+equal to the RTL-declared total. The count includes 121 check
+bits, one sticky failure bit and 11 refill control bits. Genus
+reported 165,821.778 µm² of mapped cell area. The full matched
+route gate now has all five synthesis producers. Routed area for
+refill continues to depend on its geometry checks.
+
+The implemented-clock gem5 runner is queued behind the primary
+follow-ups to preserve the 16-process limit. It requires the
+actual selected checkpoints and common extracted clock to pass the
+provenance checks before launching. It uses the frozen six-workload
+grid, retains the source arrival law in absolute time, and reruns
+the clean gate when the implemented period differs.
