@@ -236,3 +236,30 @@ Inactive ring state, checkpoints and pending query state also
 require separate mapping. The current catalog must not be used
 as a whole-history-block physical fault inventory. The private
 admission logs are under `work/fourway-20261119.B5Hhgo/catalog-smoke.X0N9AK/`.
+
+## Faulted activity fixture
+
+A separate 5,213-edge history-block fixture supplies the same inputs
+with zero, one, or two raw bit flips. The cells are logical ages three
+and four in the primary copy after eight warmup appends. They are
+consecutive ring addresses. The fixture makes no placement-adjacency
+assumption. For the routed arm, the upset reaches the actual primary
+storage output before the clock edge. The test verifies the stored
+result after releasing the forced value and compares subsequent
+control, indices, tags, and prediction outputs with the RTL arm.
+
+All 15 RTL mode and fault-width combinations passed. All six
+cross-checks against the two previously routed Lease4096 and SECDED
+halt checkpoints also passed. In the two-bit test, SECDED halt
+accepted no responses after the fault. SECDED refill resumed and
+accepted 633 responses. TMR accepted 650 and repaired the primary
+raw state. Lease4096 accepted 649 and published once. These directed
+results exercise the recovery paths and are separate from workload
+accuracy measurements.
+
+After the new physical and clean-power gates pass, the power
+queue replays this fixture for all five new routed arms at the
+qualified shared clock. It saves matched fixed-window K0, K1, and
+K2 energy, observed response counts, and stopped edges. Energy
+measured after a halt describes the block during the observation
+window. Correct application completion is a separate CPU result.
