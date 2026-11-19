@@ -17,6 +17,9 @@ module tage_history_state #(
     input wire [1:0] append_count_i,     // 0..3 chronological appends
     input wire [2:0] append_bits_i, append_path_bits_i,
     input wire [26:0] append_owner_i,    // three distinct allocated 9-bit IDs
+`ifdef TAGE_HISTORY_REFILL
+    input wire suppress_checkpoint_i,
+`endif
     input wire publish_i,              // external pilot mode (LEASE_PERIOD=0)
     input wire owners_empty_i,
     output wire stop_admission_o,
@@ -304,7 +307,11 @@ module tage_history_state #(
     for(genvar row=0;row<512;row=row+1) begin: checkpoint_row
         wire [2:0] selected;
         for(genvar a=0;a<3;a=a+1) begin: lane
-            assign selected[a]=write_lane[a] && append_owner_i[a*9+:9]==row;
+            assign selected[a]=write_lane[a] && append_owner_i[a*9+:9]==row
+`ifdef TAGE_HISTORY_REFILL
+                && !suppress_checkpoint_i
+`endif
+                ;
         end
         always @(posedge clk_i)
             if(|selected) path_checkpoint[row]<=

@@ -64,6 +64,8 @@ def main():
     p.add_argument('--lease-service-cycles', type=int, default=2)
     p.add_argument('--secded', action='store_true',
                    help='use per-word SECDED on the staged history S* payload')
+    p.add_argument('--ecc-refill', action='store_true',
+                   help='add the committed refill and fallback interface to SECDED')
     p.add_argument('--tmr', action='store_true',
                    help='triplicate the staged history S* payload with majority repair')
     p.add_argument('--retain-equivalent-flops', action='store_true',
@@ -87,6 +89,8 @@ def main():
             raise ValueError('staged history uses recurrent hashes and full-bank publication when enabled')
         if a.secded and (a.block != 'pipeline' or a.lease_period):
             raise ValueError('SECDED applies to the staged pipeline without lease publication')
+        if a.ecc_refill and not a.secded:
+            raise ValueError('the refill controller requires SECDED')
         if a.tmr and (a.block != 'pipeline' or a.lease_period or a.secded or not a.retain_equivalent_flops):
             raise ValueError('TMR requires a staged pipeline with equivalent-flop retention and no other scheme')
         if a.retain_equivalent_flops and not registered:
@@ -99,6 +103,7 @@ def main():
             values['lease_service_cycles'] = a.lease_service_cycles
             values['pipeline'] = int(a.block == 'pipeline')
             values['secded'] = int(a.secded)
+            values['ecc_refill'] = int(a.ecc_refill)
             values['tmr'] = int(a.tmr)
             values['retain_equivalent_flops'] = int(a.retain_equivalent_flops)
             values['preserve_hierarchy'] = int(a.preserve_hierarchy)
@@ -129,6 +134,9 @@ def main():
         shutil.copy2(ROOT/'tage/rtl/tage_history_lease.sv', out/'inputs/tage_history_lease.sv')
     if a.block == 'pipeline':
         for name in ('tage_history_pipeline.sv', 'tage_history_provider.sv', 'tage_secded.sv'):
+            shutil.copy2(ROOT/'tage/rtl'/name, out/'inputs'/name)
+        if a.ecc_refill:
+            name = 'tage_history_refill.sv'
             shutil.copy2(ROOT/'tage/rtl'/name, out/'inputs'/name)
     shutil.copy2(Path(__file__).with_name(script), out/'flow'/script)
     (out/'site.tcl').write_text(''.join('set {} {}\n'.format(k, tcl_word(v)) for k,v in values.items()))

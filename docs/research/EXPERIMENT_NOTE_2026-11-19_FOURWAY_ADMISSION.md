@@ -161,6 +161,26 @@ The matching Lease4096 and SECDED halt synthesis runs are queued with
 the same flop-retention policy. The audited TMR declaration is 10,328
 bits, including the common 9,636 bits and two 346-bit replica sets.
 The audit records declared RTL bits separately from mapped flops
-and placed area. The ECC+refill RTL needs committed-outcome ingress
-and an explicit fallback/re-entry controller before its cost can be
-measured.
+and placed area.
+
+## ECC+refill hardware admission
+
+The staged ECC refill build adds committed direction/path valid and
+ready handshakes. A DUE cancels the query packet and blocks new
+admissions. The enclosing owner-drain signal authorizes the reset,
+and the fallback variant uses the base provider while collecting
+130 committed history bits. Speculative fallback responses do not
+modify the protected history or path checkpoints. After refill, the
+controller waits for the remaining fallback owners before re-enabling
+the tagged provider. The companion processor supplies committed
+outcomes and authentic owner-drain state. The history block includes
+the ingress gate, recovery controller, and base-provider mask.
+
+The standalone Xcelium test exercised a repeated DUE before re-entry.
+The integrated test verified a real double-bit error at the history
+storage, pending-packet cancellation, bimodal fallback, 130 committed
+writes, and the final drain before tagged re-entry. The existing
+non-refill pipeline regression also passed. The variant declares
+11 recovery controller bits in addition to the halt-mode history
+RTL. Mapped storage, routing and activity values are pending. The
+new synthesis variant is queued with its own build records.

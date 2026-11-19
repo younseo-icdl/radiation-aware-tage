@@ -15,6 +15,10 @@ module tage_history_pipeline #(
     input wire [1:0] append_count_i,
     input wire [2:0] append_bits_i, append_path_bits_i,
     input wire [26:0] append_owner_i,
+`ifdef TAGE_HISTORY_REFILL
+    input wire committed_history_valid_i, committed_history_bit_i, committed_path_bit_i,
+    output wire committed_history_ready_o, fallback_base_only_o,
+`endif
     output wire stop_admission_o,
     input wire query_valid_i,
     input wire [15:0] query_token_i,
@@ -44,7 +48,28 @@ module tage_history_pipeline #(
     wire [125:0] history_indices;
     wire [143:0] history_tags;
     wire external_history_change=undo_count_i!=0 || append_count_i!=0;
-    wire invalidate=cancel_i || stop_admission_o || external_history_change;
+    wire history_stop, reset_selected, base_only, commit_append, commit_bit, commit_path;
+`ifdef TAGE_HISTORY_REFILL
+    tage_history_refill refill (
+        .clk_i(clk_i), .reset_i(reset_i), .due_i(history_stop),
+        .owners_empty_i(owners_empty_i && !pending),
+        .committed_valid_i(committed_history_valid_i), .committed_ready_o(committed_history_ready_o),
+        .reset_selected_o(reset_selected), .stop_admission_o(stop_admission_o), .base_only_o(base_only)
+    );
+    assign fallback_base_only_o=base_only;
+    assign commit_append=committed_history_valid_i && committed_history_ready_o;
+    assign commit_bit=committed_history_bit_i;
+    assign commit_path=committed_path_bit_i;
+`else
+    assign stop_admission_o=history_stop;
+    assign reset_selected=0;
+    assign base_only=0;
+    assign commit_append=0;
+    assign commit_bit=0;
+    assign commit_path=0;
+`endif
+    wire invalidate=cancel_i || stop_admission_o ||
+                    (base_only ? commit_append : external_history_change);
     assign query_ready_o=!reset_i && !pending && !invalidate;
     assign request_discarded_o=!reset_i && pending && invalidate;
     assign row_request_valid_o=!reset_i && pending && !invalidate;
@@ -68,7 +93,7 @@ module tage_history_pipeline #(
 
     tage_history_provider provider_select (
         .query_tag_i(row_request_tag_o), .row_tag_i(row_tag_i),
-        .row_counter_i(row_counter_i), .bank_enabled_i(bank_enabled_i),
+        .row_counter_i(row_counter_i), .bank_enabled_i(base_only ? 7'b0 : bank_enabled_i),
         .bimodal_prediction_i(bimodal_prediction_i), .prefer_longest_i(prefer_longest_i),
         .prediction_o(conditional_prediction_o), .hit_bank_o(), .alternate_bank_o(), .provider_o()
     );
@@ -78,15 +103,21 @@ module tage_history_pipeline #(
         .SECDED(SECDED),
         .TMR(TMR)
     ) history (
-        .clk_i(clk_i), .reset_i(reset_i),
-        .enable_i(external_history_change || row_response_accepted_o),
-        .undo_count_i(undo_count_i), .restore_owner_i(restore_owner_i),
-        .append_count_i(row_response_accepted_o ? 2'd1 : append_count_i),
-        .append_bits_i(row_response_accepted_o ? {2'b00,speculative_append_bit_o} : append_bits_i),
-        .append_path_bits_i(row_response_accepted_o ? {2'b00,pending_path_bit} : append_path_bits_i),
+        .clk_i(clk_i), .reset_i(reset_i || reset_selected),
+        .enable_i(base_only ? commit_append : (external_history_change || row_response_accepted_o)),
+        .undo_count_i(base_only ? 10'd0 : undo_count_i), .restore_owner_i(restore_owner_i),
+        .append_count_i(base_only ? {1'b0,commit_append} :
+                        row_response_accepted_o ? 2'd1 : append_count_i),
+        .append_bits_i(base_only ? {2'b00,commit_bit} :
+                       row_response_accepted_o ? {2'b00,speculative_append_bit_o} : append_bits_i),
+        .append_path_bits_i(base_only ? {2'b00,commit_path} :
+                            row_response_accepted_o ? {2'b00,pending_path_bit} : append_path_bits_i),
         .append_owner_i(row_response_accepted_o ? {18'b0,pending_owner} : append_owner_i),
+`ifdef TAGE_HISTORY_REFILL
+        .suppress_checkpoint_i(base_only),
+`endif
         .publish_i(1'b0), .owners_empty_i(owners_empty_i && !pending),
-        .stop_admission_o(stop_admission_o), .query_pc_i({32'b0,query_pc_i}),
+        .stop_admission_o(history_stop), .query_pc_i({32'b0,query_pc_i}),
         .query_prefix_i(4'b0), .query_index_o(history_indices), .query_tag_o(history_tags)
     );
 endmodule
