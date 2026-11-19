@@ -439,3 +439,30 @@ If the first common die fails the geometry gates, the next attempt
 uses measured placed area to size its floorplans. Common-clock
 selection requires extracted global setup and hold to pass across all
 five routes. The separate no-undo query report is diagnostic.
+
+## Connecting extracted timing to gem5
+
+`simulation.analysis.physical_clock` checks all five selected routed
+checkpoints, their synthesis parameters, their geometry reports,
+the applied SDC and CPPR setting, and the original extracted timing
+reports. It requires nonnegative combined setup and hold and the
+address-launch, provider and taken-target-valid setup checks. The
+result binds the common period to the staged two-cycle query and
+two-cycle lease service. It also records the assumed external row
+and target arrival times. This qualifies the history subsystem under
+those arrivals. CPU-wide implementation timing is outside this evidence.
+
+The confirmation runner supports a separate implemented-clock cohort
+after this gate. With a changed period it retains the frozen workload,
+event rate, law and seed pairing, gives the runs fresh IDs, reruns
+clean admission, and preserves the absolute-time source tape prefix.
+Its observation bounds are scaled in whole reference-grid intervals
+to retain at least the original cycle budget. If the extracted clock
+equals the controlled clock, a complete matching run ledger can be
+referenced by hash without repeating the simulations.
+
+The existing 14,900 ps Lease4096 and halt-only SECDED reports passed
+the single-arm evidence checks. The verifier rejected the halt reports
+as a substitute for the refill implementation. A dry run projected all
+990 candidate rows to the alternate period with unchanged seeds and
+rates. This did not select a physical clock for the new five-arm study.
