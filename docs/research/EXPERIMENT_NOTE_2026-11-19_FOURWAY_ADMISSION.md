@@ -665,3 +665,17 @@ setup report went to the raw ring write path. This first routed
 arm did not qualify at that period. The next period is being
 checked, and common clock selection still requires the other
 four implementations.
+
+The 14,900 ps extracted check for unprotected TAGE passed with
++620 ps setup and +19 ps hold slack at the same external arrivals.
+This qualifies the unprotected history subsystem at 67.11 MHz.
+The matched run will reuse this STA evidence only when it selects
+the same routed checkpoint and applied constraint set.
+
+The first routed TMR attempt occupied 228,084.246 µm² on the
+same die, or 71.838% utilization. Signal and power/ground
+connectivity passed. DRC found one Metal1 parallel-run spacing
+violation. The route is retained as a failed geometry attempt.
+A localized routing ECO is queued from a separate copy of its
+checkpoint. The repair must pass fresh DRC, connectivity, area
+and timing checks before entering the matched comparison.
