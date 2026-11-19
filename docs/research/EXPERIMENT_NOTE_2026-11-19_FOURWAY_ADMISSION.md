@@ -263,3 +263,25 @@ qualified shared clock. It saves matched fixed-window K0, K1, and
 K2 energy, observed response counts, and stopped edges. Energy
 measured after a halt describes the block during the observation
 window. Correct application completion is a separate CPU result.
+
+## Confirmation planning gate
+
+The sweep-design tool validates the entire declared pilot before
+producing a precision projection. Runtime and MPKI projections
+use only the seeds on which both compared arms completed correctly.
+A missing joint success or insufficient variability evidence
+leaves the projected width unavailable. The report also reads
+observed host time from terminal gem5 statistics and scopes the
+cost projection to the workloads and rates observed in the pilot.
+
+The tool can freeze an independent 8, 16, 32, or 64-seed grid after
+the precision targets and budget rationale have been recorded. The
+eight-seed setting reproduces all 990 rows of the proposed primary
+plan exactly. Expansion preserves those proposed seeds and uses
+disjoint ranges for further seeds, rates and fault laws. Both fault
+laws share a single declared clean control per workload and mode.
+No confirmatory budget has been selected from partial pilot data.
+
+SciPy 1.18.1 was installed in the project environment with the
+existing NumPy 2.5.5. The handoff's BCa helper generated a finite
+pointwise interval on a nondegenerate eight-pair test input.
