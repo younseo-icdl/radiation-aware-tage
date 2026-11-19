@@ -137,3 +137,30 @@ merging disabled. A netlist must retain 346 flops for each
 additional copy before it can enter P&R. Apply the same
 retention policy to all fresh mapped controls. TMR timing,
 cell area, and power remain to be measured.
+
+## Pilot launch
+
+The final native producer passed the source-overlay and pinned x87
+compatibility audit. Its finite checksum suite passed all 14 cases.
+Four additional native SHA-1 re-executions on this producer matched
+the older ordinary/rebuilding exit ticks and direction counters under
+the original clean and 2,000 events/s conditions. They remain outside
+the pilot. The checked producer is commit db8b866. The binary hash
+and source audit are recorded in the private run namespace.
+
+The pilot launched in `fourway-pilot-20261119-r1` with up to 16
+gem5 processes. It admits the faulted cells only after all 15 clean
+workload/method combinations validate. The planned budget is 195
+runs including those clean controls. The proposed confirmatory seeds
+were checked to be disjoint. Confirmatory precision and replicate
+counts still depend on the observed pilot. No rate result is inferred
+from a planned cell.
+
+The hardware flow now has separate ordinary and TMR mapping jobs.
+The matching Lease4096 and SECDED halt synthesis runs are queued with
+the same flop-retention policy. The audited TMR declaration is 10,328
+bits, including the common 9,636 bits and two 346-bit replica sets.
+The audit records declared RTL bits separately from mapped flops
+and placed area. The ECC+refill RTL needs committed-outcome ingress
+and an explicit fallback/re-entry controller before its cost can be
+measured.
