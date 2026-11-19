@@ -827,3 +827,26 @@ and ends at a raw-history SECDED check register. The other four
 arms passed at this period. The next shared-clock recheck is
 16,000 ps. No refill period or power is inferred from halt-only
 SECDED results.
+
+## Qualified common operating clock and selected layout bundle
+
+All five selected GPDK45 history blocks passed the extracted STA
+gate at 16,000 ps (62.5 MHz). Rechecked row and taken-target
+arrival bounds were 6,641 ps and 9,582 ps. The common contract
+keeps the two-cycle query and two-cycle lease service. Thus the
+nominal lease service is 32 ns at this clock, after its ownership
+drain. The drain remains workload- and state-dependent.
+
+| Protection | Setup slack (ps) | Hold slack (ps) |
+| --- | ---: | ---: |
+| Unprotected TAGE | +1,720 | +19 |
+| Lease4096 | +2,209 | +19 |
+| SECDED halt | +1,230 | +26 |
+| TMR | +2,019 | +2 |
+| SECDED refill | +467 | +1 |
+
+The selected common-clock ledger passed provenance validation.
+Its five routed netlist hashes matched the standalone raw
+Innovus exports. The local layout ZIP verified 15 images and
+three evidence files. Clean gated activity and power extraction
+have started at 62.5 MHz.
