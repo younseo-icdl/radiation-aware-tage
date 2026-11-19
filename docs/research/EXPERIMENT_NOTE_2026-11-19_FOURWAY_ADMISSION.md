@@ -850,3 +850,40 @@ Its five routed netlist hashes matched the standalone raw
 Innovus exports. The local layout ZIP verified 15 images and
 three evidence files. Clean gated activity and power extraction
 have started at 62.5 MHz.
+
+## Matched post-route power and energy
+
+Xcelium RTL and routed output sequences matched for each measurement.
+The power reports show 100% annotation of flip-flop outputs and nets.
+The clean measurements use the same 62.5 MHz input trace and the slow
+0.9 V view. Energy integrates the reported average power over the
+common measurement window of approximately 1.28 ms.
+
+| Protection | Placed cell area (µm²) | Clean total power (mW) | Clean window energy (µJ) |
+| --- | ---: | ---: | ---: |
+| Unprotected TAGE | 219,765.438 | 1.821245 | 2.331237 |
+| Lease4096 | 222,730.920 | 1.866221 | 2.388808 |
+| SECDED halt | 227,828.088 | 1.701208 | 2.177587 |
+| TMR | 228,084.246 | 1.784180 | 2.283793 |
+| SECDED refill | 233,604.468 | 1.739324 | 2.226376 |
+
+Lease4096 uses 1.35% more placed cell area than unprotected TAGE and
+2.24%, 2.35%, and 4.65% less than SECDED halt, TMR, and SECDED refill,
+respectively. At the common clock, Lease4096 has 979 ps more setup
+slack than SECDED halt and 1,742 ps more than SECDED refill. In the
+clean trace it draws 9.70% more total power than SECDED halt and 7.30%
+more than SECDED refill. Lease4096 has both higher internal power and
+higher net switching power than either SECDED block in this trace.
+
+The fixed-length K0, K1, and K2 fault scenarios record energy and
+accepted responses separately. In K2, Lease4096 consumes 0.311056 µJ
+with 649 accepted responses, SECDED halt consumes 0.097119 µJ with
+zero accepted responses and 5,201 stopped edges, and SECDED refill
+consumes 0.278111 µJ with 633 accepted responses. These energies apply
+to equal elapsed windows whose completed work differs. They do not
+estimate workload completion energy.
+
+The local `TAGE_FourWay_GPDK45_PPA_r2.zip` evidence bundle includes
+20 raw power reports, the selected route and STA reports, the activity
+tables, and the figure source. Both PNGs reproduced byte for byte from
+a fresh extraction. The CPU confirmation cohort continues independently.
