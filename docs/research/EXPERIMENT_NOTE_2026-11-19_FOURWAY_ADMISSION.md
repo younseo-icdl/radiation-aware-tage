@@ -466,3 +466,29 @@ the single-arm evidence checks. The verifier rejected the halt reports
 as a substitute for the refill implementation. A dry run projected all
 990 candidate rows to the alternate period with unchanged seeds and
 rates. This did not select a physical clock for the new five-arm study.
+
+## Lease interval follow-up
+
+The predeclared interval grid is disabled, 1,024, 2,048, 4,096,
+8,192 and 16,384 accepted raw appends. Quicksort and CRC32 were
+selected before their faulted pilot comparison was complete. They
+represent the two workloads named for the handoff's causal comparison.
+The follow-up uses clean controls and the confirmatory seeds at
+2,000 events/s under the primary SOURCE law. This limits the
+ablation to one nonzero rate while keeping all six required periods.
+
+The disabled and 4,096 arms refer to the corresponding frozen main
+results by provenance. The four new arms per cell use the exact same
+fault tape, checksum and timing producer. The eight-seed proposed
+grid gives 18 six-arm pairs with 36 references and 72 new runs.
+The actual count follows the frozen main design's seed budget.
+The interval runner requires the completed controlled cohort and
+new clean gates before starting faulted runs.
+
+`simulation.analysis.lease_intervals` verifies clean/faulted timing
+and input provenance and the six-way tape pairing. It reports
+completion counts and the joint-correct elapsed-time, cycle and
+direction MPKI deltas against disabled, along with each arm's
+degradation from its own clean baseline. Failures remain in the
+completion denominator. The grid passed a structural dry run. No
+interval outcome has been produced by the follow-up.
