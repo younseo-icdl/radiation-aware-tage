@@ -1,7 +1,7 @@
 from collections import Counter
 import unittest
 
-from simulation.analysis.sweep_design import METHODS, confirmatory_rows, pilot_cells, precision
+from simulation.analysis.sweep_design import METHODS, budget_coverage, confirmatory_rows, pilot_cells, precision
 
 PLAN = {
     'pilot': {'workloads':['qsort'], 'nonzero_rates_eps':[20], 'paired_seeds':4},
@@ -51,6 +51,15 @@ class SweepDesignTests(unittest.TestCase):
         rows[-1]['shared_tape_sha256']='different'
         with self.assertRaisesRegex(ValueError,'shared_tape'):
             pilot_cells(rows,PLAN['pilot'],LAW)
+
+    def test_budget_coverage_keeps_unestimable_endpoints_explicit(self):
+        cells,_=pilot_cells(sample_rows(),PLAN['pilot'],LAW)
+        guide=budget_coverage(precision(cells),(2.5,0.05),{'16':5})
+        self.assertEqual(guide['pilot_estimable_endpoints'],3)
+        self.assertEqual(guide['unavailable_from_pilot'],5)
+        self.assertEqual(guide['options']['8']['within_target'],0)
+        self.assertEqual(guide['options']['16']['overlap_host_hours'],5)
+        self.assertEqual(guide['smallest_budget_meeting_all_estimable_targets'],16)
 
     def test_expansion_preserves_existing_seed_namespace_without_overlap(self):
         small=list(confirmatory_rows(PLAN,LAW,8,202611290000,{11},True))

@@ -103,6 +103,34 @@ def precision(cells):
             for arm in COMPARATORS]
 
 
+def budget_coverage(projections, targets, host_hours=None):
+    """Count which pilot-estimable paired endpoints meet each precision target."""
+    criteria = dict(zip(('runtime_benefit_pp', 'mpki_difference'), targets))
+    ends = [(row, endpoint, target) for row in projections for endpoint, target in criteria.items()]
+    estimable = [(row, endpoint, target) for row, endpoint, target in ends
+                 if row['pilot_sample_deviation'][endpoint] is not None]
+    options = {}
+    for budget in BUDGETS:
+        label = str(budget)
+        exceeds, no_joint = [], []
+        for row, endpoint, target in estimable:
+            estimate = row['projected_normal_half_width'][label][endpoint]
+            item = dict(workload=row['workload'], rate_eps=row['rate_eps'],
+                        comparator=row['rebuild_comparator'], endpoint=endpoint)
+            if estimate is None:
+                no_joint.append(item)
+            elif estimate > target:
+                exceeds.append(dict(item, projected_half_width=estimate, target=target))
+        options[label] = dict(
+            within_target=len(estimable)-len(exceeds)-len(no_joint),
+            too_wide=exceeds, insufficient_projected_joint_success=no_joint,
+            overlap_host_hours=host_hours.get(label) if host_hours else None)
+    sufficient = next((budget for budget in BUDGETS
+                       if estimable and options[str(budget)]['within_target']==len(estimable)), None)
+    return dict(pilot_estimable_endpoints=len(estimable), unavailable_from_pilot=len(ends)-len(estimable),
+                smallest_budget_meeting_all_estimable_targets=sufficient, options=options)
+
+
 def host_cost(cells, run_root):
     per_cell=[]
     for (workload,rate), cell in sorted(cells.items()):
@@ -170,8 +198,10 @@ def main():
     args=parser.parse_args()
     try:
         targets=(args.runtime_target_pp,args.mpki_target)
-        if args.freeze_seeds and (not args.rationale or
-                any(value is None or not math.isfinite(value) or value<=0 for value in targets)):
+        endpoints_given=any(target is not None for target in targets)
+        if endpoints_given and any(target is None or not math.isfinite(target) or target<=0 for target in targets):
+            raise ValueError('provide both positive endpoint targets')
+        if args.freeze_seeds and (not args.rationale or not endpoints_given):
             raise ValueError('freeze requires positive endpoint targets and a decision rationale')
         plan=json.loads(args.plan.read_text())
         law=plan['primary_fault_law']['id']
@@ -179,6 +209,8 @@ def main():
             groups,pilot_seeds=pilot_cells(csv.DictReader(stream),plan['pilot'],law)
         projections=precision(groups)
         resource=host_cost(groups,args.run_root) if args.run_root else None
+        coverage=budget_coverage(projections,targets,resource['projected_primary_overlap_host_hours'] if resource
+                                 else None) if endpoints_given else None
         frozen=None
         if args.freeze_seeds:
             frozen=list(confirmatory_rows(plan,law,args.freeze_seeds,args.namespace,
@@ -187,7 +219,7 @@ def main():
         report=dict(pilot_sha256=hashlib.sha256(args.pilot.read_bytes()).hexdigest(),
                     plan_sha256=hashlib.sha256(args.plan.read_bytes()).hexdigest(),
                     pilot_seed_count=len(pilot_seeds), budgets=BUDGETS, projections=projections,
-                    host_cost=resource,
+                    host_cost=resource, budget_coverage=coverage,
                     interpretation='planning approximation using observed joint correctness and sample deviation; '
                                    'no confidence intervals, significance decisions or equality claims',
                     frozen_seed_count=args.freeze_seeds,frozen_grid_rows=len(frozen) if frozen else 0,

@@ -635,3 +635,17 @@ Quicksort, SHA-1, and CRC32. The proposed 30 clean confirmation
 cells therefore require 15 new runs for the three other workloads.
 A separate implemented-clock cohort with a different period still
 requires fresh clean observations.
+
+## Confirmatory precision and host budget
+
+The planning report now lists the paired endpoints that meet a
+proposed precision target at 8, 16, 32 and 64 seeds, alongside the
+projected host hours for the workload and rate cells actually
+observed by the pilot. It distinguishes wide estimates, low
+projected joint completion and endpoints with insufficient pilot
+variability evidence. A budget summary for planning targets of
+0.1 percentage point in paired runtime reduction and 0.05
+direction MPKI is queued behind the complete pilot. The suggested
+seed count applies only to estimable pilot endpoints. The jointly
+correct performance analysis, all-seed completion analysis and
+frozen run selection remain separate.
