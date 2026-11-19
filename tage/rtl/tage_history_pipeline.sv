@@ -5,7 +5,8 @@
 module tage_history_pipeline #(
     parameter integer LEASE_PERIOD = 0,
     parameter integer LEASE_SERVICE_CYCLES = 2,
-    parameter bit SECDED = 0
+    parameter bit SECDED = 0,
+    parameter bit TMR = 0
 ) (
     input wire clk_i, reset_i,
     input wire cancel_i, owners_empty_i,
@@ -74,7 +75,8 @@ module tage_history_pipeline #(
     tage_history_state #(
         .PUBLISH_BANK_MASK(LEASE_PERIOD==0 ? 7'h00 : 7'h7f),
         .LEASE_PERIOD(LEASE_PERIOD), .LEASE_SERVICE_CYCLES(LEASE_SERVICE_CYCLES),
-        .SECDED(SECDED)
+        .SECDED(SECDED),
+        .TMR(TMR)
     ) history (
         .clk_i(clk_i), .reset_i(reset_i),
         .enable_i(external_history_change || row_response_accepted_o),

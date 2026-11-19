@@ -9,6 +9,9 @@ proc run_state_synthesis {} {
     if {$preserve_hierarchy} {
         set_db auto_ungroup none
     }
+    if {$retain_equivalent_flops} {
+        set_db optimize_merge_flops false
+    }
     if {$pipeline} {
         # Functional enable feedback must not be inferred as a physical scan chain.
         set scan_cells {}
@@ -26,7 +29,9 @@ proc run_state_synthesis {} {
     }
     read_hdl -sv $rtl
     if {$pipeline} {
-        elaborate tage_history_pipeline -parameters [list $lease_period $lease_service_cycles $secded]
+        set parameters [list $lease_period $lease_service_cycles $secded]
+        if {$tmr} { lappend parameters 1 }
+        elaborate tage_history_pipeline -parameters $parameters
     } else {
         elaborate tage_history_state -parameters [list $direct_mask $publish_mask $lease_period $lease_service_cycles]
     }

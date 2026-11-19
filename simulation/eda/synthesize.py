@@ -64,6 +64,10 @@ def main():
     p.add_argument('--lease-service-cycles', type=int, default=2)
     p.add_argument('--secded', action='store_true',
                    help='use per-word SECDED on the staged history S* payload')
+    p.add_argument('--tmr', action='store_true',
+                   help='triplicate the staged history S* payload with majority repair')
+    p.add_argument('--retain-equivalent-flops', action='store_true',
+                   help='retain logically equivalent flops in all compared designs')
     p.add_argument('--preserve-hierarchy', action='store_true',
                    help='disable automatic ungrouping for registered history synthesis')
     p.add_argument('--cpus', type=int, default=4)
@@ -83,6 +87,10 @@ def main():
             raise ValueError('staged history uses recurrent hashes and full-bank publication when enabled')
         if a.secded and (a.block != 'pipeline' or a.lease_period):
             raise ValueError('SECDED applies to the staged pipeline without lease publication')
+        if a.tmr and (a.block != 'pipeline' or a.lease_period or a.secded or not a.retain_equivalent_flops):
+            raise ValueError('TMR requires a staged pipeline with equivalent-flop retention and no other scheme')
+        if a.retain_equivalent_flops and not registered:
+            raise ValueError('flop retention applies to registered history blocks')
         if a.preserve_hierarchy and not registered:
             raise ValueError('hierarchy override applies to registered history blocks')
         if registered:
@@ -91,6 +99,8 @@ def main():
             values['lease_service_cycles'] = a.lease_service_cycles
             values['pipeline'] = int(a.block == 'pipeline')
             values['secded'] = int(a.secded)
+            values['tmr'] = int(a.tmr)
+            values['retain_equivalent_flops'] = int(a.retain_equivalent_flops)
             values['preserve_hierarchy'] = int(a.preserve_hierarchy)
         if (a.block == 'provider' or a.block in ROW_BLOCKS) and a.direct_mask:
             raise ValueError('provider and row store boundaries have no direct bank mask')
@@ -146,10 +156,17 @@ def main():
     if valid and a.block in ('pipeline', 'btb-hit'):
         # Check the emitted netlist because these cells require actual scan
         # chain definitions in placement, even when used for functional feedback.
-        scan_cell = re.search(r'^\s+(?:SDFF|SEDFF|SMDFF)\w*\s', (out/'mapped.v').read_text(), re.MULTILINE)
+        netlist = (out/'mapped.v').read_text()
+        scan_cell = re.search(r'^\s+(?:SDFF|SEDFF|SMDFF)\w*\s', netlist, re.MULTILINE)
         if scan_cell:
             metadata['validation_failure'] = 'functional netlist contains a scan flop'
             valid = False
+        if a.tmr:
+            replicas = re.findall(r'^\s+\w*DFF\w*\s+\\?\S*replica_([ab])_reg\b', netlist, re.MULTILINE)
+            metadata['retained_tmr_replica_flops'] = {label: replicas.count(label) for label in 'ab'}
+            if metadata['retained_tmr_replica_flops'] != {'a': 346, 'b': 346}:
+                metadata['validation_failure'] = 'mapped TMR netlist lacks both complete replica register sets'
+                valid = False
     metadata.update(status='PASS' if valid else 'FAIL', returncode=result.returncode)
     (out/'PRODUCER.json').write_text(json.dumps(metadata, indent=2)+'\n')
     print(json.dumps({'output': str(out), 'status': metadata['status'], 'scope': metadata['scope']}))

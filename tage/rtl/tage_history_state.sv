@@ -8,7 +8,8 @@ module tage_history_state #(
     parameter logic [6:0] PUBLISH_BANK_MASK = 7'h00,
     parameter integer LEASE_PERIOD = 0,
     parameter integer LEASE_SERVICE_CYCLES = 2,
-    parameter bit SECDED = 0
+    parameter bit SECDED = 0,
+    parameter bit TMR = 0
 ) (
     input wire clk_i, reset_i, enable_i,
     input wire [9:0] undo_count_i,       // 0..512, youngest owners first
@@ -44,6 +45,7 @@ module tage_history_state #(
     wire [129:0] corrected_raw, raw_error;
     wire repair_raw;
     wire [9:0] raw_error_address;
+    wire [1023:0] tmr_raw_repairs;
     wire [22:0] due;
     wire [129:0] prefix_raw [0:3];
     wire [199:0] prefix_fold [0:3];
@@ -74,6 +76,38 @@ module tage_history_state #(
     assign stored_raw=old_align[10][129:0];
     assign retained_raw=new_align[10][129:0];
     assign before_raw=corrected_raw;
+    if(TMR) begin: tmr_raw
+        // The two extra copies cover the active ages. The common ring
+        // still retains older raw bits for speculative undo.
+        (* preserve = "true" *) logic [129:0] replica_a, replica_b;
+        wire [129:0] voted=(stored_raw & replica_a) | (stored_raw & replica_b) |
+                           (replica_a & replica_b);
+        wire [1023:0] repair_align [0:10];
+        assign repair_align[0]={{894{1'b0}},stored_raw^voted};
+        for(genvar stage=0;stage<10;stage=stage+1) begin: position_repairs
+            localparam integer STEP=1<<stage;
+            assign repair_align[stage+1]=head[stage] ?
+                {repair_align[stage][1023-STEP:0],repair_align[stage][1023:1024-STEP]} :
+                repair_align[stage];
+        end
+        assign tmr_raw_repairs=repair_align[10];
+        assign corrected_raw=voted;
+        assign undone_raw=undo_count_i==0 ? voted : retained_raw ^ ((stored_raw^voted)>>undo_count_i);
+        assign raw_error=0;
+        assign raw_error_address=0;
+        assign repair_raw=0;
+        assign due[21]=0;
+        assign protection_stop=0;
+        always @(posedge clk_i) begin
+            if(reset_i) begin replica_a<=0;replica_b<=0;end
+            else if(advance_state) begin
+                replica_a<=prefix_raw[append_count_i];
+                replica_b<=prefix_raw[append_count_i];
+            end else begin replica_a<=voted;replica_b<=voted;end
+        end
+    end else begin: no_tmr_raw
+        assign tmr_raw_repairs=0;
+    end
     if(SECDED) begin: ecc_raw
         logic [8:0] check;
         logic failed;
@@ -106,7 +140,7 @@ module tage_history_state #(
                 if(!protection_stop) check<=advance_state ? next_check : checked;
             end
         end
-    end else begin: no_ecc_raw
+    end else if(!TMR) begin: no_ecc_raw
         assign corrected_raw=stored_raw;
         assign raw_error=0;
         assign raw_error_address=0;
@@ -160,6 +194,20 @@ module tage_history_state #(
                 always @(posedge clk_i)
                     if(reset_i) check<=0;
                     else if(!protection_stop) check<=advance_state ? next_check : checked;
+            end else if(TMR) begin: tmr
+                (* preserve = "true" *) logic [W-1:0] replica_a, replica_b;
+                wire [W-1:0] stored=folds[F+:W];
+                wire [W-1:0] voted=(stored & replica_a) | (stored & replica_b) |
+                                     (replica_a & replica_b);
+                assign clean_folds[F+:W]=voted;
+                assign due[b*3+kind]=0;
+                always @(posedge clk_i) begin
+                    if(reset_i) begin replica_a<=0;replica_b<=0;end
+                    else if(advance_state) begin
+                        replica_a<=prefix_fold[append_count_i][F+:W];
+                        replica_b<=prefix_fold[append_count_i][F+:W];
+                    end else begin replica_a<=voted;replica_b<=voted;end
+                end
             end else begin: no_ecc
                 assign clean_folds[F+:W]=folds[F+:W];
                 assign due[b*3+kind]=0;
@@ -194,6 +242,18 @@ module tage_history_state #(
         always @(posedge clk_i)
             if(reset_i) check<=0;
             else if(!protection_stop) check<=advance_state ? next_check : checked;
+    end else if(TMR) begin: tmr_path
+        (* preserve = "true" *) logic [15:0] replica_a, replica_b;
+        wire [15:0] voted=(path & replica_a) | (path & replica_b) | (replica_a & replica_b);
+        assign clean_path=voted;
+        assign due[22]=0;
+        always @(posedge clk_i) begin
+            if(reset_i) begin replica_a<=0;replica_b<=0;end
+            else if(advance_state) begin
+                replica_a<=prefix_path[append_count_i];
+                replica_b<=prefix_path[append_count_i];
+            end else begin replica_a<=voted;replica_b<=voted;end
+        end
     end else begin: no_ecc_path
         assign clean_path=path;
         assign due[22]=0;
@@ -239,6 +299,7 @@ module tage_history_state #(
             if(reset_i) raw_mem[row]<=0;
             else if(|selected) raw_mem[row]<=|(selected & append_bits_i);
             else if(repair_raw && raw_error_address==row) raw_mem[row]<=~raw_mem[row];
+            else if(tmr_raw_repairs[row]) raw_mem[row]<=~raw_mem[row];
     end
     for(genvar row=0;row<512;row=row+1) begin: checkpoint_row
         wire [2:0] selected;
@@ -258,7 +319,7 @@ module tage_history_state #(
             head<=undone_head-append_count_i;
             folds<=prefix_fold[append_count_i];
             path<=prefix_path[append_count_i];
-        end else if(SECDED && !protection_stop) begin
+        end else if((SECDED || TMR) && !protection_stop) begin
             folds<=clean_folds;
             path<=clean_path;
         end

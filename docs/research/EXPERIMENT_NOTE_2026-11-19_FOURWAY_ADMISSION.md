@@ -105,3 +105,23 @@ Do not count speculative appends as committed refill progress.
    a timing-qualified CPU comparison. Keep clean and faulted
    power windows separate. Complete the footprint, interval
    and causal follow-ups before final figures and the handoff.
+
+## TMR hardware admission
+
+The staged history wrapper now has a TMR mode with the common
+1,024-bit raw ring plus two 130-bit active-raw copies. It also
+duplicates the 200 folded bits and 16 path bits twice. The
+majority signal is forwarded through undo, and source writeback
+maps any primary raw corrections back to their ring rows.
+Speculative path checkpoints, head, and query storage remain
+common. The two 346-bit redundant copies are active storage,
+before counting the rest of the block.
+
+Xcelium passed directed read, append/undo, cross-domain repair
+and wrong-majority writeback tests for TMR. The existing SECDED
+RTL regression also passed. Genus synthesis started from the
+same 13.850 ns staged history boundary with equivalent-flop
+merging disabled. A netlist must retain 346 flops for each
+additional copy before it can enter P&R. Apply the same
+retention policy to all fresh mapped controls. TMR timing,
+cell area, and power remain to be measured.
