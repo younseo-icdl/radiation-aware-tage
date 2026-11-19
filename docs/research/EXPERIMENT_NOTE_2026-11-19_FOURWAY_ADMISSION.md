@@ -553,3 +553,18 @@ K1 and K2 incidents produce distinct rows. A stopped block's incident
 energy remains an observation-window quantity. Application completion,
 performance and reliability come from the separate CPU measurements.
 The table producer is queued behind the routed power measurements.
+
+## Raw routed layout images
+
+The handoff capture restores each selected Innovus checkpoint in a
+fresh output directory. It exports three separate 2,600 × 2,600 PNGs
+with the native viewer, consisting of a full routed view, a
+placement-focused view and a 92 µm-square detail at the measured die
+center. It records the die and detail bounds, routed netlist hash,
+route producer hash and image hashes. The capture does not modify
+the source checkpoints.
+
+The existing halt-only SECDED route produced three distinct,
+nonblank PNGs as a capture regression. The new five-arm image export
+uses the selected matched routes only. The first matched Innovus
+producer, unprotected TAGE, has started on the common die.
