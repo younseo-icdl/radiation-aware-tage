@@ -69,6 +69,17 @@ NativeTAGEBase::NativeTAGEBase(const gem5::NativeTAGEBaseParams &p)
         if (!activity_) throw std::runtime_error("cannot open history activity trace");
         activity_ << "# capture_end_tick=" << activity_end_ << "\ntick,operation,owner,value,auxiliary\n";
     }
+    if (!p.fold_residue_file.empty()) {
+        residue_start_=p.fold_residue_start_tick;
+        residue_end_=p.fold_residue_end_tick;
+        if (residue_start_>=residue_end_ || history_protection_!="none" || effective_direct_mask())
+            throw std::invalid_argument("fold residue requires bounded recurrent unprotected or lease history");
+        residue_.open(p.fold_residue_file);
+        if (!residue_) throw std::runtime_error("cannot open fold residue trace");
+        residue_ << "tick,raw_appends,operation,active_raw_origin_labels";
+        for (unsigned bank=1; bank<=nHistoryTables; ++bank) residue_ << ",bank" << bank;
+        residue_ << '\n';
+    }
 }
 NativeTAGEBase::~NativeTAGEBase() {
     if (injection_.scheduled()) deschedule(injection_);
@@ -89,6 +100,22 @@ void NativeTAGEBase::historyActivity(const char *op, uint64_t id, uint64_t value
     if (!activityOpen()) return;
     activity_ << gem5::curTick()<<','<<op<<','<<id<<','<<value<<','<<auxiliary<<'\n';
     if (!activity_) throw std::runtime_error("history activity trace write failed");
+}
+void NativeTAGEBase::observeResidue(const char *operation, bool force) {
+    const auto tick=gem5::curTick();
+    if (!residue_.is_open() || frozen_ || tick<residue_start_ || tick>=residue_end_) return;
+    const auto canonical=canonical_own_folds(*this,words_,127);
+    std::array<unsigned, 7> counts{};
+    for (unsigned word=0; word<canonical.size(); ++word)
+        counts[word/3]+=__builtin_popcountll(read_history_word(word).limb[0]^canonical[word].limb[0]);
+    const auto origins=originLabels(history_cursor()).size();
+    if (!force && residue_observed_ && counts==residue_bits_ && origins==residue_origins_) return;
+    residue_ << tick << ',' << raw_writes << ',' << operation << ',' << origins;
+    for (auto count : counts) residue_ << ',' << count;
+    residue_ << '\n';
+    residue_bits_=counts;
+    residue_origins_=origins;
+    residue_observed_=true;
 }
 void NativeTAGEBase::activityRelease(const Base::BranchInfo *bi) {
     if (!activityOpen()) return;
@@ -252,6 +279,7 @@ void NativeTAGEBase::injectNext() {
     if (frozen_) return;
     while (next_fault_ < faults_.size() && faults_[next_fault_].tick == gem5::curTick()) {
         observeOrigins("before_injection", true);
+        observeResidue("before_injection",true);
         auto &fault = faults_[next_fault_];
         std::vector<size_t> ids, ordinary;
         std::vector<int> physical;
@@ -291,6 +319,7 @@ void NativeTAGEBase::injectNext() {
         }
         ++next_fault_; flips_ += ids.size();
         observeOrigins("after_injection", true);
+        observeResidue("after_injection",true);
     }
     if (next_fault_ < faults_.size()) schedule(injection_, faults_[next_fault_].tick);
 }
@@ -391,6 +420,7 @@ void NativeTAGEBase::updateGHist(gem5::ThreadID tid, uint64_t bits, uint8_t n) {
         if (conditional_context_) conditional_writes += n;
         ++source_epoch;
         observeOrigins("history_write");
+        observeResidue("append");
     }
 }
 void NativeTAGEBase::updateHistories(gem5::ThreadID tid, gem5::Addr pc, bool speculative,
@@ -440,6 +470,7 @@ void NativeTAGEBase::restoreHistState(gem5::ThreadID tid, Base::BranchInfo *bi) 
         noteHistoryChange();
     ++source_epoch;
     observeOrigins("restore");
+    if (modified) observeResidue("restore");
 }
 void NativeTAGEBase::updatePathAndGlobalHistory(gem5::ThreadID tid, int type, bool taken,
         gem5::Addr pc, gem5::Addr target, Base::BranchInfo *bi) {
@@ -547,6 +578,10 @@ void NativeTAGEBase::dumpResearch() {
     if (events_) events_.flush();
     if (origins_) origins_.flush();
     if(maintenance_) maintenance_.flush();
+    if (residue_.is_open()) {
+        residue_.flush();
+        if (!residue_) throw std::runtime_error("fold residue trace write failed");
+    }
     if(activity_.is_open()) {
         activity_.flush();
         if(!activity_) throw std::runtime_error("history activity flush failed");

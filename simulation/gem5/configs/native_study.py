@@ -24,6 +24,10 @@ def main():
                         help='Capture clean history operations before this absolute tick')
     parser.add_argument('--capture-staged-rows', action='store_true',
                         help='Capture the actual returned tagged/base rows and BPU target validity')
+    parser.add_argument('--fold-residue-start-tick', type=int, default=0,
+                        help='First tick of the bounded own-raw fold consistency observation')
+    parser.add_argument('--fold-residue-end-tick', type=int, default=0,
+                        help='Exclusive end tick of the bounded own-raw fold consistency observation')
     parser.add_argument('--direct', action='store_true', help='Direct own-history query folds')
     parser.add_argument('--direct-bank-mask', type=lambda s:int(s,0), default=0)
     parser.add_argument('--history-protection', choices=('none', 'ecc_halt', 'ecc_refill', 'tmr'), default='none')
@@ -77,9 +81,16 @@ def main():
         parser.error('committed refill requires native retirement admission')
     if args.capture_staged_rows and (not args.query_pipeline or not args.activity_end_tick):
         parser.error('returned-row capture requires bounded staged history activity')
+    start, end = args.fold_residue_start_tick, args.fold_residue_end_tick
+    if (start or end) and not (
+            0 <= start < end <= args.max_ticks and args.execute
+            and args.history_protection == 'none' and not (args.direct or args.direct_bank_mask)):
+        parser.error('fold residue capture requires a bounded executed recurrent unprotected or lease run')
     output = Path(m5.options.outdir).resolve()
     activity = dict(history_activity_file=str(output/'history_activity.csv'),
                     history_activity_end_tick=args.activity_end_tick) if args.activity_end_tick else {}
+    residue = dict(fold_residue_file=str(output/'fold_residue.csv'),
+                   fold_residue_start_tick=start, fold_residue_end_tick=end) if end else {}
     base = NativeTAGEBase(minHist=5, maxHist=130, takenOnlyHistory=False,
         history_protection=args.history_protection,
         direct_queries=args.direct,
@@ -90,7 +101,7 @@ def main():
         schedule_file=str(args.schedule.resolve()) if args.schedule else '',
         event_file=str(output/'events.csv'), summary_file=str(output/'native.json'),
         manifest_file=str(output/'logical_manifest.json'),
-        origin_file=str(output/'raw_origins.csv') if args.diagnostics else '', **activity)
+        origin_file=str(output/'raw_origins.csv') if args.diagnostics else '', **activity, **residue)
     issue_interval = dict(query_ii_cycles=args.query_ii_cycles) if args.query_ii_cycles else {}
     pipeline = dict(query_pipeline=True) if args.query_pipeline else {}
     training = dict(single_training_port=True) if args.single_training_port else {}
@@ -127,6 +138,7 @@ def main():
         **({'conditional_training_admissions_per_cycle': 1} if args.single_training_port else {}),
         'cpu_cycle_ticks': args.cycle_ticks, 'lease_period_raw_appends': args.lease_period,
         'lease_service_cycles': args.lease_service_cycles,
+        **({'fold_residue_start_tick': start, 'fold_residue_end_tick': end} if end else {}),
         'lease_service_scope': 'own raw; quiescent restore-owner drain; no physical stage-fit assertion',
         'post_exit_advance_ticks': 0,
         'native_branch_history_may_remain_at_architectural_exit': True,

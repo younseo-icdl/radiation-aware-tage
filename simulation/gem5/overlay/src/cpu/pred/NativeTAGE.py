@@ -21,6 +21,9 @@ class NativeTAGEBase(TAGEBase):
     lease_log_file = Param.String('', 'Actual autonomous lease start/publish event trace')
     history_activity_file = Param.String('', 'Optional ordered history operations for activity replay')
     history_activity_end_tick = Param.Tick(0, 'Exclusive end tick of the activity capture')
+    fold_residue_file = Param.String('', 'Bounded transitions of stored versus canonical own-history folds')
+    fold_residue_start_tick = Param.Tick(0, 'First tick of the fold residue window')
+    fold_residue_end_tick = Param.Tick(0, 'Exclusive end tick of the fold residue window')
     cxx_exports = [PyBindMethod('dumpResearch')]
 
 

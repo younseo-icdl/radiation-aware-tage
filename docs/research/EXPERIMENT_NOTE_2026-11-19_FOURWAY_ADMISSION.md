@@ -328,3 +328,28 @@ events. SHA-1 finished 1,575 cycles earlier despite 10,138 blocked fetch
 cycles, illustrating why subtracting the blocked count from completion
 cycles does not identify a residual causal effect. Faulted pairs and
 fold-residue lifetimes require separate evidence.
+
+## Bounded fold-residue diagnostic
+
+The diagnostic producer observes the stored-versus-canonical own-raw
+fold Hamming distance per bank. It samples both sides of each
+atomic injection and the state after each history append, history
+restore and lease publication inside a declared absolute-tick window.
+It records state transitions and injection and publication boundaries.
+The observer reads the current state and does not schedule callbacks.
+The reducer verifies applied injection coverage against the actual
+delivery log, uses the final state of each tick for wall-time
+durations, and marks episodes censored at the observation boundaries.
+
+The reducer separately reports time with fold inconsistency and no
+active tracked raw-origin labels. All distances are relative to each
+arm's own raw history. This diagnostic does not determine when a
+faulted run matches a clean trajectory after their branches diverge,
+or assign a multi-event residual to an individual fault.
+
+The diagnostic is isolated from the pilot configuration and binary.
+Its admission requires equal terminal tick, retirement, direction
+counts, output, and fault delivery with the observer enabled and
+disabled in both the unprotected and lease checksum runs, plus the
+bounded gem5 checksum regression. The diagnostic build and gates
+were queued before any workload residue outcome was measured.

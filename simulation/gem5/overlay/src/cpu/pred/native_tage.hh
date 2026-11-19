@@ -61,6 +61,11 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     std::ofstream maintenance_;
     std::ofstream activity_;
     gem5::Tick activity_end_=0;
+    std::ofstream residue_;
+    gem5::Tick residue_start_=0, residue_end_=0;
+    std::array<unsigned, 7> residue_bits_{};
+    size_t residue_origins_=0;
+    bool residue_observed_=false;
     std::unordered_map<const Base::BranchInfo *, uint64_t> activity_owners_;
     const Base::BranchInfo *activity_append_context_=nullptr;
     uint64_t activity_next_owner_=0;
@@ -84,6 +89,7 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     void writeManifest() const;
     bool activityOpen() const;
     void historyActivity(const char *op, uint64_t owner, uint64_t value, uint64_t auxiliary);
+    void observeResidue(const char *operation, bool force=false);
     void noteHistoryChange();
     void calculateIndicesAndTags(gem5::ThreadID, gem5::Addr, Base::BranchInfo *) override;
     void updatePathAndGlobalHistory(gem5::ThreadID, int, bool, gem5::Addr, gem5::Addr,
@@ -113,6 +119,7 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     void publishLeaseFolds() {
         publish_own_folds(*this,words_);
         historyActivity("publish",0,0,0);
+        observeResidue("publish",true);
     }
     void activityQuery(gem5::Addr pc) { historyActivity("query",0,pc,0); }
     void activityQueryStage(const char *operation, uint32_t token, gem5::Addr pc) {
