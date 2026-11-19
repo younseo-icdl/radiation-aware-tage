@@ -372,6 +372,9 @@ CPU::tick()
     assert(!switchedOut());
     assert(drainState() != DrainState::Drained);
 
+    if (!bac.seuHistoryReady())
+        return;
+
     ++baseStats.numCycles;
     updateCycleCounters(BaseCPU::CPU_STATE_ON);
 

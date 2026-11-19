@@ -26,6 +26,7 @@ def main():
                         help='Capture the actual returned tagged/base rows and BPU target validity')
     parser.add_argument('--direct', action='store_true', help='Direct own-history query folds')
     parser.add_argument('--direct-bank-mask', type=lambda s:int(s,0), default=0)
+    parser.add_argument('--history-protection', choices=('none', 'ecc_halt', 'tmr'), default='none')
     parser.add_argument('--lease-period', type=int, default=0,
                         help='Actual raw appends (including speculation/unconditional) per rebase')
     parser.add_argument('--lease-service-cycles', type=int, default=2,
@@ -69,12 +70,16 @@ def main():
         parser.error('staged hashing requires recurrent operands without legacy pacing or commit diagnostics')
     if args.single_training_port and not args.query_pipeline:
         parser.error('single-port training requires the registered query mode')
+    if args.history_protection != 'none' and (
+            not args.query_pipeline or args.lease_period or args.activity_end_tick):
+        parser.error('native protection requires the staged recurrent query path')
     if args.capture_staged_rows and (not args.query_pipeline or not args.activity_end_tick):
         parser.error('returned-row capture requires bounded staged history activity')
     output = Path(m5.options.outdir).resolve()
     activity = dict(history_activity_file=str(output/'history_activity.csv'),
                     history_activity_end_tick=args.activity_end_tick) if args.activity_end_tick else {}
     base = NativeTAGEBase(minHist=5, maxHist=130, takenOnlyHistory=False,
+        history_protection=args.history_protection,
         direct_queries=args.direct,
         direct_bank_mask=args.direct_bank_mask, lease_period=args.lease_period,
         lease_latency_ticks=args.lease_service_cycles*args.cycle_ticks,
@@ -105,9 +110,13 @@ def main():
     base.dumpResearch()  # Freeze at actual architectural exit, without helper advance.
     m5.stats.dump()
     success = event.getCause() == 'exiting with last active thread context' and event.getCode() == 0
+    detected_stop = (args.history_protection == 'ecc_halt' and
+                     event.getCause() == 'native history SECDED detected uncorrectable error')
     (output/'termination.json').write_text(json.dumps({
-        'status': 'PASS' if success else 'FAIL', 'program_exit_tick': m5.curTick(),
+        'status': 'PASS' if success else 'DETECTED_STOP' if detected_stop else 'FAIL',
+        'program_exit_tick': m5.curTick(),
         'exit_cause': event.getCause(), 'exit_code': event.getCode(),
+        'history_protection': args.history_protection,
         'finite_source_transport': 'NOT_INSTANTIATED',
         'conditional_query_admission_latency_cycles': args.query_latency,
         **({'conditional_query_hash_latch_cycles': 1, 'conditional_query_row_return_cycles': 1,
@@ -122,7 +131,7 @@ def main():
         'performance_scope': 'program completion, no observer/drain time added',
     }, indent=2)+'\n')
     print('Exit cause:', event.getCause(), 'code:', event.getCode(), 'tick:', m5.curTick())
-    if not success:
+    if not (success or detected_stop):
         raise RuntimeError('unexpected program termination')
     return root
 

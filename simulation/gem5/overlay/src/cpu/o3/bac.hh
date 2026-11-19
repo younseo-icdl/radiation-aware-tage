@@ -156,6 +156,7 @@ class BAC
     void startupStage();
 
     bool seuFrontendBlocked(ThreadID tid) { return bpu->seuFrontendBlocked(tid); }
+    bool seuHistoryReady() { return bpu->seuHistoryReady(); }
     bool seuPredictionReady(ThreadID tid, Addr pc, bool conditional) {
         return bpu->seuPredictionReady(tid, pc, conditional);
     }

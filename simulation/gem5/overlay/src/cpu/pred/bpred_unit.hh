@@ -127,6 +127,7 @@ class BPredUnit : public SimObject
     bool seuFrontendBlocked(ThreadID tid) {
         cPred->seuAuditInflight(predHist[tid].size());return cPred->seuFrontendBlocked(tid, predHist[tid].empty());
     }
+    bool seuHistoryReady() { return cPred->seuHistoryReady(); }
     bool seuPredictionReady(ThreadID tid, Addr pc, bool conditional) {
         cPred->seuAuditInflight(predHist[tid].size());return cPred->seuPredictionReady(tid, pc, conditional);
     }

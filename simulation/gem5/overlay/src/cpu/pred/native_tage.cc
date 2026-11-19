@@ -1,5 +1,6 @@
 #include "cpu/pred/native_tage.hh"
 #include "sim/cur_tick.hh"
+#include "sim/sim_exit.hh"
 #include <algorithm>
 #include <sstream>
 #include <stdexcept>
@@ -23,7 +24,8 @@ template <class Range> void list(std::ostream &out, const Range &values) {
 } // namespace
 
 NativeTAGEBase::NativeTAGEBase(const gem5::NativeTAGEBaseParams &p)
-    : DirectAccess<TageAccess>(p), schedule_path_(p.schedule_file), event_path_(p.event_file),
+    : DirectAccess<TageAccess>(p), history_protection_(p.history_protection),
+      schedule_path_(p.schedule_file), event_path_(p.event_file),
       summary_path_(p.summary_file), manifest_path_(p.manifest_file),
       injection_([this] { injectNext(); }, name()+".native_xor", false,
                  gem5::Event::CPU_Tick_Pri-2),
@@ -42,6 +44,11 @@ NativeTAGEBase::NativeTAGEBase(const gem5::NativeTAGEBaseParams &p)
     direct_bank_mask = p.direct_bank_mask;
     if(direct_bank_mask>127 || (lease.enabled() && effective_direct_mask()))
         throw std::invalid_argument("invalid mask or unadmitted combined lease/hybrid");
+    if (history_protection_ != "none" &&
+        ((history_protection_ != "ecc_halt" && history_protection_ != "tmr") ||
+         lease.enabled() || effective_direct_mask() || !p.origin_file.empty() ||
+         !p.history_activity_file.empty() || !speculativeHistUpdate))
+        throw std::invalid_argument("native protection requires recurrent speculative history");
     if(!p.lease_log_file.empty()) {
         maintenance_.open(p.lease_log_file);
         if(!maintenance_) throw std::runtime_error("cannot open lease event trace");
@@ -140,6 +147,18 @@ void NativeTAGEBase::init() {
     Base::init();
     sites_ = sites();
     words_ = history_words();
+    if (history_protection_ != "none") {
+        auto scheme = history_protection_ == "ecc_halt" ? Scheme::ECC : Scheme::TMR;
+        protection_ = std::make_unique<HistoryController>(*this, scheme);
+        for (const auto &site : protection_->additional_sites()) {
+            if (site.structure == "secded_check") {
+                protection_sites_.emplace("C"+std::to_string(site.word)+":"+std::to_string(site.bit), site.id);
+            } else if (site.structure == "replica") {
+                protection_sites_.emplace("T"+std::to_string(site.replica)+":"+
+                    std::to_string(site.word)+":"+std::to_string(site.bit), site.id);
+            }
+        }
+    }
     loadFaults();
     if (!event_path_.empty()) {
         events_.open(event_path_);
@@ -200,10 +219,18 @@ size_t NativeTAGEBase::resolve(const std::string &mark) const {
     auto checked=[&](size_t id) {
         if(id>=sites_.size()) {
             if(id-sites_.size()>=lease.age_bits()) throw std::out_of_range("logical site id");
+        } else if (protection_ && sites_[id].kind != 4 && sites_[id].kind != 5) {
+            throw std::invalid_argument("protected native path exposes active history only");
         } else if(sites_[id].kind==5 && uses_direct(sites_[id].bank))
             throw std::invalid_argument("direct bank has no consumed stored-fold target");
         return id;
     };
+    if (mark[0] == 'C' || mark[0] == 'T') {
+        auto site = protection_sites_.find(mark);
+        if (site == protection_sites_.end())
+            throw std::invalid_argument("unsupported native check or replica token");
+        return site->second;
+    }
     if(mark.rfind("L:AGE:",0)==0) return checked(sites_.size()+integer(mark.substr(6)));
     if (mark[0] == 'R') {
         auto age = integer(mark.substr(1));
@@ -229,13 +256,17 @@ void NativeTAGEBase::injectNext() {
         std::vector<int> physical;
         for (const auto &mark : fault.sites) {
             auto id = resolve(mark); ids.push_back(id);
-            if(id>=sites_.size()) continue;
+            if(id>=sites_.size()) {
+                if (protection_) ordinary.push_back(id);
+                continue;
+            }
             ordinary.push_back(id);
             const auto &site = sites_[id];
             if (site.kind == 4 && site.bank == 0)
                 physical.push_back(history_cursor()+site.row);
         }
         auto value=[&](size_t id) {
+            if (protection_) return unsigned(protection_->logical_bit(id));
             return id<sites_.size() ? ((payload(sites_[id])>>sites_[id].bit)&1u)
                  : ((lease.age()>>(id-sites_.size()))&1u);
         };
@@ -243,8 +274,13 @@ void NativeTAGEBase::injectNext() {
         for(auto id:ids) before.push_back(value(id));
         // All members were validated before any write; no callback/yield inside
         // the atomic group. No fold/code refresh is part of injection.
-        if(!ordinary.empty()) corrupt(ordinary);
-        for(auto id:ids) if(id>=sites_.size()) lease.xor_age(id-sites_.size());
+        if (protection_) {
+            protection_->corrupt(ordinary);
+            protection_dirty_ = true;
+        } else {
+            if(!ordinary.empty()) corrupt(ordinary);
+            for(auto id:ids) if(id>=sites_.size()) lease.xor_age(id-sites_.size());
+        }
         for(auto id:ids) after.push_back(value(id));
         for (int cell : physical) raw_origins_[cell].insert(++origin_id_);
         if (events_) {
@@ -256,6 +292,24 @@ void NativeTAGEBase::injectNext() {
         observeOrigins("after_injection", true);
     }
     if (next_fault_ < faults_.size()) schedule(injection_, faults_[next_fault_].tick);
+}
+bool NativeTAGEBase::protectionReady() {
+    if (protection_halted_)
+        return false;
+    // Legitimate writes leave an encoded/voted boundary. Only external XOR
+    // can invalidate it before the next CPU edge in this active-history model.
+    if (!protection_dirty_)
+        return true;
+    protection_dirty_ = false;
+    if (protection_->scheme == Scheme::ECC) {
+        if (protection_->check_ecc_halt()) {
+            protection_halted_ = true;
+            gem5::exitSimLoopNow("native history SECDED detected uncorrectable error", 0);
+        }
+    } else {
+        protection_->check();
+    }
+    return !protection_halted_;
 }
 std::set<uint64_t> NativeTAGEBase::originLabels(int head) const {
     std::set<uint64_t> result;
@@ -316,12 +370,15 @@ void NativeTAGEBase::updateHistories(gem5::ThreadID tid, gem5::Addr pc, bool spe
     conditional_context_ = bi->condBranch;
     if(activityOpen()) activity_append_context_=bi;
     Base::updateHistories(tid, pc, speculative, taken, target, inst, bi);
+    if (protection_ && speculative)
+        protection_->after_speculative_history_write();
     activity_append_context_=nullptr;
     conditional_context_ = previous;
     ++source_epoch;
     observeOrigins("history_callback");
 }
 void NativeTAGEBase::restoreHistState(gem5::ThreadID tid, Base::BranchInfo *bi) {
+    const bool modified = bi->modified;
     if(gem5::curTick()!=restore_tick_) {restore_tick_=gem5::curTick();restores_this_tick_=0;}
     if(bi->modified) restores_this_tick_+=bi->nGhist;
     maximum_raw_restores_per_tick=std::max(maximum_raw_restores_per_tick,restores_this_tick_);
@@ -331,6 +388,8 @@ void NativeTAGEBase::restoreHistState(gem5::ThreadID tid, Base::BranchInfo *bi) 
         historyActivity("undo",prior->second,bi->nGhist,0);
     }
     Base::restoreHistState(tid, bi);
+    if (protection_ && modified)
+        protection_->after_speculative_history_write();
     if (bi->modified)
         noteHistoryChange();
     ++source_epoch;
@@ -364,7 +423,8 @@ void NativeTAGEBase::writeManifest() const {
     unsigned direct_mask=effective_direct_mask();
     unsigned dead_fold_bits=0;
     for(unsigned w=0;w<21;++w) if(uses_direct(w/3+1)) dead_fold_bits+=words_[w].width;
-    out << "{\"method\":\"" << (direct_mask ? "direct_or_hybrid_query_TAGE" : "ordinary_recurrent_TAGE")
+    out << "{\"method\":\"" << (protection_ ? history_protection_ :
+                                    direct_mask ? "direct_or_hybrid_query_TAGE" : "ordinary_recurrent_TAGE")
         << "\",\"direct_bank_mask\":" << direct_mask
         << ",\"consumed_stored_folds\":" << (direct_mask==127 ? "false" : "true")
         << ",\"fault_coordinate\":\"ticks\","
@@ -373,7 +433,8 @@ void NativeTAGEBase::writeManifest() const {
         "\"excluded\":[\"head\",\"pending/checkpoint fields\",\"chooser/RNG\",\"observer storage\"],"
         "\"logical_sites_including_dead_software_folds\":" << sites_.size()+lease.age_bits()
         << ",\"logical_sites\":" << sites_.size()+lease.age_bits()
-        << ",\"enumerated_active_fault_bits\":" << sites_.size()-dead_fold_bits+lease.age_bits()
+        << ",\"enumerated_active_fault_bits\":" << (protection_ ? selected+protection_sites_.size() :
+                                                     sites_.size()-dead_fold_bits+lease.age_bits())
         << ",\"lease_age_sites_start\":" << sites_.size()
         << ",\"lease_age_bits\":" << lease.age_bits()
         << ",\"lease_control_coverage\":\"age exposed; busy/timer not exposed; not WHOLE coverage\""
@@ -387,6 +448,17 @@ void NativeTAGEBase::writeManifest() const {
             << ",\"site_ids\":[";
         for (size_t i = 0; i < words_[w].sites.size(); ++i) { if (i) out << ','; out << words_[w].sites[i]; }
         out << "]}";
+    }
+    out << "],\"protection_sites\":[";
+    if (protection_) {
+        unsigned count = 0;
+        for (const auto &site : protection_->additional_sites()) {
+            if (site.structure != "secded_check" && site.structure != "replica") continue;
+            if (count++) out << ',';
+            out << "{\"id\":" << site.id << ",\"structure\":\"" << site.structure
+                << "\",\"word\":" << site.word << ",\"bit\":" << site.bit
+                << ",\"replica\":" << site.replica << '}';
+        }
     }
     out << "],\"regions\":[";
     unsigned region=0;
@@ -456,6 +528,16 @@ void NativeTAGEBase::dumpResearch() {
         << ",\"lease_age_at_exit\":" << lease.age()
         << ",\"lease_busy_at_exit\":" << (lease.busy() ? "true" : "false")
         << ",\"physical_stage_qualification\":\"NOT_ESTABLISHED_BY_THIS_CPU_MODEL\"";
+    if (protection_) {
+        const auto &p = protection_->stats;
+        out << ",\"native_history_protection\":\"" << history_protection_
+            << "\",\"history_protection_halted\":" << (protection_halted_ ? "true" : "false")
+            << ",\"protection_word_checks\":" << p.word_reads
+            << ",\"protection_corrected_words\":" << p.corrected
+            << ",\"protection_due_words\":" << p.due
+            << ",\"protection_repair_words\":" << p.repair_words
+            << ",\"protection_replica_repairs\":" << p.replica_repairs;
+    }
     if (owner) out << ",\"lookups\":" << owner->lookups << ",\"committed_updates\":" << owner->commit_updates
         << ",\"prediction_output_forced_base\":" << (owner->force_base ? "true" : "false")
         << ",\"additional_query_latency_cycles\":" << owner->queryLatency()
@@ -563,6 +645,8 @@ void NativeTAGE::cancelPendingQuery() {
     clearPendingQuery();
 }
 void NativeTAGE::latchQueryHash() {
+    if (!core.protectionReady())
+        return;
     if (!pending_ || pending_hash_captured_)
         throw std::logic_error("hash latch has no matching request");
     if (pending_generation_ != core.historyGeneration() || core.lease.due())

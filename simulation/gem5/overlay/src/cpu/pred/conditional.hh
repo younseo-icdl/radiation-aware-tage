@@ -83,6 +83,7 @@ class ConditionalPredictor : public SimObject
     virtual void seuAuditInflight(unsigned) {}
     virtual bool seuCanRetire(ThreadID, void*) { return true; }
     virtual void seuReserveRetire(ThreadID, void*) {}
+    virtual bool seuHistoryReady() { return true; }
     virtual bool seuFrontendBlocked(ThreadID, bool) { return false; }
     virtual bool seuPredictionReady(ThreadID, Addr, bool) { return true; }
     // Zero means no accepted request. A transport may retain a finite token

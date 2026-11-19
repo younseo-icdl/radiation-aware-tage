@@ -6,9 +6,11 @@
 #include "tage/predictor/tage_access.hpp"
 #include "tage/history/direct_access.hpp"
 #include "tage/history/lease.hpp"
+#include "tage/protection/history_controller.hpp"
 #include <array>
 #include <fstream>
 #include <map>
+#include <memory>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
@@ -34,8 +36,7 @@ struct NativeSample {
     uint64_t bpu_predicted_target=0;
 };
 
-// No finite-source controller, codec, periodic service clock, or extra
-// retirement/lookup delay is inserted into the ordinary TAGE path.
+// Native O3 path without the finite-source transport.
 class NativeTAGEBase : public DirectAccess<TageAccess> {
     struct Fault {
         gem5::Tick tick;
@@ -44,6 +45,11 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     std::vector<Fault> faults_;
     std::vector<Site> sites_;
     std::vector<HistoryWord> words_;
+    const std::string history_protection_;
+    std::unique_ptr<HistoryController> protection_;
+    std::unordered_map<std::string, size_t> protection_sites_;
+    bool protection_dirty_ = false;
+    bool protection_halted_ = false;
     std::string schedule_path_, event_path_, summary_path_, manifest_path_;
     std::ofstream events_, origins_;
     std::ofstream maintenance_;
@@ -85,6 +91,7 @@ class NativeTAGEBase : public DirectAccess<TageAccess> {
     void init() override;
     void startup() override;
     void dumpResearch();
+    bool protectionReady();
     void armLeasePublication();
     void publishLeaseFolds() {
         publish_own_folds(*this,words_);
@@ -198,6 +205,7 @@ class NativeTAGE : public gem5::branch_prediction::TAGE {
     void branchPlaceholder(gem5::ThreadID,gem5::Addr,bool,void *&) override;
     void seuAuditInflight(unsigned) override;
     bool seuFrontendBlocked(gem5::ThreadID, bool) override;
+    bool seuHistoryReady() override { return core.protectionReady(); }
     void completeLease();
     void rebaseFrames(int offset);
     unsigned restorableOriginCount() const;
