@@ -9,6 +9,7 @@ NOMINAL_HZ = 2000000000
 TICKS_PER_SECOND = 1000000000000
 REFERENCE_CYCLE_TICKS = 500
 SOURCE_EVENTS_PER_SECOND = 2000
+SOURCE_LAWS = ('k1_k2_205_9', 'k1_only')
 CROSS_SECTION_CM2 = 1.05e-14
 FLUX_PER_CM2_HOUR = 20
 WHOLE_SCALES = (10**15, 10**16)
@@ -47,10 +48,14 @@ def arrival_ticks(seed, horizon_ticks, events_per_second, max_events=1000000):
         count += 1
 
 
-def source_events(seed, horizon_ticks, max_events=1000000):
+def source_events(seed, horizon_ticks, max_events=1000000, *,
+                  rate=SOURCE_EVENTS_PER_SECOND, law=SOURCE_LAWS[0]):
+    """Emit logical raw130 events on the fixed reference grid."""
+    if law not in SOURCE_LAWS:
+        raise ValueError('unknown SOURCE multiplicity law')
     marks, locations = rng(seed, 'K'), rng(seed, 'location')
-    for tick in arrival_ticks(seed, horizon_ticks, SOURCE_EVENTS_PER_SECOND, max_events):
-        k = 1 if int(marks.integers(214)) < 205 else 2
+    for tick in arrival_ticks(seed, horizon_ticks, rate, max_events):
+        k = 1 if law == 'k1_only' or int(marks.integers(214)) < 205 else 2
         start = int(locations.integers(130-k+1))
         yield tick, tuple('R{}'.format(start+i) for i in range(k))
 
@@ -72,15 +77,18 @@ def whole_events(seed, horizon_ticks, semantic_union, scale, max_events=1000000)
         yield tick, keys[int(locations.integers(len(keys)))]
 
 
-def schedule(environment, seed, horizon_ticks, catalog=None, max_events=1000000):
+def schedule(environment, seed, horizon_ticks, catalog=None, max_events=1000000, *,
+             source_rate=SOURCE_EVENTS_PER_SECOND, source_law=SOURCE_LAWS[0]):
     if environment == 'SOURCE':
         if catalog is not None:
             raise ValueError('SOURCE raw130 does not accept a WHOLE catalog')
-        rows = list(source_events(seed, horizon_ticks, max_events))
-        rate = SOURCE_EVENTS_PER_SECOND
+        rows = list(source_events(seed, horizon_ticks, max_events, rate=source_rate, law=source_law))
+        rate = source_rate
         union_size = applicable_size = 130
         no_site = 0
     else:
+        if (source_rate, source_law) != (SOURCE_EVENTS_PER_SECOND, SOURCE_LAWS[0]):
+            raise ValueError('SOURCE rate and multiplicity overrides require SOURCE')
         if environment not in ('WHOLE_1e15', 'WHOLE_1e16') or not isinstance(catalog, dict):
             raise ValueError('WHOLE requires a semantic-key to token/null catalog')
         if any(token is not None and (not isinstance(token, str) or not token or
@@ -108,7 +116,7 @@ def schedule(environment, seed, horizon_ticks, catalog=None, max_events=1000000)
             'physical_rate_calibration': 'ASSUMED_FIXED_COMPARISON_NOT_NEW_MEASUREMENT',
             'historical_tape_identity': 'NOT_ASSERTED; current namespace-v2 implementation is explicit',
             'source_multiplicity': 'integer K<205 of 214 => K1, else K2; no expected-K rate division'
-                                   if environment == 'SOURCE' else 'K1',
+                                   if environment == 'SOURCE' and source_law == SOURCE_LAWS[0] else 'K1',
             'equal_tick_records': 'distinct events, not merged into MCU',
             'rng': {r: descriptor(seed, r) for r in ('time', 'K', 'location')}}
     return rows, info
@@ -122,19 +130,27 @@ def main():
     p.add_argument('--catalog', type=Path, help='JSON semantic bit -> native token/null; same frozen union for all designs')
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--max-events', type=int, default=1000000)
+    p.add_argument('--source-rate', type=int, default=SOURCE_EVENTS_PER_SECOND)
+    p.add_argument('--source-law', choices=SOURCE_LAWS, default=SOURCE_LAWS[0])
     a = p.parse_args()
     sidecar = a.output.with_name(a.output.name+'.json')
     if a.output.exists() or sidecar.exists():
         p.error('schedule/descriptor exists; use a fresh output path')
     try:
         catalog = json.loads(a.catalog.read_text()) if a.catalog else None
-        rows, info = schedule(a.environment, a.seed, a.horizon_ticks, catalog, a.max_events)
+        rows, info = schedule(a.environment, a.seed, a.horizon_ticks, catalog, a.max_events,
+                              source_rate=a.source_rate, source_law=a.source_law)
     except (ValueError, OSError) as error:
         p.error(str(error))
     a.output.parent.mkdir(parents=True, exist_ok=True)
     with a.output.open('x') as f:
-        f.write('# time_unit=ticks environment={} seed={} horizon={} rng_namespace=2\n'.format(
-            a.environment, a.seed, a.horizon_ticks))
+        header = '# time_unit=ticks environment={} seed={} horizon={} rng_namespace=2'.format(
+            a.environment, a.seed, a.horizon_ticks)
+        if a.source_rate != SOURCE_EVENTS_PER_SECOND:
+            header += f' rate={a.source_rate}'
+        if a.source_law != SOURCE_LAWS[0]:
+            header += f' law={a.source_law}'
+        f.write(header+'\n')
         for tick, sites in rows:
             f.write('{} {}\n'.format(tick, ';'.join(sites)))
     with sidecar.open('x') as f:

@@ -35,6 +35,18 @@ class FixedEnvironmentTests(unittest.TestCase):
         self.assertGreater(len(ticks), len(set(ticks)))
         self.assertEqual(ticks, sorted(ticks))
 
+    def test_source_rate_and_multiplicity_variants(self):
+        seed = 202613180101
+        horizon = 700069967000
+        mixture = list(source_events(seed, horizon, rate=200))
+        single = list(source_events(seed, horizon, rate=200, law='k1_only'))
+        self.assertEqual(mixture[0], (2157197000, ('R118',)))
+        self.assertEqual([tick for tick, _ in mixture], [tick for tick, _ in single])
+        self.assertTrue(any(len(sites) == 2 for _, sites in mixture))
+        self.assertTrue(all(len(sites) == 1 for _, sites in single))
+        with self.assertRaises(ValueError):
+            list(source_events(seed, horizon, law='unknown'))
+
     def test_longer_tape_keeps_exact_prefix_and_non_grid_horizon(self):
         short_horizon=TICKS_PER_SECOND+173
         short=list(source_events(548,short_horizon))

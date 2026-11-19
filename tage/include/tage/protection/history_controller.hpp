@@ -39,6 +39,21 @@ class HistoryController {
     std::vector<Word> replica1, replica2;
     std::vector<Site> base_sites;
     std::vector<StoredSite> extra_sites;
+    WordSecded::Result read_ecc(unsigned index, const Word &data) {
+        ++stats.sidecar_reads;
+        auto decoded = codecs[index].decode(data, checks[index]);
+        stats.detected += decoded.due || decoded.corrected;
+        stats.due += decoded.due;
+        return decoded;
+    }
+    void repair_ecc(unsigned index, const WordSecded::Result &decoded) {
+        core.write_history_word(index, decoded.payload);
+        checks[index] = decoded.check;
+        ++stats.corrected;
+        ++stats.repair_words;
+        ++stats.word_writes;
+        ++stats.sidecar_writes;
+    }
     void reset_refill() {
         core.reset_selected_history();
         refill = core.history_depth();
@@ -119,6 +134,27 @@ class HistoryController {
                 replica1[i] = replica2[i] = data;
         }
     }
+    // Qualify all 23 words before exposing corrected data or writing it back.
+    // On DUE, the caller must stop the operation and latch the terminal outcome.
+    bool check_ecc_halt() {
+        if (scheme != Scheme::ECC || fallback())
+            throw std::logic_error("halt check requires SECDED without refill");
+        ++stats.checks;
+        bool due = false;
+        std::vector<std::pair<unsigned, WordSecded::Result>> repairs;
+        for (unsigned i = 0; i < words.size(); ++i) {
+            ++stats.word_reads;
+            auto decoded = read_ecc(i, core.read_history_word(i));
+            due |= decoded.due;
+            if (decoded.corrected)
+                repairs.emplace_back(i, decoded);
+        }
+        if (!due) {
+            for (const auto &[index, decoded] : repairs)
+                repair_ecc(index, decoded);
+        }
+        return due;
+    }
     // Same atomic read/check/correct/fallback policy for lookup and history RMW.
     // No event ID, injected K, or golden state is visible to this detector.
     bool check() {
@@ -129,28 +165,17 @@ class HistoryController {
         for (unsigned i = 0; i < words.size(); ++i) {
             auto data = core.read_history_word(i);
             stats.word_reads += scheme == Scheme::TMR ? 3 : 1;
-            if (scheme == Scheme::ED || scheme == Scheme::ECC)
-                ++stats.sidecar_reads;
             if (scheme == Scheme::ED) {
+                ++stats.sidecar_reads;
                 if (data.parity() != bool(checks[i])) {
                     ++stats.detected;
                     bad = true;
                 }
             } else if (scheme == Scheme::ECC) {
-                auto result = codecs[i].decode(data, checks[i]);
-                if (result.due) {
-                    ++stats.detected;
-                    ++stats.due;
-                    bad = true;
-                } else if (result.corrected) {
-                    ++stats.detected;
-                    ++stats.corrected;
-                    ++stats.repair_words;
-                    core.write_history_word(i, result.payload);
-                    checks[i] = result.check;
-                    ++stats.word_writes;
-                    ++stats.sidecar_writes;
-                }
+                auto result = read_ecc(i, data);
+                bad |= result.due;
+                if (result.corrected)
+                    repair_ecc(i, result);
             } else {
                 auto voted = majority(data, replica1[i], replica2[i]);
                 ++stats.voted_words;

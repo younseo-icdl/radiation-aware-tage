@@ -61,6 +61,22 @@ int main() {
             }
         }
         require(payload == 346 && check_bits == 121, "scope payload/check counts");
+        ProtectedAdapter halt(Scheme::ECC);
+        const auto fold = words.front().sites.front();
+        const auto &raw_word = words.at(21);
+        const auto raw0 = raw_word.sites.at(0);
+        const auto raw1 = raw_word.sites.at(1);
+        require(!halt.protection.check_ecc_halt(), "clean state stopped");
+        halt.protection.corrupt({fold, raw0});
+        require(!halt.protection.check_ecc_halt(), "independent single errors stopped");
+        require(!halt.protection.logical_bit(fold) && !halt.protection.logical_bit(raw0) &&
+                    halt.protection.stats.corrected == 2, "halt guard did not write back both repairs");
+        halt.protection.corrupt({fold, raw0, raw1});
+        require(halt.protection.check_ecc_halt(), "raw double did not request halt");
+        require(halt.protection.logical_bit(fold) && halt.protection.logical_bit(raw0) &&
+                    halt.protection.logical_bit(raw1) && halt.protection.stats.corrected == 2 &&
+                    halt.protection.stats.due == 1 && !halt.protection.refill,
+                "DUE published correction or entered fallback");
         // Hamming positions 1,2,3: odd zero-syndrome triple is miscorrected as
         // overall-parity error. A fourth flip in overall parity is undetected.
         WordSecded code(9);

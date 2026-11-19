@@ -1,7 +1,8 @@
 """Disjoint experiment/trial/role/entity seeds; intentionally reuse only matched owners."""
 import numpy as np
 
-ROLE = {'time': 1, 'K': 2, 'location': 3, 'catalog': 2, 'geometry': 3, 'dispersed': 4}
+ROLE = {'time': 1, 'K': 2, 'location': 3, 'catalog': 2, 'geometry': 3, 'dispersed': 4,
+        'replica': 5}
 
 
 def entropy(master, role, group=0, occurrence=0):
