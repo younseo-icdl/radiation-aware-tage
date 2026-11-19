@@ -421,3 +421,21 @@ previous Xcelium top and options with `+storage_tape=ARM_TAPE` and
 for TMR set `LEASE_PERIOD=0` and `TMR=1`. Use `+storage_catalog=CATALOG`
 for the independent binding check. Audit each transcript with
 `python -m simulation.eda.rtl_storage_tape audit ARM_TAPE CONSOLE_LOG`.
+
+## Matched physical scheduling
+
+The halt-only SECDED synthesis started in the second 16-CPU EDA
+slot while Lease4096 synthesis was still running. The early Innovus
+queue takes the Lease slot when that synthesis finishes. It attempts
+unprotected, TMR, and Lease4096 on the same core dimensions and
+constraints as the previous qualified Lease/SECDED common die,
+while the halt and refill synthesis queue uses the other slot.
+
+The early routes are eligible for the first matched physical attempt
+only after the producer, mapped-netlist identity, site contract,
+connectivity, DRC, and 65–75% final utilization checks pass. This
+allows them to be reused with halt and refill routes on the same die.
+If the first common die fails the geometry gates, the next attempt
+uses measured placed area to size its floorplans. Common-clock
+selection requires extracted global setup and hold to pass across all
+five routes. The separate no-undo query report is diagnostic.
