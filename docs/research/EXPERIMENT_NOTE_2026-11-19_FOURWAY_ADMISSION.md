@@ -515,3 +515,23 @@ example demonstrates unequal terminal exposure and recovery
 behavior under a shared tape. The study compares correct
 completion rates and assigns no completion time to a detected
 stop.
+
+## Figure verification
+
+The private handoff figure producer reads the native ledger through
+the handoff analysis validator. The three-panel plot uses committed
+direction accuracy, direction MPKI, and verified completion time with
+a secondary cycle scale at a common clock. It shows per-seed points,
+means and each arm's own clean level. A separate completion figure
+keeps detected stops in the denominator and uses pointwise Wilson
+intervals. The direct Lease4096 comparisons use jointly correct
+seeds for the time and MPKI deltas, showing pointwise BCa intervals
+only when estimable. Overlapping series use distinct marker shapes
+and line styles at the original coordinates.
+
+The initial render used the CRC32 pairs present in the pilot snapshot
+and carries a partial-pilot label. Unmeasured cells produced no
+points. The complete-render path rejected the partial snapshot against
+the full declared plan. Figure exports include PNG, SVG, seed CSV,
+paired effects CSV and input/plan hashes. A worker is queued to render
+the complete pilot after its final run ledger appears.
