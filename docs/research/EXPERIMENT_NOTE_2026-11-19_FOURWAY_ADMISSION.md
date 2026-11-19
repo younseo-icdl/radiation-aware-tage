@@ -535,3 +535,21 @@ points. The complete-render path rejected the partial snapshot against
 the full declared plan. Figure exports include PNG, SVG, seed CSV,
 paired effects CSV and input/plan hashes. A worker is queued to render
 the complete pilot after its final run ledger appears.
+
+## Physical comparison table admission
+
+The power verifier checks the selected route, retimed SDC, reported
+VCD window, slow power view, 0.9 V supply and 100% flop-output and net
+activity annotation. It reads internal, switching, leakage and total
+power in mW, checks their sum, and derives observation energy from
+the reported interval. The existing reset-qualified Lease4096 and
+halt-only SECDED reports passed these checks as regression inputs.
+
+The matched table producer additionally binds each storage inventory
+to the selected route's synthesis netlist. It joins the qualified
+clock, placed cell area, state counts and power by the exact native
+method configuration ID. Long clean replay and the equal-window K0,
+K1 and K2 incidents produce distinct rows. A stopped block's incident
+energy remains an observation-window quantity. Application completion,
+performance and reliability come from the separate CPU measurements.
+The table producer is queued behind the routed power measurements.
