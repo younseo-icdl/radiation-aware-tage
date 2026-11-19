@@ -5,6 +5,7 @@ module history_pipeline_activity_tb;
     // A clean lease trace can drive both modes. Its maintenance gaps remain
     // idle input cycles for SECDED, keeping the electrical stimulus identical.
     parameter bit SECDED=0;
+    parameter bit TMR=0;
     reg clk_i=0, reset_i=1, cancel_i, owners_empty_i;
     reg [9:0] undo_count_i;
     reg [8:0] restore_owner_i;
@@ -27,7 +28,11 @@ module history_pipeline_activity_tb;
     wire query_valid_i=(query_token_i!=0);
     wire query_path_bit_i=query_pc_i[0];
     wire row_response_valid_i=(row_response_token_i!=0);
-    tage_history_pipeline #(.LEASE_PERIOD(LEASE_PERIOD),.SECDED(SECDED)) dut (.*);
+`ifdef TAGE_HISTORY_REFILL
+    wire committed_history_valid_i=0, committed_history_bit_i=0, committed_path_bit_i=0;
+    wire committed_history_ready_o, fallback_base_only_o;
+`endif
+    tage_history_pipeline #(.LEASE_PERIOD(LEASE_PERIOD),.SECDED(SECDED),.TMR(TMR)) dut (.*);
 
 `ifdef TAGE_ROUTED_MODULE
     wire routed_stop, routed_ready, routed_valid, routed_accepted, routed_discarded, routed_direction, routed_bit;
@@ -35,12 +40,19 @@ module history_pipeline_activity_tb;
     wire [31:0] routed_pc;
     wire [62:0] routed_index;
     wire [71:0] routed_tag;
+`ifdef TAGE_HISTORY_REFILL
+    wire routed_commit_ready, routed_fallback;
+`endif
     `TAGE_ROUTED_MODULE gate_dut (
         .stop_admission_o(routed_stop), .query_ready_o(routed_ready), .row_request_valid_o(routed_valid),
         .row_request_token_o(routed_token), .row_request_pc_o(routed_pc), .row_request_index_o(routed_index),
         .row_request_tag_o(routed_tag), .row_response_accepted_o(routed_accepted),
         .request_discarded_o(routed_discarded), .conditional_prediction_o(routed_direction),
-        .speculative_append_bit_o(routed_bit), .*
+        .speculative_append_bit_o(routed_bit),
+`ifdef TAGE_HISTORY_REFILL
+        .committed_history_ready_o(routed_commit_ready), .fallback_base_only_o(routed_fallback),
+`endif
+        .*
     );
 `endif
 
@@ -85,7 +97,7 @@ module history_pipeline_activity_tb;
                 taken_target_valid_i,expected_direction,check_rows,expected_index,expected_tag);
             if(status==27) begin
                 #(period/2);
-                if(dut.history.publish_now!==(expected_publish && !SECDED) ||
+                if(dut.history.publish_now!==(expected_publish && LEASE_PERIOD!=0) ||
                    row_response_accepted_o!==(row_response_token_i!=0))
                     $fatal(1,"response or publication mismatch at edge %0d",edge_count);
                 if(row_response_valid_i && conditional_prediction_o!==expected_direction)
@@ -99,6 +111,11 @@ module history_pipeline_activity_tb;
                 if({routed_stop,routed_ready,routed_valid,routed_accepted,routed_discarded} !==
                    {stop_admission_o,query_ready_o,row_request_valid_o,row_response_accepted_o,request_discarded_o})
                     $fatal(1,"routed control mismatch at edge %0d",edge_count);
+`ifdef TAGE_HISTORY_REFILL
+                if({routed_commit_ready,routed_fallback} !== {committed_history_ready_o,fallback_base_only_o} ||
+                   {committed_history_ready_o,fallback_base_only_o} !== 2'b00)
+                    $fatal(1,"unexpected recovery on clean input at edge %0d",edge_count);
+`endif
                 if(row_request_valid_o && {routed_token,routed_pc,routed_index,routed_tag} !==
                    {row_request_token_o,row_request_pc_o,row_request_index_o,row_request_tag_o})
                     $fatal(1,"routed lookup operands mismatch at edge %0d",edge_count);
@@ -117,7 +134,7 @@ module history_pipeline_activity_tb;
                     $fatal(1,"history state mismatch at edge %0d",edge_count);
                 edge_count++;
                 responses+=(row_response_token_i!=0);
-                publications+=expected_publish && !SECDED;
+                publications+=expected_publish && LEASE_PERIOD!=0;
                 cancels+=cancel_i;
                 #(period-period/2-1); clk_i=0;
             end else if(!$feof(source)) $fatal(1,"malformed edge vector");

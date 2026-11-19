@@ -184,3 +184,24 @@ non-refill pipeline regression also passed. The variant declares
 11 recovery controller bits in addition to the halt-mode history
 RTL. Mapped storage, routing and activity values are pending. The
 new synthesis variant is queued with its own build records.
+
+## Common clean activity qualification
+
+All five RTL configurations replayed the same clean Xcelium input
+trace for 80,001 edges, 14,519 verified row responses, and one
+cancellation. The Lease4096 variant published four times. The
+other variants used identical idle input cycles at those edges.
+The replay records are in
+`fourway-rtl-20261119-r1/clean-replay-rtl/` on the simulation volume.
+These are RTL functional checks. Routed activity and power require
+the separate gate.
+
+The physical queue uses fresh GPDK45 floorplans after all five
+synthesis producers qualify. Its default is a common die area
+when the measured cells admit a shared 65–75% utilization range.
+The fallback uses the same target utilization with separate die
+areas, which are recorded per arm. It checks internal DRC,
+connectivity and TMR register retention after route. The extracted
+timing recheck uses common row and target-arrival bounds and CPPR.
+The clean power step uses the qualified shared clock and requires
+complete flop-output and net activity annotation.
