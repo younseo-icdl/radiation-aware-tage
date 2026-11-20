@@ -910,3 +910,24 @@ correct completions. Input labeled with the pilot's matched timing
 failed the join. The synthetic timing fixture is excluded from
 measurement evidence. The measured area-versus-completion figure
 awaits the complete implemented-clock CPU ledger.
+
+## Complete pilot evidence archive
+
+An independent terminal audit reopened all 195 pilot runs. It
+reconstructed direction counts and completion from the final gem5
+stats and native counters, verified the resolved configuration
+and golden output hashes, and regenerated all 36 paired SOURCE
+tapes and their TMR replica mappings. It verified the applied
+XOR prefix and censored tail for every run. There were 165 correct
+completions and 30 detected SECDED halt stops.
+
+The private `TAGE_FourWay_Complete_Pilot_Evidence.zip` archive
+contains 1,741 verified items, including the raw statistics,
+configuration, terminal records, applied traces, tape bytes and
+hashes, planned grid, figures, and reproduction scripts. It
+records stdout byte counts and digests from the independent
+audit. The benchmark assets and stdout bytes remain on the
+experiment server. A fresh extraction reproduced all nine PNGs
+and six data CSVs byte for byte. These are the complete
+controlled-clock pilot observations. The frozen confirmation
+cohort is still running.
