@@ -931,3 +931,34 @@ experiment server. A fresh extraction reproduced all nine PNGs
 and six data CSVs byte for byte. These are the complete
 controlled-clock pilot observations. The frozen confirmation
 cohort is still running.
+
+## Frozen native fixed-intensity diagnostic
+
+The follow-up uses single-bit events at 2,000/346, or 5.780,
+flips per cataloged bit-second. This makes the ordinary native
+catalog's expected rate exactly 2,000 events/s. Lease4096,
+SECDED halt, TMR, and SECDED refill have expected rates of
+2,075.145, 2,699.422, 6,000, and 2,699.422 events/s, respectively.
+The rates differ because the exposed inventories differ.
+Every shared semantic site receives the same absolute-time event
+in each arm that contains it. The law uses individual bit events
+and assumes no physical adjacency.
+
+The frozen design contains Quicksort, SHA-1, and CRC32, four seeds
+per workload disjoint from the pilot and both confirmation grids,
+and five arms per seed. It references 15 original verified clean
+runs at 13,850 ps and schedules 60 fresh faulted runs. Each cell
+retains the paired union tape and the exact filtered tape for each
+arm. The preparation gate verified the admitted binary, input
+and output hashes, the source clean configurations, the native
+target counts, and all 12 pair manifests. The five earlier
+directed bit-delivery audits were reproduced. The diagnostic
+queue waits behind the existing CPU producers so the aggregate
+gem5 concurrency stays within 16. The design and tapes are under
+`fourway-fixed-per-bit-20261119-r1` on the experiment volume.
+
+The workload diagnostic covers the enumerated active history,
+check/replica state, and lease age counter. The full declared RTL
+storage exposure remains the earlier separate block-level replay.
+The broader control, ring, checkpoint, and query state has no
+workload-level measurement under this diagnostic.
