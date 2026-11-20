@@ -1027,3 +1027,14 @@ original tape, and the interval summary against the full ledger.
 The measured source records for the interval ablations remain
 pending. Independent plan checks agreed on the 34 matched cells
 and rejected a plan with a missing arm.
+
+The Quicksort and CRC32 fold-trace export is also queued. It
+recomputes the two predeclared pair selections, verifies the
+original tape and exclusive frontend stall accounting, and
+compares every observed replay against the original terminal
+tick, direction counts, retired instructions, stdout hash, and
+injected events. It regenerates the window-bounded per-bank
+residue summaries from the raw trace. The directed replay
+records for both ordinary TAGE and Lease4096 passed these
+terminal and trace checks, including a rejection test with a
+modified direction count. The workload traces are pending.
