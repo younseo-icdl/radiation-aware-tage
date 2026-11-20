@@ -996,3 +996,23 @@ against SECDED halt at either 2,000 or 8,000 events/s. All 12
 halt runs across the three workloads stopped at each of those rates.
 The completion table keeps those outcomes and the paired time
 table leaves the corresponding cells blank.
+
+## Data-only handoff
+
+The updated deliverable is verified experiment data and reproduction
+material. Presentation and figure production has been removed from
+the queued export. The exporter validates the complete terminal
+cohort against the frozen plan, audits raw stats, terminal records,
+output digests and tape delivery, then writes numerical tables. For
+the hardware-feasible cohort it also validates the exact routed
+clock and configuration match before writing the area and
+completion CSV.
+
+The pilot exercised the data-only pipeline on all 195 terminal
+runs. The preliminary `TAGE_FourWay_Raw_Data_Pilot_and_PPA.zip`
+archive includes 1,795 verified files covering the pilot, the
+recomputed legacy baseline, the matched GPDK45 physical data,
+source, and validation records. A new extraction reproduced the
+four pilot CSV tables byte for byte. The archive excludes charts
+and presentation files. The ongoing confirmation and diagnostic
+campaigns will produce separate raw ledgers.
