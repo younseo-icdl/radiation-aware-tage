@@ -1016,3 +1016,14 @@ source, and validation records. A new extraction reproduced the
 four pilot CSV tables byte for byte. The archive excludes charts
 and presentation files. The ongoing confirmation and diagnostic
 campaigns will produce separate raw ledgers.
+
+The K1 diagnostic and lease-interval data exports are queued
+behind their existing CPU producer. K1 uses the same raw audit as
+the primary cohort with its own frozen law and grid. The interval
+audit checks 136 original planned runs and 68 waiting references
+to the primary ledger. It verifies the declared period against
+the termination record, the applied event prefix against the
+original tape, and the interval summary against the full ledger.
+The measured source records for the interval ablations remain
+pending. Independent plan checks agreed on the 34 matched cells
+and rejected a plan with a missing arm.
