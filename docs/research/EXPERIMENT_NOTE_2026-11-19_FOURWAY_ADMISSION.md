@@ -962,3 +962,37 @@ check/replica state, and lease age counter. The full declared RTL
 storage exposure remains the earlier separate block-level replay.
 The broader control, ring, checkpoint, and query state has no
 workload-level measurement under this diagnostic.
+
+## Absolute paired pilot differences against SECDED and TMR
+
+The absolute comparison export checks the full 195-run ledger
+against the pilot plan and keeps all scheduled pairs. Its 48 cells
+match the earlier paired analyzer's available-pair denominators
+and direction metrics. It reports Lease4096 minus the comparator
+in milliseconds, equal-clock cycles, MPKI, and accuracy percentage
+points. Performance means use pairs in which both methods exited
+correctly with verified output. The four pilot seeds per nonzero
+cell are below the paired interval reporting minimum.
+
+Both SECDED refill and TMR completed all 36 faulted runs per arm.
+At 2,000 events/s, all four seeds per workload are comparable
+against these arms. The differences below are means of the paired
+effects for the 13,850 ps controlled clock.
+
+| Workload | Lease minus refill (ms) | Lease minus refill (MPKI) | Lease minus TMR (ms) | Lease minus TMR (MPKI) |
+| --- | ---: | ---: | ---: | ---: |
+| Quicksort | +1.854 | +0.3870 | +2.024 | +0.4076 |
+| SHA-1 | +0.366 | +0.2034 | +0.377 | +0.2064 |
+| CRC32 | +3.944 | +0.000029 | +5.147 | +0.000029 |
+
+Lease4096 finished 0.019 ms earlier than both refill and TMR on
+SHA-1 at 20 events/s while recording slightly higher MPKI. The
+clean SHA-1 run was already 0.022 ms earlier with the same
+direction counts, so the low-rate time advantage provides no
+evidence of superior direction resilience. On CRC32 at 8,000
+events/s, the time gap against refill narrows to +0.245 ms, while
+the gap against TMR remains +5.178 ms. No matched time is available
+against SECDED halt at either 2,000 or 8,000 events/s. All 12
+halt runs across the three workloads stopped at each of those rates.
+The completion table keeps those outcomes and the paired time
+table leaves the corresponding cells blank.
