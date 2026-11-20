@@ -1056,3 +1056,28 @@ report's actual arm names. Its independent admission rechecked
 the exact binary hash, both directed control outcomes and all
 14 checksum cases. The K1, interval, fold, implemented-clock,
 and fixed-intensity workloads remain separate follow-up evidence.
+
+## Controlled follow-ups closed
+
+All 240 K1 faulted observations and 30 reused clean references
+completed correctly. The raw audit regenerated 48 pairs of
+SOURCE tapes and the separate TMR replica mappings. These use
+the K1-only law and a disjoint seed set.
+
+The interval producer finished all 136 original executions with
+matching stdout. Initial aggregation rejected mixed clock-field
+representations because the reused CSV stored decimal strings
+and the new terminal JSON stored integers. The analyzer now
+compares canonical numeric clocks and frequencies. Recovery in
+a new directory used the original terminal records without
+additional simulation. The independent audit verified all 136
+measurements and 68 reused references. It rechecked the
+declared periods, outputs, and the applied event prefixes.
+The C++ tests and all 93 Python tests passed.
+
+Quicksort and CRC32 each have a verified fold-residue replay
+for ordinary TAGE and Lease4096. All four observed replays
+matched their original application outcomes and applied
+faults. The archive includes their bounded raw trajectories,
+exclusive frontend stall accounting and per-bank summaries.
+The next independent CPU cohort runs at 62.5 MHz.

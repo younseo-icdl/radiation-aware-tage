@@ -9,8 +9,7 @@ from statistics import mean
 from .sweep_design import VALID_OUTCOMES, outcomes
 
 PERIODS = (0, 1024, 2048, 4096, 8192, 16384)
-MATCH = ('clock_period_ticks', 'ticks_per_second', 'input_sha256', 'golden_sha256',
-         'timing_contract', 'exposure_policy', 'git_commit', 'shared_tape_sha256')
+MATCH = ('input_sha256', 'golden_sha256', 'timing_contract', 'exposure_policy', 'git_commit')
 
 
 def summarize(rows):
@@ -24,15 +23,16 @@ def summarize(rows):
                 or rate < 0 or (rate == 0) != (law == 'clean_reference')
                 or (rate == 0) != (seed == 'clean')):
             raise ValueError('unexpected, duplicate or unresolved interval observation')
-        contract = tuple(row[key] for key in MATCH[:-1])
+        clock = int(row['clock_period_ticks'])
+        frequency = int(row['ticks_per_second'])
+        contract = (clock, frequency, *(row[key] for key in MATCH))
         if scope.setdefault(workload, contract) != contract:
             raise ValueError('interval clean and faulted runs changed timing or input provenance')
         groups[key][period] = row
     clean = {}
     cells = defaultdict(list)
     for (workload, rate, law, _seed), arms in groups.items():
-        if set(arms) != set(PERIODS) or any(
-                len({row[key] for row in arms.values()}) != 1 for key in MATCH):
+        if set(arms) != set(PERIODS) or len({row['shared_tape_sha256'] for row in arms.values()}) != 1:
             raise ValueError('interval comparison requires six arms at the same timing, input and tape')
         measured = {period: outcomes(row) for period, row in arms.items()}
         if rate == 0:
@@ -47,7 +47,7 @@ def summarize(rows):
     results = []
     for (workload, rate, law), pairs in sorted(cells.items()):
         controls = clean[workload]
-        clock, frequency = map(int, scope[workload][:2])
+        clock, frequency = scope[workload][:2]
         cycles_per_second = frequency / clock
         for period in PERIODS:
             observed = [pair[period] for pair in pairs if pair[period] is not None]

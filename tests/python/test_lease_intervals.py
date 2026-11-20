@@ -27,3 +27,11 @@ class LeaseIntervalsTests(unittest.TestCase):
         rows[0]['clock_period_ticks'] = 15
         with self.assertRaisesRegex(ValueError, 'changed timing'):
             summarize(rows)
+
+    def test_csv_clock_fields_match_integer_measurement_records(self):
+        rows = list(fixture())
+        for row in rows:
+            if row['rebuild_interval_appends'] in (0, 4096):
+                row['clock_period_ticks'] = str(row['clock_period_ticks'])
+                row['ticks_per_second'] = str(row['ticks_per_second'])
+        self.assertEqual(summarize(rows), summarize(fixture()))
