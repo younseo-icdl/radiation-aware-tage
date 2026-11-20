@@ -1038,3 +1038,21 @@ residue summaries from the raw trace. The directed replay
 records for both ordinary TAGE and Lease4096 passed these
 terminal and trace checks, including a rejection test with a
 modified direction count. The workload traces are pending.
+
+## Controlled confirmation closed
+
+The 13,850 ps controlled-cohort ledger contains all 1,950 cells.
+It includes 1,935 fresh executions and 15 identical pilot clean
+references. Each arm has 390 observations. Ordinary TAGE,
+Lease4096, TMR and SECDED refill each completed all 390 with
+matching stdout. SECDED halt completed 57 and stopped on detected
+errors in 333. The independent raw audit verified every terminal
+record and regenerated all 384 paired logical tapes and their
+TMR mappings. The two data releases preserve the compact table
+set separately from the full raw run files.
+
+The queued fold observer's admission now uses the directed
+report's actual arm names. Its independent admission rechecked
+the exact binary hash, both directed control outcomes and all
+14 checksum cases. The K1, interval, fold, implemented-clock,
+and fixed-intensity workloads remain separate follow-up evidence.
