@@ -1081,3 +1081,34 @@ matched their original application outcomes and applied
 faults. The archive includes their bounded raw trajectories,
 exclusive frontend stall accounting and per-bank summaries.
 The next independent CPU cohort runs at 62.5 MHz.
+
+## Implemented-clock and fixed-intensity closure
+
+The independent 16,000 ps CPU cohort has 1,950 fresh terminal
+observations. The raw audit verified all rows and 384 paired
+SOURCE tapes, including the TMR mappings. Unprotected TAGE,
+Lease4096, SECDED refill, and TMR each completed all 390 with
+matching output. SECDED halt completed 55 and recorded 335
+detected stops. There were no infrastructure failures. The area
+and completion CSV covers 150 cells and joins the CPU ledger to
+the exact qualified clock, configuration, and route evidence.
+
+The fixed-intensity native diagnostic has 60 fresh correct
+completions and 15 audited clean references. The independent
+audit regenerated 12 union tapes and all 60 filtered arm tapes.
+It verified the applied prefix and the original output and
+configuration digests. Its gem5 catalog scope is distinct from
+the five clean and five fixed-intensity RTL replays on the
+full declared storage inventory. Those ten raw RTL deliveries
+were also re-audited.
+
+The final data handoff combines the six numerical CPU datasets.
+Its 4,644 terminal rows identify the originating cohort and
+mark all 128 reused references. Four separate fold observation
+replays retain their raw traces. A stopped run has a terminal
+tick and partial counters; its correct completion time is blank.
+The primary 205:9 law, the K1 diagnostic at 2,000 events/s, the
+fixed per-bit K1 diagnostic, the historical finite archive and
+the block-only power windows are distinct evidence scopes.
+CPU measurements do not cover unbound RTL storage fields, and
+the block power reports do not establish full-CPU energy.
